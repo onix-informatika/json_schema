@@ -675,6 +675,9 @@ class JsonSchema {
   /// Comment on the [JsonSchema] for schema maintainers.
   String _comment;
 
+  /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
+  JsonSchema _elseSchema;
+
   /// Possible values of the [JsonSchema].
   List _enumValues = [];
 
@@ -701,6 +704,9 @@ class JsonSchema {
 
   /// Base URI of the ID. All sub-schemas are resolved against this
   Uri _idBase;
+
+  /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
+  JsonSchema _ifSchema;
 
   /// Maximum value of the [JsonSchema] value.
   num _maximum;
@@ -731,6 +737,9 @@ class JsonSchema {
 
   /// Ref to the URI of the [JsonSchema].
   Uri _ref;
+
+  /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
+  JsonSchema _thenSchema;
 
   /// The path of the [JsonSchema] within the root [JsonSchema].
   String _path;
@@ -1035,6 +1044,11 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft-07/json-schema-core.html#rfc.section.9
   String get comment => _comment;
 
+  /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.6.3
+  JsonSchema get elseSchema => _elseSchema;
+
   /// Possible values of the [JsonSchema].
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.23
@@ -1092,6 +1106,11 @@ class JsonSchema {
 
     return root.id;
   }
+
+  /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.6.1
+  JsonSchema get ifSchema => _ifSchema;
 
   /// Maximum value of the [JsonSchema] value.
   ///
@@ -1158,6 +1177,11 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-7.2
   String get title => _title;
+
+  /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.6.2
+  JsonSchema get thenSchema => _thenSchema;
 
   /// List of allowable types for the [JsonSchema].
   ///
@@ -1489,7 +1513,7 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
   _setElse(dynamic value) {
     if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
-      _createOrRetrieveSchema('$_path/else', value, (rhs) => _notSchema = rhs);
+      _createOrRetrieveSchema('$_path/else', value, (rhs) => _elseSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
     }
@@ -1548,7 +1572,7 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
   _setIf(dynamic value) {
     if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
-      _createOrRetrieveSchema('$_path/if', value, (rhs) => _notSchema = rhs);
+      _createOrRetrieveSchema('$_path/if', value, (rhs) => _ifSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
     }
@@ -1633,7 +1657,7 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'then' JSON Schema keyword.
   _setThen(dynamic value) {
     if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
-      _createOrRetrieveSchema('$_path/then', value, (rhs) => _notSchema = rhs);
+      _createOrRetrieveSchema('$_path/then', value, (rhs) => _thenSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
     }

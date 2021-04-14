@@ -503,6 +503,16 @@ class Validator {
       return;
     }
 
+    if (schema.ifSchema != null) {
+      if (schema.ifSchema.validate(instance)) {
+        _validate(schema.thenSchema, instance);
+      } else {
+        _validate(schema.elseSchema, instance);
+      }
+      // Return early since we recursively call _validate in these cases.
+      return;
+    }
+
     _typeValidation(schema, instance);
     _constValidation(schema, instance);
     _enumValidation(schema, instance);
