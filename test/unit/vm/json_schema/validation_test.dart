@@ -85,6 +85,11 @@ void main([List<String> args]) {
   final Directory optionalsV6 = Directory(path.joinAll([testSuiteFolderV6.path, 'optional']));
   final allDraft6 = testSuiteFolderV6.listSync()..addAll(optionalsV6.listSync());
 
+  // Draft 7 Tests
+  final Directory testSuiteFolderV7 = Directory('./test/JSON-Schema-Test-Suite/tests/draft7');
+  final Directory optionalsV7 = Directory(path.joinAll([testSuiteFolderV7.path, 'optional']));
+  final allDraft7 = testSuiteFolderV7.listSync()..addAll(optionalsV7.listSync());
+
   final runAllTestsForDraftX =
       (SchemaVersion schemaVersion, List<FileSystemEntity> allTests, List<String> skipFiles, List<String> skipTests,
           {bool isSync = false, RefProvider refProvider}) {
@@ -276,6 +281,12 @@ void main([List<String> args]) {
     commonSkippedFiles,
     commonSkippedTests,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft7,
+    commonSkippedFiles,
+    commonSkippedTests,
+  );
 
   // Run all tests synchronously with a sync ref provider.
   runAllTestsForDraftX(
@@ -289,6 +300,14 @@ void main([List<String> args]) {
   runAllTestsForDraftX(
     SchemaVersion.draft6,
     allDraft6,
+    commonSkippedFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft7,
     commonSkippedFiles,
     commonSkippedTests,
     isSync: true,
@@ -312,6 +331,14 @@ void main([List<String> args]) {
     isSync: true,
     refProvider: syncRefJsonProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft6,
+    commonSkippedFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefJsonProvider,
+  );
 
   // Run all tests asynchronously with an async ref provider.
   runAllTestsForDraftX(
@@ -328,6 +355,13 @@ void main([List<String> args]) {
     commonSkippedTests,
     refProvider: asyncRefProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft6,
+    commonSkippedFiles,
+    commonSkippedTests,
+    refProvider: asyncRefProvider,
+  );
 
   // Run all tests asynchronously with an async json provider.
   runAllTestsForDraftX(
@@ -339,6 +373,13 @@ void main([List<String> args]) {
   );
   runAllTestsForDraftX(
     SchemaVersion.draft6,
+    allDraft6,
+    commonSkippedFiles,
+    commonSkippedTests,
+    refProvider: asyncRefJsonProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
     allDraft6,
     commonSkippedFiles,
     commonSkippedTests,
