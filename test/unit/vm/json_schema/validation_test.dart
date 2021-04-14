@@ -253,7 +253,10 @@ void main([List<String> args]) {
     return syncRefProvider.provide(ref);
   });
 
-  final List<String> commonSkippedFiles = const [];
+  final List<String> commonSkippedFiles = const [
+    /// Optional in draft7:
+    'content.json'
+  ];
 
   /// A list of tests to skip for all drafts.
   /// Should match the portion of the test name printed after the JSON file name on test run.
@@ -266,6 +269,7 @@ void main([List<String> args]) {
     'integer : a negative bignum is an integer',
     // Skip new tests from the spec that we don't pass yet:
     'all integers are multiples of 0.5, if overflow is handled : valid if optional overflow handling is implemented',
+    // Draft 7 Tests that don't yet pass:
   ];
 
   // Run all tests asynchronously with no ref provider.
