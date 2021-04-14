@@ -915,9 +915,9 @@ class JsonSchema {
 
       // Added in draft7
       r'$comment': (JsonSchema s, dynamic v) => s._setComment(v),
-      // 'if': (JsonSchema s, dynamic v) => s._setIf(v),
-      // 'then': (JsonSchema s, dynamic v) => s._setThen(v),
-      // 'else': (JsonSchema s, dynamic v) => s._setElse(v),
+      'if': (JsonSchema s, dynamic v) => s._setIf(v),
+      'then': (JsonSchema s, dynamic v) => s._setThen(v),
+      'else': (JsonSchema s, dynamic v) => s._setElse(v),
       'readOnly': (JsonSchema s, dynamic v) => s._setReadOnly(v),
       'writeOnly': (JsonSchema s, dynamic v) => s._setWriteOnly(v),
       // 'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
@@ -1486,6 +1486,15 @@ class JsonSchema {
 
   _setComment(dynamic value) => _comment = TypeValidators.string(r'$comment', value);
 
+  /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
+  _setElse(dynamic value) {
+    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+      _createOrRetrieveSchema('$_path/else', value, (rhs) => _notSchema = rhs);
+    } else {
+      throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
+    }
+  }
+
   /// Validate, calculate and set the value of the 'enum' JSON Schema keyword.
   _setEnum(dynamic value) => _enumValues = TypeValidators.uniqueList('enum', value);
 
@@ -1536,22 +1545,31 @@ class JsonSchema {
     return _id;
   }
 
-  /// Validate, calculate and set the value of the 'minimum' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
+  _setIf(dynamic value) {
+    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+      _createOrRetrieveSchema('$_path/if', value, (rhs) => _notSchema = rhs);
+    } else {
+      throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
+    }
+  }
+
+  /// Validate, calculate and set the value of the 'minimum' JSON Schema keyword.
   _setMinimum(dynamic value) => _minimum = TypeValidators.number('minimum', value);
 
-  /// Validate, calculate and set the value of the 'maximum' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'maximum' JSON Schema keyword.
   _setMaximum(dynamic value) => _maximum = TypeValidators.number('maximum', value);
 
-  /// Validate, calculate and set the value of the 'maxLength' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'maxLength' JSON Schema keyword.
   _setMaxLength(dynamic value) => _maxLength = TypeValidators.nonNegativeInt('maxLength', value);
 
-  /// Validate, calculate and set the value of the 'minLength' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'minLength' JSON Schema keyword.
   _setMinLength(dynamic value) => _minLength = TypeValidators.nonNegativeInt('minLength', value);
 
-  /// Validate, calculate and set the value of the 'multiple' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'multiple' JSON Schema keyword.
   _setMultipleOf(dynamic value) => _multipleOf = TypeValidators.nonNegativeNum('multiple', value);
 
-  /// Validate, calculate and set the value of the 'not' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'not' JSON Schema keyword.
   _setNot(dynamic value) {
     if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
       _createOrRetrieveSchema('$_path/not', value, (rhs) => _notSchema = rhs);
@@ -1560,13 +1578,13 @@ class JsonSchema {
     }
   }
 
-  /// Validate, calculate and set the value of the 'oneOf' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'oneOf' JSON Schema keyword.
   _setOneOf(dynamic value) => _validateListOfSchema('oneOf', value, (schema) => _oneOf.add(schema));
 
-  /// Validate, calculate and set the value of the 'pattern' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'pattern' JSON Schema keyword.
   _setPattern(dynamic value) => _pattern = RegExp(TypeValidators.string('pattern', value), unicode: true);
 
-  /// Validate, calculate and set the value of the 'propertyNames' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'propertyNames' JSON Schema keyword.
   _setPropertyNames(dynamic value) {
     if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
       _createOrRetrieveSchema('$_path/propertyNames', value, (rhs) => _propertyNamesSchema = rhs);
@@ -1575,13 +1593,13 @@ class JsonSchema {
     }
   }
 
-  /// Validate, calculate and set the value of the 'readOnly' JSON Schema keyword
+  /// Validate, calculate and set the value of the 'readOnly' JSON Schema keyword.
   _setReadOnly(dynamic value) => _readOnly = TypeValidators.boolean('readOnly', value);
 
-  /// Validate, calculate and set the value of the 'writeOnly' JSON Schema keyword
+  /// Validate, calculate and set the value of the 'writeOnly' JSON Schema keyword.
   _setWriteOnly(dynamic value) => _writeOnly = TypeValidators.boolean('writeOnly', value);
 
-  /// Validate, calculate and set the value of the '$ref' JSON Schema prop.
+  /// Validate, calculate and set the value of the '$ref' JSON Schema keyword.
   _setRef(dynamic value) {
     // Add any relevant inherited Uri information.
     _ref = _translateLocalRefToFullUri(TypeValidators.uri(r'$ref', value));
@@ -1609,10 +1627,19 @@ class JsonSchema {
     return SchemaVersion.draft7;
   }
 
-  /// Validate, calculate and set the value of the 'title' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'title' JSON Schema keyword.
   _setTitle(dynamic value) => _title = TypeValidators.string('title', value);
 
-  /// Validate, calculate and set the value of the 'type' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'then' JSON Schema keyword.
+  _setThen(dynamic value) {
+    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+      _createOrRetrieveSchema('$_path/then', value, (rhs) => _notSchema = rhs);
+    } else {
+      throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
+    }
+  }
+
+  /// Validate, calculate and set the value of the 'type' JSON Schema keyword.
   _setType(dynamic value) => _typeList = TypeValidators.typeList('type', value);
 
   // --------------------------------------------------------------------------
@@ -1634,7 +1661,7 @@ class JsonSchema {
     }
   }
 
-  /// Validate, calculate and set the value of the 'additionalItems' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'additionalItems' JSON Schema keyword.
   _setAdditionalItems(dynamic value) {
     if (value is bool) {
       _additionalItemsBool = value;
@@ -1645,19 +1672,19 @@ class JsonSchema {
     }
   }
 
-  /// Validate, calculate and set the value of the 'contains' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'contains' JSON Schema keyword.
   _setContains(dynamic value) => _createOrRetrieveSchema('$_path/contains', value, (rhs) => _contains = rhs);
 
-  /// Validate, calculate and set the value of the 'examples' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'examples' JSON Schema keyword.
   _setExamples(dynamic value) => _examples = TypeValidators.list('examples', value);
 
-  /// Validate, calculate and set the value of the 'maxItems' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'maxItems' JSON Schema keyword.
   _setMaxItems(dynamic value) => _maxItems = TypeValidators.nonNegativeInt('maxItems', value);
 
-  /// Validate, calculate and set the value of the 'minItems' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'minItems' JSON Schema keyword.
   _setMinItems(dynamic value) => _minItems = TypeValidators.nonNegativeInt('minItems', value);
 
-  /// Validate, calculate and set the value of the 'uniqueItems' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'uniqueItems' JSON Schema keyword.
   _setUniqueItems(dynamic value) => _uniqueItems = TypeValidators.boolean('uniqueItems', value);
 
   // --------------------------------------------------------------------------
@@ -1668,7 +1695,7 @@ class JsonSchema {
   _setProperties(dynamic value) => (TypeValidators.object('properties', value)).forEach((property, subSchema) =>
       _createOrRetrieveSchema('$_path/properties/$property', subSchema, (rhs) => _properties[property] = rhs));
 
-  /// Validate, calculate and set the value of the 'additionalProperties' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'additionalProperties' JSON Schema keyword.
   _setAdditionalProperties(dynamic value) {
     if (value is bool) {
       _additionalProperties = value;
@@ -1679,7 +1706,7 @@ class JsonSchema {
     }
   }
 
-  /// Validate, calculate and set the value of the 'dependencies' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'dependencies' JSON Schema keyword.
   _setDependencies(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
         if (v is Map || v is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
           _createOrRetrieveSchema('$_path/dependencies/$k', v, (rhs) => _schemaDependencies[k] = rhs);
@@ -1704,22 +1731,22 @@ class JsonSchema {
         }
       });
 
-  /// Validate, calculate and set the value of the 'maxProperties' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'maxProperties' JSON Schema keyword.
   _setMaxProperties(dynamic value) => _maxProperties = TypeValidators.nonNegativeInt('maxProperties', value);
 
-  /// Validate, calculate and set the value of the 'minProperties' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'minProperties' JSON Schema keyword.
   _setMinProperties(dynamic value) => _minProperties = TypeValidators.nonNegativeInt('minProperties', value);
 
-  /// Validate, calculate and set the value of the 'patternProperties' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'patternProperties' JSON Schema keyword.
   _setPatternProperties(dynamic value) =>
       (TypeValidators.object('patternProperties', value)).forEach((k, v) => _createOrRetrieveSchema(
           '$_path/patternProperties/$k', v, (rhs) => _patternProperties[RegExp(k, unicode: true)] = rhs));
 
-  /// Validate, calculate and set the value of the 'required' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'required' JSON Schema keyword.
   _setRequired(dynamic value) =>
       _requiredProperties = (TypeValidators.nonEmptyList('required', value))?.map((value) => value as String)?.toList();
 
-  /// Validate, calculate and set the value of the 'required' JSON Schema prop.
+  /// Validate, calculate and set the value of the 'required' JSON Schema keyword.
   _setRequiredV6(dynamic value) =>
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
 }
