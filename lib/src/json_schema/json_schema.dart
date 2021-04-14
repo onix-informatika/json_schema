@@ -678,6 +678,12 @@ class JsonSchema {
   /// Comment on the [JsonSchema] for schema maintainers.
   String _comment;
 
+  /// Content Media Type.
+  String _contentMediaType;
+
+  /// Content Encoding.
+  String _contentEncoding;
+
   /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
   JsonSchema _elseSchema;
 
@@ -932,8 +938,8 @@ class JsonSchema {
       'else': (JsonSchema s, dynamic v) => s._setElse(v),
       'readOnly': (JsonSchema s, dynamic v) => s._setReadOnly(v),
       'writeOnly': (JsonSchema s, dynamic v) => s._setWriteOnly(v),
-      // 'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
-      // 'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
+      'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
+      'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
     });
 
   /// Get a nested [JsonSchema] from a path.
@@ -1046,6 +1052,16 @@ class JsonSchema {
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-core.html#rfc.section.9
   String get comment => _comment;
+
+  /// Description of the [JsonSchema].
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.8.4
+  String get contentMediaType => _contentMediaType;
+
+  /// Description of the [JsonSchema].
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.8.3
+  String get contentEncoding => _contentEncoding;
 
   /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
   ///
@@ -1511,7 +1527,14 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'description' JSON Schema keyword.
   _setDescription(dynamic value) => _description = TypeValidators.string('description', value);
 
+  /// Validate, calculate and set the value of the '$comment' JSON Schema keyword.
   _setComment(dynamic value) => _comment = TypeValidators.string(r'$comment', value);
+
+  /// Validate, calculate and set the value of the 'contentMediaType' JSON Schema keyword.
+  _setContentMediaType(dynamic value) => _contentMediaType = TypeValidators.string('contentMediaType', value);
+
+  /// Validate, calculate and set the value of the 'contentEncoding' JSON Schema keyword.
+  _setContentEncoding(dynamic value) => _contentEncoding = TypeValidators.string('contentEncoding', value);
 
   /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
   _setElse(dynamic value) {
