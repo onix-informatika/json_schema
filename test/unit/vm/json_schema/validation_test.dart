@@ -255,7 +255,7 @@ void main([List<String> args]) {
 
   final List<String> commonSkippedFiles = const [
     /// Optional in draft7:
-    'content.json'
+    // 'content.json'
   ];
 
   /// A list of tests to skip for all drafts.

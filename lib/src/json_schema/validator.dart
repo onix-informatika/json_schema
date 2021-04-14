@@ -121,7 +121,7 @@ class Validator {
         return instance is String;
       case SchemaType.integer:
         return instance is int ||
-            (schema.schemaVersion == SchemaVersion.draft6 && instance is num && instance.remainder(1) == 0);
+            ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) && instance is num && instance.remainder(1) == 0);
       case SchemaType.number:
         return instance is num;
       case SchemaType.array:
@@ -332,7 +332,7 @@ class Validator {
         break;
       case 'uri-reference':
         {
-          if (schema.schemaVersion != SchemaVersion.draft6)
+          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
             // TODO: deal with schema.format
             _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
           final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
@@ -344,7 +344,7 @@ class Validator {
         break;
       case 'uri-template':
         {
-          if (schema.schemaVersion != SchemaVersion.draft6)
+          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
             _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
           final isValid = defaultValidators.uriTemplateValidator ?? (_) => false;
 
@@ -385,7 +385,7 @@ class Validator {
         break;
       case 'json-pointer':
         {
-          if (schema.schemaVersion != SchemaVersion.draft6)
+          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
             _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
           if (JsonSchemaValidationRegexes.jsonPointer.firstMatch(instance.data) == null) {
             _err('json-pointer" format not accepted $instance', instance.path, schema.path);
@@ -503,16 +503,8 @@ class Validator {
       return;
     }
 
-    if (schema.ifSchema != null) {
-      if (schema.ifSchema.validate(instance)) {
-        _validate(schema.thenSchema, instance);
-      } else {
-        _validate(schema.elseSchema, instance);
-      }
-      // Return early since we recursively call _validate in these cases.
-      return;
-    }
-
+    if (_ifThenElseValidation(schema, instance)) return;
+    
     _typeValidation(schema, instance);
     _constValidation(schema, instance);
     _enumValidation(schema, instance);
@@ -525,6 +517,26 @@ class Validator {
     if (schema.notSchema != null) _validateNot(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
+  }
+
+  bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
+    if (schema.ifSchema != null) {
+      // Bail out early if no 'then' or 'else' schemas exist.
+      if (schema.thenSchema == null && schema.elseSchema == null) return true;
+
+      if (schema.ifSchema.validate(instance)) {
+        // Bail out early if no "then" is specified.
+        if (schema.thenSchema == null) return true;
+        _validate(schema.thenSchema, instance);
+      } else {
+        // Bail out early if no "else" is specified.
+        if (schema.elseSchema == null) return true;
+        _validate(schema.elseSchema, instance);
+      }
+      // Return early since we recursively call _validate in these cases.
+      return true;
+    }
+    return false;
   }
 
   void _err(String msg, String instancePath, String schemaPath) {
