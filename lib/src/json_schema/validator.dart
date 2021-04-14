@@ -121,7 +121,9 @@ class Validator {
         return instance is String;
       case SchemaType.integer:
         return instance is int ||
-            ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) && instance is num && instance.remainder(1) == 0);
+            ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
+                instance is num &&
+                instance.remainder(1) == 0);
       case SchemaType.number:
         return instance is num;
       case SchemaType.array:
@@ -504,7 +506,7 @@ class Validator {
     }
 
     if (_ifThenElseValidation(schema, instance)) return;
-    
+
     _typeValidation(schema, instance);
     _constValidation(schema, instance);
     _enumValidation(schema, instance);

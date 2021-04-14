@@ -163,6 +163,9 @@ class JsonSchema {
       }
     }
 
+    /// Set the Schema version before doing anything else, since almost everything depends on it.
+    schemaVersion = _getSchemaVersion(schemaVersion, data);
+
     if (data is Map) {
       return JsonSchema._fromRootMap(
         data,
