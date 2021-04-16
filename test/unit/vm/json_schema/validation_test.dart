@@ -576,4 +576,30 @@ void main([List<String> args]) {
     expect(isValid, isTrue);
     expect(isInvalid, isFalse);
   });
+
+  test('Should respect configurable format validation', () {
+    final schema = JsonSchema.createSchema({
+      'properties': {
+        'someKey': {'format': 'uri-template'}
+      }
+    });
+
+    final isValidFormatsOn = schema.validate({'someKey': 'http://example.com/dictionary/{term:1}/{term'});
+
+    expect(isValidFormatsOn, isFalse);
+
+    final isValidFormatsOff =
+        schema.validate({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false);
+
+    expect(isValidFormatsOff, isTrue);
+
+    final errorsFormatsOn = schema.validateWithErrors({'someKey': 'http://example.com/dictionary/{term:1}/{term'});
+
+    expect(errorsFormatsOn, isNotEmpty);
+
+    final errorsFormatsOff =
+        schema.validateWithErrors({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false);
+
+    expect(errorsFormatsOff, isEmpty);
+  });
 }

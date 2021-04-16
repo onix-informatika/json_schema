@@ -82,9 +82,23 @@ class Validator {
 
   List<ValidationError> get errorObjects => _errors;
 
+  bool _validateFormats;
+
   /// Validate the [instance] against the this validator's schema
-  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false}) {
+  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
     // _logger.info('Validating ${instance.runtimeType}:$instance on ${_rootSchema}'); TODO: re-add logger
+
+    if (validateFormats == null) {
+      // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
+      if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
+        // By default, formats are validated on a best-effort basis from draft4 through draft7.
+        validateFormats = true;
+      } else {
+        // Starting with Draft 2019-09, formats shouldn't be validated by default.
+        validateFormats = false;
+      }
+    }
+    _validateFormats = validateFormats;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -310,94 +324,133 @@ class Validator {
   }
 
   void _validateFormat(JsonSchema schema, Instance instance) {
+    if (!_validateFormats) return;
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
 
     switch (schema.format) {
       case 'date-time':
-        {
-          try {
-            DateTime.parse(instance.data);
-          } catch (e) {
-            _err('"date-time" format not accepted $instance', instance.path, schema.path);
-          }
+        try {
+          DateTime.parse(instance.data);
+        } catch (e) {
+          _err('"date-time" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'time':
+        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
+        // Since we don't support draft3, just draft7 is needed here.
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        if (JsonSchemaValidationRegexes.fullTime.firstMatch(instance.data) == null) {
+          _err('"time" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'date':
+        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
+        // Since we don't support draft3, just draft7 is needed here.
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        if (JsonSchemaValidationRegexes.fullDate.firstMatch(instance.data) == null) {
+          _err('"date" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'uri':
-        {
-          final isValid = defaultValidators.uriValidator ?? (_) => false;
+        final isValid = defaultValidators.uriValidator ?? (_) => false;
 
-          if (!isValid(instance.data)) {
-            _err('"uri" format not accepted $instance', instance.path, schema.path);
-          }
+        if (!isValid(instance.data)) {
+          _err('"uri" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'iri':
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        // Dart's URI class supports parsing IRIs, so we can use the same validator
+        final isValid = defaultValidators.uriValidator ?? (_) => false;
+
+        if (!isValid(instance.data)) {
+          _err('"uri" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'iri-reference':
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+
+        // Dart's URI class supports parsing IRIs, so we can use the same validator
+        final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
+
+        if (!isValid(instance.data)) {
+          _err('"iri-reference" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'uri-reference':
-        {
-          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
-            // TODO: deal with schema.format
-            _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
-          final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
+        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
+        final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
 
-          if (!isValid(instance.data)) {
-            _err('"uri-reference" format not accepted $instance', instance.path, schema.path);
-          }
+        if (!isValid(instance.data)) {
+          _err('"uri-reference" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'uri-template':
-        {
-          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
-            _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
-          final isValid = defaultValidators.uriTemplateValidator ?? (_) => false;
+        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
+        final isValid = defaultValidators.uriTemplateValidator ?? (_) => false;
 
-          if (!isValid(instance.data)) {
-            _err('"uri-template" format not accepted $instance', instance.path, schema.path);
-          }
+        if (!isValid(instance.data)) {
+          _err('"uri-template" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'email':
-        {
-          final isValid = defaultValidators.emailValidator ?? (_) => false;
+        final isValid = defaultValidators.emailValidator ?? (_) => false;
 
-          if (!isValid(instance.data)) {
-            _err('"email" format not accepted $instance', instance.path, schema.path);
-          }
+        if (!isValid(instance.data)) {
+          _err('"email" format not accepted $instance', instance.path, schema.path);
         }
         break;
+      case 'idn-email':
+        // No maintained dart packages exist to validate RFC6531,
+        // and it's too complex for a regex, so best effort is to pass for now.
+        break;
       case 'ipv4':
-        {
-          if (JsonSchemaValidationRegexes.ipv4.firstMatch(instance.data) == null) {
-            _err('"ipv4" format not accepted $instance', instance.path, schema.path);
-          }
+        if (JsonSchemaValidationRegexes.ipv4.firstMatch(instance.data) == null) {
+          _err('"ipv4" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'ipv6':
-        {
-          if (JsonSchemaValidationRegexes.ipv6.firstMatch(instance.data) == null) {
-            _err('ipv6" format not accepted $instance', instance.path, schema.path);
-          }
+        if (JsonSchemaValidationRegexes.ipv6.firstMatch(instance.data) == null) {
+          _err('ipv6" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'hostname':
-        {
-          if (JsonSchemaValidationRegexes.hostname.firstMatch(instance.data) == null) {
-            _err('"hostname" format not accepted $instance', instance.path, schema.path);
-          }
+        if (JsonSchemaValidationRegexes.hostname.firstMatch(instance.data) == null) {
+          _err('"hostname" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'idn-hostname':
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        if (JsonSchemaValidationRegexes.idnHostname.firstMatch(instance.data) == null) {
+          _err('"idn-hostname" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'json-pointer':
-        {
-          if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion))
-            _err('${schema.format} not supported as format before draft6', instance.path, schema.path);
-          if (JsonSchemaValidationRegexes.jsonPointer.firstMatch(instance.data) == null) {
-            _err('json-pointer" format not accepted $instance', instance.path, schema.path);
-          }
+        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
+        if (JsonSchemaValidationRegexes.jsonPointer.firstMatch(instance.data) == null) {
+          _err('json-pointer" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'relative-json-pointer':
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        if (JsonSchemaValidationRegexes.relativeJsonPointer.firstMatch(instance.data) == null) {
+          _err('relative-json-pointer" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'regex':
+        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
+        // Since we don't support draft3, just draft7 is needed here.
+        if (SchemaVersion.draft7 != schema.schemaVersion) return;
+        try {
+          RegExp(instance.data, unicode: true);
+        } catch (e) {
+          _err('"regex" format not accepted $instance', instance.path, schema.path);
         }
         break;
       default:
-        {
-          _err('${schema.format} not supported as format', instance.path, schema.path);
-        }
+        // Don't attempt to validate unknown formats.
+        break;
     }
   }
 

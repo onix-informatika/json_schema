@@ -68,7 +68,23 @@ class JsonSchemaValidationRegexes {
       r'[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?'
       r'(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$');
 
+  // From: https://github.com/johno/domain-regex/blob/master/index.js
+  static RegExp idnHostname = RegExp(r'\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b');
+
   static RegExp jsonPointer = RegExp(r'^(?:\/(?:[^~/]|~0|~1)*)*$');
+
+  // Spec: https://tools.ietf.org/html/draft-handrews-relative-json-pointer-01
+  // From: https://github.com/ajv-validator/ajv-formats/blob/ec288c47a25024b36ea4117d7904f0308487d3de/src/formats.ts#L71
+  static RegExp relativeJsonPointer = RegExp(r'^(?:\/(?:[^~/]|~0|~1)*)*$');
+
+  // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
+  // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
+  static RegExp fullTime =
+      RegExp(r'^(2[0-3]|[01][0-9]):?([0-5][0-9]):?([0-5][0-9])(Z|[+-](?:2[0-3]|[01][0-9])(?::?(?:[0-5][0-9]))?)$');
+
+  // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
+  // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
+  static RegExp fullDate = RegExp(r'^([0-9]{4})(-?)(1[0-2]|0[1-9])\2(3[01]|0[1-9]|[12][0-9])$');
 }
 
 class SchemaVersion implements Comparable<SchemaVersion> {
