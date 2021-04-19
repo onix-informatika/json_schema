@@ -65,7 +65,7 @@ main() {
     }
   };
 
-  final RefProvider refProvider = (String ref) {
+  final RefProvider refProvider = RefProvider.syncSchema((String ref) {
     final Map references = {
       'https://example.com/geographical-location.schema.json': JsonSchema.createSchema(referencedSchema),
     };
@@ -75,7 +75,7 @@ main() {
     }
 
     return null;
-  };
+  });
 
   final schema = JsonSchema.createSchema({
     'type': 'array',
@@ -248,7 +248,7 @@ main() async {
 
 ### Asynchronous Creation, with custom remote $refs:
 
-If you have nested $refs that are either non-HTTP URIs or non-publicly-accessible HTTP $refs, you can supply an `RefProviderAsync` to `createSchemaAsync`, and perform any custom logic you need.
+If you have nested $refs that are either non-HTTP URIs or non-publicly-accessible HTTP $refs, you can supply an async `RefProvider` to `createSchemaAsync`, and perform any custom logic you need.
 
 #### Example
 
@@ -286,7 +286,7 @@ main() async {
     }
   };
 
-  final RefProviderAsync refProvider = (String ref) async {
+  final RefProvider refProvider = RefProvider.asyncSchema((String ref) async {
     final Map references = {
       'https://example.com/geographical-location.schema.json': JsonSchema.createSchema(referencedSchema),
     };
@@ -301,7 +301,7 @@ main() async {
 
     // Fall back to default URL $ref behavior
     return await JsonSchema.createSchemaFromUrl(ref);
-  };
+  });
 
   final schema = await JsonSchema.createSchemaAsync({
     'type': 'array',

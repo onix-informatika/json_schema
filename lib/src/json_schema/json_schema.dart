@@ -338,8 +338,7 @@ class JsonSchema {
             try {
               localSchema.resolvePath(Uri.parse('#${schemaUri.fragment}'));
             } catch (e) {
-              // If we couldn't resolve the path locally, attempt to make a request anyway.
-              resolvedSuccessfully = false;
+              throw ArgumentError('Unable to resolve \$ref "${schemaUri}"');
             }
           }
         }
@@ -1234,12 +1233,10 @@ class JsonSchema {
   /// Map of sub-properties' and references' [JsonSchema]s by path.
   ///
   /// Note: This is useful for drawing dependency graphs, etc, but should not be used for general
-  /// validation or traversal. Use [endPath] to get the absolute [String] path and [resolvePath]
-  /// to get the [JsonSchema] at any path, instead.
+  /// validation or traversal. Use [resolvePath] to get the [JsonSchema] at any path, instead.
   @Deprecated('''
     Note: This information is useful for drawing dependency graphs, etc, but should not be used for general
-    validation or traversal. Use [endPath] to get the absolute [String] path and [resolvePath]
-    to get the [JsonSchema] at any path, instead.
+    validation or traversal. Use [resolvePath] to get the [JsonSchema] at any path, instead.
   ''')
   Map<String, JsonSchema> get refMap => _refMap;
 
