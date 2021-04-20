@@ -337,12 +337,7 @@ class JsonSchema {
 
           // Resolve sub schema of fetched schema if a fragment was included.
           if (resolvedSuccessfully && schemaUri.fragment != null && schemaUri.fragment.isNotEmpty) {
-            try {
-              localSchema.resolvePath(Uri.parse('#${schemaUri.fragment}'));
-            } catch (e) {
-              // If we couldn't resolve the path locally, attempt to make a request anyway.
-              resolvedSuccessfully = false;
-            }
+            localSchema.resolvePath(Uri.parse('#${schemaUri.fragment}'));
           }
         }
 
