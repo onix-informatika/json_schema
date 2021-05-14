@@ -558,8 +558,7 @@ class Validator {
       return;
     }
 
-    if (_ifThenElseValidation(schema, instance)) return;
-
+    _ifThenElseValidation(schema, instance);
     _typeValidation(schema, instance);
     _constValidation(schema, instance);
     _enumValidation(schema, instance);
@@ -582,11 +581,17 @@ class Validator {
       if (schema.ifSchema.validate(instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
-        _validate(schema.thenSchema, instance);
+        if (!Validator(schema.thenSchema).validate(instance)) {
+          _err('${schema.path}/then: then violated ($instance, ${schema.thenSchema})', instance.path,
+              schema.path + '/then');
+        }
       } else {
         // Bail out early if no "else" is specified.
         if (schema.elseSchema == null) return true;
-        _validate(schema.elseSchema, instance);
+        if (!Validator(schema.elseSchema).validate(instance)) {
+          _err('${schema.path}/else: then violated ($instance, ${schema.elseSchema})', instance.path,
+              schema.path + '/else');
+        }
       }
       // Return early since we recursively call _validate in these cases.
       return true;
