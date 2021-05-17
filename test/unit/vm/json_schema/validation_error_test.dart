@@ -427,15 +427,12 @@ void main() {
       expect(errors[0].message, contains('json-pointer'));
     });
 
-    test('Unsupported format', () {
+    test('Unknown format', () {
       final schema = createObjectSchema({'format': 'fake-format'});
 
-      final errors = schema.validateWithErrors({'someKey': '3'});
+      final isValid = schema.validate({'someKey': '3'});
 
-      expect(errors.length, 1);
-      expect(errors[0].instancePath, '/someKey');
-      expect(errors[0].schemaPath, '/properties/someKey');
-      expect(errors[0].message, contains('not supported'));
+      expect(isValid, isTrue);
     });
 
     test('Object minProperties', () {
