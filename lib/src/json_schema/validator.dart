@@ -589,7 +589,7 @@ class Validator {
         // Bail out early if no "else" is specified.
         if (schema.elseSchema == null) return true;
         if (!Validator(schema.elseSchema).validate(instance)) {
-          _err('${schema.path}/else: then violated ($instance, ${schema.elseSchema})', instance.path,
+          _err('${schema.path}/else: else violated ($instance, ${schema.elseSchema})', instance.path,
               schema.path + '/else');
         }
       }
