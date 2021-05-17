@@ -68,7 +68,23 @@ class JsonSchemaValidationRegexes {
       r'[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?'
       r'(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$');
 
+  // From: https://github.com/johno/domain-regex/blob/master/index.js
+  static RegExp idnHostname = RegExp(r'\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b');
+
   static RegExp jsonPointer = RegExp(r'^(?:\/(?:[^~/]|~0|~1)*)*$');
+
+  // Spec: https://tools.ietf.org/html/draft-handrews-relative-json-pointer-01
+  // From: https://github.com/ajv-validator/ajv-formats/blob/ec288c47a25024b36ea4117d7904f0308487d3de/src/formats.ts#L71
+  static RegExp relativeJsonPointer = RegExp(r'^(?:\/(?:[^~/]|~0|~1)*)*$');
+
+  // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
+  // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
+  static RegExp fullTime =
+      RegExp(r'^(2[0-3]|[01][0-9]):?([0-5][0-9]):?([0-5][0-9])(Z|[+-](?:2[0-3]|[01][0-9])(?::?(?:[0-5][0-9]))?)$');
+
+  // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
+  // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
+  static RegExp fullDate = RegExp(r'^([0-9]{4})(-?)(1[0-2]|0[1-9])\2(3[01]|0[1-9]|[12][0-9])$');
 }
 
 class SchemaVersion implements Comparable<SchemaVersion> {
@@ -78,7 +94,9 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 
   static const SchemaVersion draft6 = SchemaVersion._(1);
 
-  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6];
+  static const SchemaVersion draft7 = SchemaVersion._(2);
+
+  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6, draft7];
 
   final int value;
 
@@ -97,6 +115,8 @@ class SchemaVersion implements Comparable<SchemaVersion> {
         return 'http://json-schema.org/draft-04/schema#';
       case draft6:
         return 'http://json-schema.org/draft-06/schema#';
+      case draft7:
+        return 'http://json-schema.org/draft-07/schema#';
     }
     return null;
   }
@@ -108,6 +128,8 @@ class SchemaVersion implements Comparable<SchemaVersion> {
         return draft4;
       case 'http://json-schema.org/draft-06/schema#':
         return draft6;
+      case 'http://json-schema.org/draft-07/schema#':
+        return draft7;
       default:
         return null;
     }
@@ -118,6 +140,7 @@ String getJsonSchemaDefinitionByRef(String ref) {
   final mapping = {
     SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
     SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
+    SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
   };
 
   if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
@@ -436,4 +459,178 @@ class JsonSchemaDefinitions {
     "default": {}
 }
     ''';
+
+  static String draft7 = r'''{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://json-schema.org/draft-07/schema#",
+    "title": "Core schema meta-schema",
+    "definitions": {
+        "schemaArray": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#" }
+        },
+        "nonNegativeInteger": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "nonNegativeIntegerDefault0": {
+            "allOf": [
+                { "$ref": "#/definitions/nonNegativeInteger" },
+                { "default": 0 }
+            ]
+        },
+        "simpleTypes": {
+            "enum": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+            ]
+        },
+        "stringArray": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true,
+            "default": []
+        }
+    },
+    "type": ["object", "boolean"],
+    "properties": {
+        "$id": {
+            "type": "string",
+            "format": "uri-reference"
+        },
+        "$schema": {
+            "type": "string",
+            "format": "uri"
+        },
+        "$ref": {
+            "type": "string",
+            "format": "uri-reference"
+        },
+        "$comment": {
+            "type": "string"
+        },
+        "title": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "default": true,
+        "readOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "writeOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "examples": {
+            "type": "array",
+            "items": true
+        },
+        "multipleOf": {
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "maximum": {
+            "type": "number"
+        },
+        "exclusiveMaximum": {
+            "type": "number"
+        },
+        "minimum": {
+            "type": "number"
+        },
+        "exclusiveMinimum": {
+            "type": "number"
+        },
+        "maxLength": { "$ref": "#/definitions/nonNegativeInteger" },
+        "minLength": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
+        "pattern": {
+            "type": "string",
+            "format": "regex"
+        },
+        "additionalItems": { "$ref": "#" },
+        "items": {
+            "anyOf": [
+                { "$ref": "#" },
+                { "$ref": "#/definitions/schemaArray" }
+            ],
+            "default": true
+        },
+        "maxItems": { "$ref": "#/definitions/nonNegativeInteger" },
+        "minItems": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
+        "uniqueItems": {
+            "type": "boolean",
+            "default": false
+        },
+        "contains": { "$ref": "#" },
+        "maxProperties": { "$ref": "#/definitions/nonNegativeInteger" },
+        "minProperties": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
+        "required": { "$ref": "#/definitions/stringArray" },
+        "additionalProperties": { "$ref": "#" },
+        "definitions": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#" },
+            "default": {}
+        },
+        "properties": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#" },
+            "default": {}
+        },
+        "patternProperties": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#" },
+            "propertyNames": { "format": "regex" },
+            "default": {}
+        },
+        "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    { "$ref": "#" },
+                    { "$ref": "#/definitions/stringArray" }
+                ]
+            }
+        },
+        "propertyNames": { "$ref": "#" },
+        "const": true,
+        "enum": {
+            "type": "array",
+            "items": true,
+            "minItems": 1,
+            "uniqueItems": true
+        },
+        "type": {
+            "anyOf": [
+                { "$ref": "#/definitions/simpleTypes" },
+                {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/simpleTypes" },
+                    "minItems": 1,
+                    "uniqueItems": true
+                }
+            ]
+        },
+        "format": { "type": "string" },
+        "contentMediaType": { "type": "string" },
+        "contentEncoding": { "type": "string" },
+        "if": { "$ref": "#" },
+        "then": { "$ref": "#" },
+        "else": { "$ref": "#" },
+        "allOf": { "$ref": "#/definitions/schemaArray" },
+        "anyOf": { "$ref": "#/definitions/schemaArray" },
+        "oneOf": { "$ref": "#/definitions/schemaArray" },
+        "not": { "$ref": "#" }
+    },
+    "default": true
+}
+  ''';
 }
