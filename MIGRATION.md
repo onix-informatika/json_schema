@@ -10,7 +10,7 @@ json_schema 3.0 is now here due to an issue that was found in 2.0 that caused re
     - `RefProvider.asyncJson`
 - The `_refMap` member used to contain references to all sub-schemas in the schema and remote refs, but now only contains remote referenced schemas and sub-schemas with unique `$id`s.
   - The public getter `refMap` is marked as deprecated due to the fact it shouldn't need to be used externally, but `resolvePath` should be used to fetch schemas from a given URI.
-- Draft 7 is now supported!
+- Draft 7 is now supported and the default schema used!
 
 We are now 100% spec compliant with all spec tests passing (a few optional tests are still skipped) with these new changes!
 
