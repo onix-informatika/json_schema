@@ -1,8 +1,18 @@
 # json_schema v2.x to v3 Migration Guide
 
-json_schema 3.0 is now here due to an issue that was found in 2.0 that caused remote refs to not get resolved correctly. This forced us to sort through the ref resolution logic in schema construction and change a few underlying assumptions. While on the surface it doesn't look like any publically exposed members or methods were modified or removed, the map of sub-properties' and references' [JsonSchema]s by path (`_refMap`) is structured differently to accommodate new logic changes in schema construction and resolution.
+json_schema 3.0 is now here due to an issue that was found in 2.0 that caused remote refs to not get resolved correctly. This forced us to sort through the ref resolution logic in schema construction and change a few underlying assumptions.
+- `JsonSchema.resolvePath` now takes a URI object as a parameter instead of a string.
+- The `refProvider` parameter in the constructors is now a class you can configure to provide resolved `JsonSchema`s or valid JSON objects, synchronously or asynchronously.
+  - 4 Static methods can be used for easy construction:
+    - `RefProvider.syncSchema`
+    - `RefProvider.syncJson`
+    - `RefProvider.asyncSchema`
+    - `RefProvider.asyncJson`
+- The `_refMap` member used to contain references to all sub-schemas in the schema and remote refs, but now only contains remote referenced schemas and sub-schemas with unique `$id`s.
+  - The public getter `refMap` is marked as deprecated due to the fact it shouldn't need to be used externally, but `resolvePath` should be used to fetch schemas from a given URI.
+- Draft 7 is now supported and the default schema used!
 
-All tests continue to pass and most consumers will not have to make any changes, but for some more advanced use cases, these changes might break schema resolution/validation which we prefer to protect against with a 3.0 major version upgrade.
+We are now 100% spec compliant with all spec tests passing (a few optional tests are still skipped) with these new changes!
 
 
 # json_schema v1.x to v2 Migration Guide
