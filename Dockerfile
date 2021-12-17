@@ -18,8 +18,6 @@ RUN mkdir /root/.ssh/ && \
 
 WORKDIR /build/
 
-COPY pubspec.yaml /build/
-
 COPY . /build/
 
 
