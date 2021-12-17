@@ -3,15 +3,6 @@
 ####################
 FROM drydock-prod.workiva.net/workiva/dart2_base_image:1 as build
 
-# Update image (required by aviary) and install tools
-RUN apt-get update -qq && \
-    apt-get dist-upgrade -y && \
-    apt-get install -y jq && \
-    apt-get autoremove -y && \
-    apt-get clean all
-
-RUN wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq &&\
-    chmod +x /usr/bin/yq
 
 # setup ssh
 ARG GIT_SSH_KEY
