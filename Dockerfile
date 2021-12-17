@@ -42,8 +42,6 @@ ARG GIT_HEAD_REPO
 ARG BUILD_ID
 
 RUN timeout 5m pub get
-RUN pub global activate --hosted-url https://pub.workiva.org semver_audit ^2.2.0
-RUN pub global run semver_audit report --repo Workiva/workflow_forms
 
 # Package up the artifacts
 WORKDIR /build/
