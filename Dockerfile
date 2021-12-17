@@ -34,7 +34,4 @@ ARG BUILD_ID
 
 RUN timeout 5m pub get
 
-# Package up the artifacts
-WORKDIR /build/
-
 FROM scratch
