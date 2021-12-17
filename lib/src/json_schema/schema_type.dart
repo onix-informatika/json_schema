@@ -60,6 +60,9 @@ class SchemaType implements Comparable<SchemaType> {
   @override
   int get hashCode => value;
 
+  @override
+  bool operator ==(Object other) => other is SchemaType && other.hashCode == hashCode;
+
   SchemaType copy() => this;
 
   @override
@@ -67,23 +70,17 @@ class SchemaType implements Comparable<SchemaType> {
 
   @override
   String toString() {
-    switch (this) {
-      case array:
-        return 'array';
-      case boolean:
-        return 'boolean';
-      case integer:
-        return 'integer';
-      case number:
-        return 'number';
-      case nullValue:
-        return 'null';
-      case object:
-        return 'object';
-      case string:
-        return 'string';
-    }
-    return null;
+    final typeToStringMap = {
+      array: 'array',
+      boolean: 'boolean',
+      integer: 'integer',
+      number: 'number',
+      nullValue: 'null',
+      object: 'object',
+      string: 'string'
+    };
+
+    return typeToStringMap[this];
   }
 
   static SchemaType fromString(String s) {

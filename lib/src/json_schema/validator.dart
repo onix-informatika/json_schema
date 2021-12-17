@@ -128,24 +128,23 @@ class Validator {
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
-    switch (type) {
-      case SchemaType.object:
-        return instance is Map;
-      case SchemaType.string:
-        return instance is String;
-      case SchemaType.integer:
-        return instance is int ||
-            ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
-                instance is num &&
-                instance.remainder(1) == 0);
-      case SchemaType.number:
-        return instance is num;
-      case SchemaType.array:
-        return instance is List;
-      case SchemaType.boolean:
-        return instance is bool;
-      case SchemaType.nullValue:
-        return instance == null;
+    if (type == SchemaType.object) {
+      return instance is Map;
+    } else if (type == SchemaType.string) {
+      return instance is String;
+    } else if (type == SchemaType.integer) {
+      return instance is int ||
+          ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
+              instance is num &&
+              instance.remainder(1) == 0);
+    } else if (type == SchemaType.number) {
+      return instance is num;
+    } else if (type == SchemaType.array) {
+      return instance is List;
+    } else if (type == SchemaType.boolean) {
+      return instance is bool;
+    } else if (type == SchemaType.nullValue) {
+      return instance == null;
     }
     return false;
   }

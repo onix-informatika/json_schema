@@ -474,7 +474,9 @@ class JsonSchema {
                 try {
                   propertyKey = Uri.decodeQueryComponent(propertyKey);
                   propertyKey = unescape(propertyKey);
-                } catch (e) {}
+                } catch (_) {
+                  // Fall back to original propertyKey if it can't be unescaped.
+                }
               }
               currentSchema = schemaValues[propertyKey];
 
