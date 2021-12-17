@@ -237,7 +237,7 @@ void main([List<String> args]) {
 
   final RefProvider asyncRefProvider = RefProvider.asyncSchema((String ref) async {
     // Mock a delayed response.
-    await await Future.delayed(Duration(milliseconds: 1));
+    await Future.delayed(Duration(milliseconds: 1));
     return syncRefProvider.provide(ref);
   });
 
