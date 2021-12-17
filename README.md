@@ -1,8 +1,6 @@
 # JSON Schema
 
-  A *platform agnostic* (dart:html or dart:io) Dart library for validating JSON instances against JSON Schemas (multi-version support with latest of Draft 6).
-
-![Build Status](https://travis-ci.org/workiva/json_schema.svg)
+  A *platform agnostic* (web, flutter or vm) Dart library for validating JSON instances against JSON Schemas (multi-version support with latest of Draft 7).
 
 ## How To Create and Validate Against a Schema
   
