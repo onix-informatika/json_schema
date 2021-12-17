@@ -44,7 +44,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/vm.dart';
-import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf_io.dart' as io;
