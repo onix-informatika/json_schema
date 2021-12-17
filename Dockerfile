@@ -47,3 +47,5 @@ RUN pub global run semver_audit report --repo Workiva/workflow_forms
 
 # Package up the artifacts
 WORKDIR /build/
+
+FROM scratch
