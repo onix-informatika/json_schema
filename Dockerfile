@@ -22,15 +22,6 @@ COPY pubspec.yaml /build/
 
 COPY . /build/
 
-# Build Environment Vars Required for wdesk app build, semver audit, and ddev's
-# usage reporting.
-ARG GIT_COMMIT
-ARG GIT_TAG
-ARG GIT_BRANCH
-ARG GIT_MERGE_HEAD
-ARG GIT_MERGE_BRANCH
-ARG GIT_HEAD_REPO
-ARG BUILD_ID
 
 RUN timeout 5m pub get
 
