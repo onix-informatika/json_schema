@@ -56,12 +56,12 @@ class SchemaNode {
   List<String> links;
 
   static bool schemaShown(JsonSchema schema) =>
-      schema.properties.length > 0 ||
-      schema.definitions.length > 0 ||
-      schema.anyOf.length > 0 ||
-      schema.oneOf.length > 0 ||
-      schema.allOf.length > 0 ||
-      schema.enumValues.length > 0 ||
+      schema.properties.isNotEmpty ||
+      schema.definitions.isNotEmpty ||
+      schema.anyOf.isNotEmpty ||
+      schema.oneOf.isNotEmpty ||
+      schema.allOf.isNotEmpty ||
+      schema.enumValues.isNotEmpty ||
       schema.additionalPropertiesSchema != null ||
       schema.minimum != null ||
       schema.maximum != null ||
@@ -85,19 +85,19 @@ class SchemaNode {
     dynamic result;
     final typeList = schema.typeList;
     if (typeList == null) {
-      if (schema.oneOf.length > 0) {
+      if (schema.oneOf.isNotEmpty) {
         result = 'oneOf:${schema.oneOf.map((schema) => schemaType(schema)).toList()}';
-      } else if (schema.anyOf.length > 0) {
+      } else if (schema.anyOf.isNotEmpty) {
         result = 'anyOf:${schema.anyOf.map((schema) => schemaType(schema)).toList()}';
-      } else if (schema.allOf.length > 0) {
+      } else if (schema.allOf.isNotEmpty) {
         result = 'allOf:${schema.allOf.map((schema) => schemaType(schema)).toList()}';
       } else if (schema.defaultValue != null) {
         result = 'default=${schema.defaultValue}';
       } else if (schema.ref != null) {
         result = 'ref=${schema.ref}';
-      } else if (schema.enumValues != null && schema.enumValues.length > 0) {
+      } else if (schema.enumValues != null && schema.enumValues.isNotEmpty) {
         result = 'enum=${schema.enumValues}';
-      } else if (schema.schemaMap.length == 0) {
+      } else if (schema.schemaMap.isEmpty) {
         result = '{}';
       } else {
         result = '$schema';
@@ -105,7 +105,7 @@ class SchemaNode {
     } else {
       result = typeList.length == 1 ? typeList[0] : typeList;
     }
-    if ((result is List) && result.length == 0) result = {};
+    if ((result is List) && result.isEmpty) result = {};
     if (result == null) result = {};
     return result;
   }
@@ -166,7 +166,7 @@ class SchemaNode {
 
   List<String> get enumEntries {
     final List<String> enumValues = [];
-    if (schema.enumValues.length > 0) {
+    if (schema.enumValues.isNotEmpty) {
       enumValues.add(wrap('Enum Values', color: 'beige'));
       schema.enumValues.forEach((value) {
         enumValues.add(wrap('$value', color: 'grey'));
@@ -177,7 +177,7 @@ class SchemaNode {
 
   List<String> get anyOf {
     final List<String> anyOf = [];
-    if (schema.anyOf.length > 0) {
+    if (schema.anyOf.isNotEmpty) {
       anyOf.add(wrap('Any Of', color: 'beige'));
       int i = 0;
       schema.anyOf.forEach((anyOfSchema) {
@@ -191,7 +191,7 @@ class SchemaNode {
 
   List<String> get oneOf {
     final List<String> oneOf = [];
-    if (schema.oneOf.length > 0) {
+    if (schema.oneOf.isNotEmpty) {
       oneOf.add(wrap('One Of', color: 'beige'));
       int i = 0;
       schema.oneOf.forEach((oneOfSchema) {
@@ -205,7 +205,7 @@ class SchemaNode {
 
   List<String> get allOf {
     final List<String> allOf = [];
-    if (schema.allOf.length > 0) {
+    if (schema.allOf.isNotEmpty) {
       allOf.add(wrap('All Of', color: 'beige'));
       int i = 0;
       schema.allOf.forEach((allOfSchema) {
@@ -219,7 +219,7 @@ class SchemaNode {
 
   List<String> get propertyDependencies {
     final List<String> result = [];
-    if (schema.propertyDependencies.length > 0) {
+    if (schema.propertyDependencies.isNotEmpty) {
       result.add(wrap('Property Dependencies'));
       schema.propertyDependencies.forEach((key, val) {
         result.add(wrapRowDistinct(key, val.toString()));
@@ -230,7 +230,7 @@ class SchemaNode {
 
   List<String> get schemaDependencies {
     final List<String> result = [];
-    if (schema.schemaDependencies.length > 0) {
+    if (schema.schemaDependencies.isNotEmpty) {
       result.add('Property Dependencies');
       schema.propertyDependencies.forEach((key, val) {
         result.add(wrapRowDistinct(key, val.toString()));
@@ -259,7 +259,7 @@ class SchemaNode {
 
   List<String> get propertyEntries {
     final List<String> props = [];
-    if (schema.properties.length > 0) {
+    if (schema.properties.isNotEmpty) {
       props.add(wrap('Properties'));
       final sortedProps = List.from(schema.properties.keys)..sort();
       sortedProps.forEach((prop) {
@@ -280,7 +280,7 @@ class SchemaNode {
 
   List<String> get definitionEntries {
     final List<String> definitions = [];
-    if (schema.definitions.length > 0) {
+    if (schema.definitions.isNotEmpty) {
       definitions
           .add('<tr><td bgcolor="wheat" align="center" colspan="2"><font color="black">Definitions</font></td></tr>');
       final sortedDefinitions = List.from(schema.definitions.keys)..sort();
