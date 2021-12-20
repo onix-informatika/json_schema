@@ -526,7 +526,9 @@ class Validator {
     if (schema.requiredProperties != null) {
       schema.requiredProperties.forEach((prop) {
         if (!instance.data.containsKey(prop)) {
-          _err('required prop missing: ${prop} from $instance', instance.path, schema.path + '/required');
+          final String schemaPath = '${schema.path ?? '#'}/required';
+          final String instancePath = '${instance.path}/${prop}';
+          _err('required prop missing: ${prop} from $instance', instancePath, schemaPath);
         }
       });
     }
