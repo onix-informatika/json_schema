@@ -11,7 +11,7 @@ class TypeValidators {
 
   static List nonEmptyList(String key, dynamic value) {
     final List theList = list(key, value);
-    if (theList.length > 0) return theList;
+    if (theList.isNotEmpty) return theList;
     throw FormatExceptions.error('$key must be a non-empty list: $value');
   }
 

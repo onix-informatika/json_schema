@@ -44,7 +44,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/vm.dart';
-import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf_io.dart' as io;
@@ -170,18 +169,6 @@ void main([List<String> args]) {
         }
         ''');
         break;
-      case 'http://localhost:1234/subSchemas.json':
-        return json.decode(r'''
-          {
-            "integer": {
-              "type": "integer"
-            },
-            "refToInteger": {
-              "$ref": "#/integer"
-            }
-        }
-        ''');
-        break;
       case 'http://localhost:1234/folder/folderInteger.json':
         return json.decode(r'''
           {
@@ -243,13 +230,13 @@ void main([List<String> args]) {
 
   final RefProvider asyncRefJsonProvider = RefProvider.asyncJson((String ref) async {
     // Mock a delayed response.
-    await Duration(milliseconds: 1);
+    await Future.delayed(Duration(milliseconds: 1));
     return syncRefJsonProvider.provide(ref);
   });
 
   final RefProvider asyncRefProvider = RefProvider.asyncSchema((String ref) async {
     // Mock a delayed response.
-    await Duration(milliseconds: 1);
+    await Future.delayed(Duration(milliseconds: 1));
     return syncRefProvider.provide(ref);
   });
 
@@ -540,7 +527,7 @@ void main([List<String> args]) {
       }
     });
 
-    final schema = await JsonSchema.createSchema(
+    final schema = JsonSchema.createSchema(
       syncRefJsonProvider.provide('http://localhost:1234/tree.json'),
       refProvider: syncRefJsonProvider,
     );

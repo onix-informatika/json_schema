@@ -124,28 +124,27 @@ class Validator {
     }
 
     _validate(_rootSchema, data);
-    return _errors.length == 0;
+    return _errors.isEmpty;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
-    switch (type) {
-      case SchemaType.object:
-        return instance is Map;
-      case SchemaType.string:
-        return instance is String;
-      case SchemaType.integer:
-        return instance is int ||
-            ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
-                instance is num &&
-                instance.remainder(1) == 0);
-      case SchemaType.number:
-        return instance is num;
-      case SchemaType.array:
-        return instance is List;
-      case SchemaType.boolean:
-        return instance is bool;
-      case SchemaType.nullValue:
-        return instance == null;
+    if (type == SchemaType.object) {
+      return instance is Map;
+    } else if (type == SchemaType.string) {
+      return instance is String;
+    } else if (type == SchemaType.integer) {
+      return instance is int ||
+          ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
+              instance is num &&
+              instance.remainder(1) == 0);
+    } else if (type == SchemaType.number) {
+      return instance is num;
+    } else if (type == SchemaType.array) {
+      return instance is List;
+    } else if (type == SchemaType.boolean) {
+      return instance is bool;
+    } else if (type == SchemaType.nullValue) {
+      return instance == null;
     }
     return false;
   }
@@ -195,7 +194,7 @@ class Validator {
 
   void _typeValidation(JsonSchema schema, dynamic instance) {
     final typeList = schema.typeList;
-    if (typeList != null && typeList.length > 0) {
+    if (typeList != null && typeList.isNotEmpty) {
       if (!typeList.any((type) => _typeMatch(type, schema, instance.data))) {
         _err('type: wanted ${typeList} got $instance', instance.path, schema.path);
       }
@@ -210,7 +209,7 @@ class Validator {
 
   void _enumValidation(JsonSchema schema, dynamic instance) {
     final enumValues = schema.enumValues;
-    if (enumValues.length > 0) {
+    if (enumValues.isNotEmpty) {
       try {
         enumValues.singleWhere((v) => JsonSchemaUtils.jsonEqual(instance.data, v));
       } on StateError {
@@ -565,9 +564,9 @@ class Validator {
     if (instance.data is List) _itemsValidation(schema, instance);
     if (instance.data is String) _stringValidation(schema, instance);
     if (instance.data is num) _numberValidation(schema, instance);
-    if (schema.allOf.length > 0) _validateAllOf(schema, instance);
-    if (schema.anyOf.length > 0) _validateAnyOf(schema, instance);
-    if (schema.oneOf.length > 0) _validateOneOf(schema, instance);
+    if (schema.allOf.isNotEmpty) _validateAllOf(schema, instance);
+    if (schema.anyOf.isNotEmpty) _validateAnyOf(schema, instance);
+    if (schema.oneOf.isNotEmpty) _validateOneOf(schema, instance);
     if (schema.notSchema != null) _validateNot(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);

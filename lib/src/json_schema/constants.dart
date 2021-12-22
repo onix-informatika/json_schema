@@ -103,6 +103,9 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   @override
   int get hashCode => value;
 
+  @override
+  bool operator ==(Object other) => other is SchemaVersion && other.hashCode == hashCode;
+
   SchemaVersion copy() => this;
 
   @override
@@ -110,15 +113,12 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 
   @override
   String toString() {
-    switch (this) {
-      case draft4:
-        return 'http://json-schema.org/draft-04/schema#';
-      case draft6:
-        return 'http://json-schema.org/draft-06/schema#';
-      case draft7:
-        return 'http://json-schema.org/draft-07/schema#';
-    }
-    return null;
+    final draftToStringMap = {
+      draft4: 'http://json-schema.org/draft-04/schema#',
+      draft6: 'http://json-schema.org/draft-06/schema#',
+      draft7: 'http://json-schema.org/draft-07/schema#',
+    };
+    return draftToStringMap[this];
   }
 
   static SchemaVersion fromString(String s) {
