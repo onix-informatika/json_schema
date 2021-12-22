@@ -16,7 +16,6 @@ dependencies:
   w_transport: ^4.0.0
 
 dev_dependencies:
-  dart_dev: ^3.6.1
   dependency_validator: ^1.4.0
   shelf: ^0.7.2
   shelf_static: ^0.2.7
