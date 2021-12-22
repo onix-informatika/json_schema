@@ -2,6 +2,14 @@
 
   A *platform agnostic* (web, flutter or vm) Dart library for validating JSON instances against JSON Schemas (multi-version support with latest of Draft 7).
 
+## Getting Started
+
+1. Ensure you have stable Dart installed.
+2. `make pubget`
+3. `make format`
+4. `make analyze`
+5. `make test`
+
 ## How To Create and Validate Against a Schema
   
 ### Synchronous Creation - Self Contained
