@@ -40,7 +40,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
-import 'package:json_pointer/json_pointer.dart';
+import 'package:rfc_6901/rfc_6901.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/format_exceptions.dart';
@@ -473,8 +473,11 @@ class JsonSchema {
               if (schemaValues[propertyKey] is! JsonSchema) {
                 try {
                   propertyKey = Uri.decodeQueryComponent(propertyKey);
-                  propertyKey = unescape(propertyKey);
-                } catch (_) {
+                  // Create a JSON Pointer with one segment from the current key.
+                  // (This will throw a FormatException if invalid, and not be unescaped)
+                  JsonPointer('/$propertyKey');
+                  propertyKey = JsonSchemaUtils.unescapeJsonPointerToken(propertyKey);
+                } on FormatException catch (_) {
                   // Fall back to original propertyKey if it can't be unescaped.
                 }
               }
