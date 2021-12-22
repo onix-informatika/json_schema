@@ -65,8 +65,6 @@ class JsonSchemaUtils {
     return result;
   }
 
-  static String normalizePath(String path) => path.replaceAll('~', '~0').replaceAll('/', '~1').replaceAll('%', '%25');
-
   static JsonSchema getSubMapFromFragment(JsonSchema schema, Uri uri) {
     if (uri.fragment?.isNotEmpty == true) {
       schema = schema.resolvePath(Uri.parse('#${uri.fragment}'));
@@ -83,6 +81,11 @@ class JsonSchemaUtils {
       return uri.replace(pathSegments: segments);
     }
     return uri;
+  }
+
+  static String unescapeJsonPointerToken(String token) {
+    // From private implementation: https://github.com/f3ath/rfc-6901-dart/blob/82adfa14e9da95f80bbe537ecaa5b8846d4d2119/lib/src/_internal/reference.dart#L19-L20
+    return token.replaceAll("~1", "/").replaceAll("~0", "~");
   }
 }
 
