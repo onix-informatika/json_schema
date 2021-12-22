@@ -4,6 +4,10 @@ SHELL                    := /bin/bash
 pubget:
 	dart pub get
 
+.PHONY: dependency_validator
+dependency_validator:
+	dart run dependency_validator
+
 .PHONY: format
 format:
 	dart format -l 120 .
