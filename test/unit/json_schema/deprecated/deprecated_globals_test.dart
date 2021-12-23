@@ -9,8 +9,8 @@ main() {
       expect(() => globalCreateJsonSchemaFromUrl('http://json-schema.org/draft-07/schema#'), returnsNormally);
       // ignore: deprecated_member_use_from_same_package
       expect(() => resetGlobalTransportPlatform(), returnsNormally);
-      // ignore: deprecated_member_use_from_same_package
       expect(
+          // ignore: deprecated_member_use_from_same_package
           () => globalCreateJsonSchemaFromUrl = (String schema, {SchemaVersion schemaVersion}) {
                 return null;
               },
