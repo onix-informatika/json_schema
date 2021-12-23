@@ -200,7 +200,7 @@ class JsonSchema {
     return createClient()?.createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
   }
 
-  /// Construct and validate a Jsonchema.
+  /// Construct and validate a JsonSchema.
   _initialize({
     SchemaVersion schemaVersion,
     Uri fetchedFromUri,

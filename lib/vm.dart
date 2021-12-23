@@ -43,7 +43,7 @@ import 'package:json_schema/src/json_schema/schema_url_client/io_schema_url_clie
 
 @Deprecated(
     'The library now automatically configures based on available libraries, use JsonSchema.createSchemaFromUrl instead.')
-Future<JsonSchema> createSchemaFromUrlBrowser(String schemaUrl, {SchemaVersion schemaVersion}) =>
+Future<JsonSchema> createSchemaFromUrlVm(String schemaUrl, {SchemaVersion schemaVersion}) =>
     IoSchemaUrlClient().createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
 
 /// Configures json_schema for use in the browser via dart:html.
