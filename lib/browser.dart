@@ -42,9 +42,9 @@ import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/html_schema_url_client.dart';
 
 @Deprecated(
-    'The library now automatically configures based on available libraries, use JsonSchema.createSchemaFromUrl instead.')
+    'The library now automatically configures based on available libraries, use JsonSchema.createFromUrl instead.')
 Future<JsonSchema> createSchemaFromUrlBrowser(String schemaUrl, {SchemaVersion schemaVersion}) =>
-    HtmlSchemaUrlClient().createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
+    HtmlSchemaUrlClient().createFromUrl(schemaUrl, schemaVersion: schemaVersion);
 
 /// Configures json_schema for use in the browser via dart:html.
 @Deprecated('The library now automatically configures based on available libraries, this is a no-op.')

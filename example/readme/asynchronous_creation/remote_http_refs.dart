@@ -43,7 +43,7 @@ import 'package:json_schema/json_schema.dart';
 
 main() async {
   // Schema Defined as a JSON String
-  final schema = await JsonSchema.createSchemaAsync(r'''
+  final schema = await JsonSchema.createAsync(r'''
   {
     "type": "array",
     "items": {

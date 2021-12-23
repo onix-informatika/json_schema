@@ -44,7 +44,7 @@ import 'package:json_schema/json_schema.dart';
 main() async {
   final url = "https://raw.githubusercontent.com/json-schema-org/JSON-Schema-Test-Suite/master/remotes/integer.json";
 
-  final schema = await JsonSchema.createSchemaFromUrl(url);
+  final schema = await JsonSchema.createFromUrl(url);
 
   // Create some examples to validate against the schema.
   final n = 3;

@@ -5,7 +5,7 @@ import 'package:json_schema/json_schema.dart';
 import 'package:test/test.dart';
 
 JsonSchema createObjectSchema(Map<String, dynamic> nestedSchema) {
-  return JsonSchema.createSchema({
+  return JsonSchema.create({
     'properties': {'someKey': nestedSchema}
   });
 }
@@ -13,7 +13,7 @@ JsonSchema createObjectSchema(Map<String, dynamic> nestedSchema) {
 void main() {
   group('ValidationError', () {
     test('boolean false at root', () {
-      final schema = JsonSchema.createSchema(false);
+      final schema = JsonSchema.create(false);
       final errors = schema.validateWithErrors({'someKey': 1});
 
       expect(errors.length, 1);
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('boolean false in object', () {
-      final schema = JsonSchema.createSchema({
+      final schema = JsonSchema.create({
         'properties': {'someKey': false}
       });
       final errors = schema.validateWithErrors({'someKey': 1});
@@ -564,7 +564,7 @@ void main() {
     });
 
     group('string formatting', () {
-      final schema = JsonSchema.createSchema({
+      final schema = JsonSchema.create({
         "properties": {
           "foo": {"type": "string"},
           "bar": {"type": "integer"}
@@ -600,15 +600,15 @@ void main() {
         }
       };
 
-      final RefProvider syncRefProvider = RefProvider.syncSchema((String ref) {
+      final RefProvider syncRefProvider = RefProvider.sync((String ref) {
         final refs = {
           'http://localhost/destination.json': {'maxLength': 2}
         };
 
-        return JsonSchema.createSchema(refs[ref]);
+        return refs[ref];
       });
 
-      final schema = JsonSchema.createSchema(schemaJson, refProvider: syncRefProvider);
+      final schema = JsonSchema.create(schemaJson, refProvider: syncRefProvider);
 
       test('local', () {
         final errors = schema.validateWithErrors({'minLength': 'foo'});

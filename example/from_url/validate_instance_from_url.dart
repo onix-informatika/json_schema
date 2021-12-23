@@ -50,7 +50,7 @@ main() {
   // Pull in schema from web
   //////////////////////////////////////////////////////////////////////
   String url = 'http://json-schema.org/draft-04/schema';
-  JsonSchema.createSchemaFromUrl(url).then((JsonSchema schema) {
+  JsonSchema.createFromUrl(url).then((JsonSchema schema) {
     final validSchema = {'type': 'integer'};
     print('''Does schema validate valid schema $validSchema?
   ${schema.validate(validSchema)}''');
@@ -64,7 +64,7 @@ main() {
   // Pull in schema from file in current directory
   //////////////////////////////////////////////////////////////////////
   url = 'grades_schema.json';
-  JsonSchema.createSchemaFromUrl(url).then((schema) {
+  JsonSchema.createFromUrl(url).then((schema) {
     final grades = json.decode('''
 {
     'semesters': [
