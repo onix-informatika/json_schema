@@ -42,29 +42,6 @@ import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 
 class JsonSchemaUtils {
-  static bool jsonEqual(a, b) {
-    bool result = true;
-    if (a is Map && b is Map) {
-      if (a.length != b.length) return false;
-      a.keys.forEach((k) {
-        if (!jsonEqual(a[k], b[k])) {
-          result = false;
-          return;
-        }
-      });
-    } else if (a is List && b is List) {
-      if (a.length != b.length) return false;
-      for (int i = 0; i < a.length; i++) {
-        if (!jsonEqual(a[i], b[i])) {
-          return false;
-        }
-      }
-    } else {
-      return a == b;
-    }
-    return result;
-  }
-
   static JsonSchema getSubMapFromFragment(JsonSchema schema, Uri uri) {
     if (uri.fragment?.isNotEmpty == true) {
       schema = schema.resolvePath(Uri.parse('#${uri.fragment}'));
@@ -74,7 +51,7 @@ class JsonSchemaUtils {
 
   static Uri getBaseFromFullUri(Uri uri) {
     List<String> segments = [];
-    if (uri.pathSegments.isNotEmpty /* && uri.pathSegments.last.endsWith('.json')*/) {
+    if (uri.pathSegments.isNotEmpty) {
       segments = []..addAll(uri.pathSegments);
       segments.removeLast();
 

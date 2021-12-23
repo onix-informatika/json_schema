@@ -39,10 +39,11 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:collection/collection.dart';
+
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
 
 class Instance {
@@ -202,7 +203,7 @@ class Validator {
   }
 
   void _constValidation(JsonSchema schema, dynamic instance) {
-    if (schema.hasConst && !JsonSchemaUtils.jsonEqual(instance.data, schema.constValue)) {
+    if (schema.hasConst && !DeepCollectionEquality().equals(instance.data, schema.constValue)) {
       _err('const violated ${instance}', instance.path, schema.path);
     }
   }
@@ -211,7 +212,7 @@ class Validator {
     final enumValues = schema.enumValues;
     if (enumValues.isNotEmpty) {
       try {
-        enumValues.singleWhere((v) => JsonSchemaUtils.jsonEqual(instance.data, v));
+        enumValues.singleWhere((v) => DeepCollectionEquality().equals(instance.data, v));
       } on StateError {
         _err('enum violated ${instance}', instance.path, schema.path);
       }
@@ -279,7 +280,7 @@ class Validator {
       final penultimate = end - 1;
       for (int i = 0; i < penultimate; i++) {
         for (int j = i + 1; j < end; j++) {
-          if (JsonSchemaUtils.jsonEqual(instance.data[i], instance.data[j])) {
+          if (DeepCollectionEquality().equals(instance.data[i], instance.data[j])) {
             _err('uniqueItems violated: $instance [$i]==[$j]', instance.path, schema.path);
           }
         }

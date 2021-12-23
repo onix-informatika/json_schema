@@ -1,6 +1,7 @@
+import 'package:collection/collection.dart';
+
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/format_exceptions.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
 
 class TypeValidators {
@@ -20,7 +21,7 @@ class TypeValidators {
     final List enumValues = TypeValidators.nonEmptyList(key, value);
     enumValues.forEach((v) {
       for (int j = i + 1; j < value.length; j++) {
-        if (JsonSchemaUtils.jsonEqual(value[i], value[j]))
+        if (DeepCollectionEquality().equals(value[i], value[j]))
           throw FormatExceptions.error('enum values must be unique: $value [$i]==[$j]');
       }
       i++;
