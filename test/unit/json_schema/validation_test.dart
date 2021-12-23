@@ -147,7 +147,7 @@ void main([List<String> args]) {
   // Mock Ref Provider for refRemote tests. Emulates what createFromUrl would return.
   final RefProvider syncRefJsonProvider = RefProvider.sync((String ref) {
     switch (ref) {
-      case 'http://localhost:1234/extendible-dynamic-ref.json': 
+      case 'http://localhost:1234/extendible-dynamic-ref.json':
         return json.decode(r'''
           {
               "description": "extendible array",
