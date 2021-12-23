@@ -48,13 +48,10 @@ import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/vm.dart';
 
 final Logger _logger = Logger('test_invalid_schemas');
 
 void main([List<String> args]) {
-  configureJsonSchemaForVm();
-
   if (args?.isEmpty == true) {
     Logger.root.onRecord.listen((LogRecord r) => print('${r.loggerName} [${r.level}]:\t${r.message}'));
     Logger.root.level = Level.OFF;

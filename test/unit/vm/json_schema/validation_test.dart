@@ -43,7 +43,6 @@ library json_schema.test_validation;
 import 'dart:convert';
 import 'dart:io';
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/vm.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf_io.dart' as io;
@@ -53,8 +52,6 @@ import 'package:test/test.dart';
 final Logger _logger = Logger('test_validation');
 
 void main([List<String> args]) {
-  configureJsonSchemaForVm();
-
   // Serve remotes for ref tests.
   final specFileHandler = createStaticHandler('test/JSON-Schema-Test-Suite/remotes');
   io.serve(specFileHandler, 'localhost', 1234);
