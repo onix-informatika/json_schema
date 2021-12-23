@@ -1,8 +1,6 @@
 // This test suite verifies that validation errors report correct values for
 // instance & schema paths.
 
-@TestOn('vm')
-
 import 'package:json_schema/json_schema.dart';
 import 'package:test/test.dart';
 
@@ -244,7 +242,6 @@ void main() {
 
       final errors = schema.validateWithErrors({'someKey': 'a long string'});
 
-      for (var err in errors) print(err);
       expect(errors.length, 1);
       expect(errors[0].instancePath, '/someKey');
       expect(errors[0].schemaPath, '/properties/someKey/allOf');

@@ -36,8 +36,6 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('browser')
-
 library json_schema.test_validation;
 
 import 'package:json_schema/json_schema.dart';
@@ -59,13 +57,33 @@ void main([List<String> args]) {
 
   Logger.root.level = Level.OFF;
 
-  test('Schema self validation', () {
-    // Pull in the official schema, verify description and then ensure
-    // that the schema satisfies the schema for schemas
-    final url = 'http://json-schema.org/draft-04/schema';
-    JsonSchema.createSchemaFromUrl(url).then((schema) {
-      expect(schema.schemaMap['description'], 'Core schema meta-schema');
-      expect(schema.validate(schema.schemaMap), true);
+  group('Schema self validation', () {
+    test('draft4', () {
+      // Pull in the official schema, verify description and then ensure
+      // that the schema satisfies the schema for schemas
+      final url = 'http://json-schema.org/draft-04/schema#';
+      JsonSchema.createSchemaFromUrl(url).then((schema) {
+        expect(schema.schemaMap['description'], 'Core schema meta-schema');
+        expect(schema.validate(schema.schemaMap), true);
+      });
+    });
+    test('draft6', () {
+      // Pull in the official schema, verify description and then ensure
+      // that the schema satisfies the schema for schemas
+      final url = 'http://json-schema.org/draft-06/schema#';
+      JsonSchema.createSchemaFromUrl(url).then((schema) {
+        expect(schema.schemaMap['description'], 'Core schema meta-schema');
+        expect(schema.validate(schema.schemaMap), true);
+      });
+    });
+    test('draft7', () {
+      // Pull in the official schema, verify description and then ensure
+      // that the schema satisfies the schema for schemas
+      final url = 'http://json-schema.org/draft-07/schema#';
+      JsonSchema.createSchemaFromUrl(url).then((schema) {
+        expect(schema.schemaMap['description'], 'Core schema meta-schema');
+        expect(schema.validate(schema.schemaMap), true);
+      });
     });
   });
 }
