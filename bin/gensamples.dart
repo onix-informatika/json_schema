@@ -40,12 +40,9 @@ import 'dart:io';
 
 import 'package:path/path.dart';
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/vm.dart';
 import 'package:json_schema/schema_dot.dart';
 
 main() {
-  configureJsonSchemaForVm();
-
   final sourcePath = join(dirname(dirname(absolute(Platform.script.toFilePath()))), 'dot_samples', 'schemas');
   final outPath = join(dirname(sourcePath), 'schemaout');
   Directory(sourcePath).listSync().forEach((jsonFile) {

@@ -38,12 +38,14 @@
 
 library json_schema.vm;
 
-import 'package:json_schema/src/json_schema/global_platform_functions.dart';
-import 'package:json_schema/src/json_schema/vm/platform_functions.dart' show createSchemaFromUrlVm;
+import 'package:json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/schema_url_client/io_schema_url_client.dart';
 
-export 'package:json_schema/src/json_schema/vm/platform_functions.dart' show createSchemaFromUrlVm;
+@Deprecated(
+    'The library now automatically configures based on available libraries, use JsonSchema.createSchemaFromUrl instead.')
+Future<JsonSchema> createSchemaFromUrlBrowser(String schemaUrl, {SchemaVersion schemaVersion}) =>
+    IoSchemaUrlClient().createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
 
 /// Configures json_schema for use in the browser via dart:html.
-void configureJsonSchemaForVm() {
-  globalCreateJsonSchemaFromUrl = createSchemaFromUrlVm;
-}
+@Deprecated('The library now automatically configures based on available libraries, this is a no-op.')
+void configureJsonSchemaForVm() {}

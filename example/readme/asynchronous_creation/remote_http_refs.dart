@@ -41,19 +41,7 @@ import 'dart:io';
 
 import 'package:json_schema/json_schema.dart';
 
-// For VM:
-import 'package:json_schema/vm.dart';
-
-// For Browser:
-// import 'package:json_schema/browser.dart';
-
 main() async {
-  // For VM:
-  configureJsonSchemaForVm();
-
-  // For Browser:
-  // configureJsonSchemaForBrowser();
-
   // Schema Defined as a JSON String
   final schema = await JsonSchema.createSchemaAsync(r'''
   {
