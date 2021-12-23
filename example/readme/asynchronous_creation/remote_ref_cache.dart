@@ -43,19 +43,7 @@ import 'dart:io';
 
 import 'package:json_schema/json_schema.dart';
 
-// For VM:
-import 'package:json_schema/vm.dart';
-
-// For Browser:
-// import 'package:json_schema/browser.dart';
-
 main() async {
-  // For VM:
-  configureJsonSchemaForVm();
-
-  // For Browser:
-  // configureJsonSchemaForBrowser();
-
   final referencedSchema = {
     r"$id": "https://example.com/geographical-location.schema.json",
     r"$schema": "http://json-schema.org/draft-06/schema#",

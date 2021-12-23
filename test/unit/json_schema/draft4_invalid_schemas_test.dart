@@ -36,29 +36,56 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-import 'dart:async';
+@TestOn('vm')
 
-import 'package:w_transport/w_transport.dart';
+library json_schema.test_invalid_schemas;
 
-import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
+import 'dart:convert';
+import 'dart:io';
 
-Future<JsonSchema> createSchemaFromUrlBrowser(String schemaUrl, {SchemaVersion schemaVersion}) async {
-  final uriWithFrag = Uri.parse(schemaUrl);
-  var uri = uriWithFrag.removeFragment();
-  if (schemaUrl.endsWith('#')) {
-    uri = uriWithFrag;
+import 'package:logging/logging.dart';
+import 'package:path/path.dart' as path;
+import 'package:test/test.dart';
+
+import 'package:json_schema/json_schema.dart';
+
+final Logger _logger = Logger('test_invalid_schemas');
+
+void main([List<String> args]) {
+  if (args?.isEmpty == true) {
+    Logger.root.onRecord.listen((LogRecord r) => print('${r.loggerName} [${r.level}]:\t${r.message}'));
+    Logger.root.level = Level.OFF;
   }
-  if (uri.scheme != 'file') {
-    // _logger.info('Getting url $uri'); TODO: re-add logger.
-    final response = await (JsonRequest()..uri = uri).get();
-    // HTTP servers ignore fragments, so resolve a sub-map if a fragment was specified.
-    final parentSchema =
-        await JsonSchema.createSchemaAsync(response.body.asJson(), schemaVersion: schemaVersion, fetchedFromUri: uri);
-    final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
-    return schema ?? parentSchema;
-  } else {
-    throw FormatException('Url schema must be http: $schemaUrl. To use a local file, use dart:io');
-  }
+
+  final Directory testSuiteFolder = Directory('./test/invalid_schemas/draft4');
+
+  testSuiteFolder.listSync().forEach((testEntry) {
+    final String shortName = path.basename(testEntry.path);
+    group('Invalid schema (draft4): ${shortName}', () {
+      if (testEntry is File) {
+        final List tests = json.decode((testEntry).readAsStringSync());
+        tests.forEach((testObject) {
+          final schemaData = testObject['schema'];
+          final description = testObject['description'];
+
+          test(description, () async {
+            final catchException = expectAsync1((e) {
+              _logger.info('Caught expected $e');
+              if (e is! FormatException) {
+                _logger.info('${shortName} threw an unexpected error type of ${e.runtimeType}');
+              }
+              expect(e is FormatException, true);
+            });
+
+            try {
+              await JsonSchema.createSchemaAsync(schemaData, schemaVersion: SchemaVersion.draft4);
+              fail('Schema is expected to be invalid, but was not.');
+            } catch (e) {
+              catchException(e);
+            }
+          });
+        });
+      }
+    });
+  });
 }

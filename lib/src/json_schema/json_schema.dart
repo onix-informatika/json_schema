@@ -44,13 +44,16 @@ import 'package:rfc_6901/rfc_6901.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/format_exceptions.dart';
-import 'package:json_schema/src/json_schema/global_platform_functions.dart';
 import 'package:json_schema/src/json_schema/ref_provider.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
 import 'package:json_schema/src/json_schema/type_validators.dart';
 import 'package:json_schema/src/json_schema/typedefs.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/validator.dart';
+
+import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_client.dart'
+    if (dart.library.html) 'package:json_schema/src/json_schema/schema_url_client/html_schema_url_client.dart'
+    if (dart.library.io) 'package:json_schema/src/json_schema/schema_url_client/io_schema_url_client.dart';
 
 class RetrievalRequest {
   Uri schemaUri;
@@ -194,10 +197,7 @@ class JsonSchema {
   /// This method is asyncronous to support automatic fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
   static Future<JsonSchema> createSchemaFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) {
-    if (globalCreateJsonSchemaFromUrl == null) {
-      throw StateError('no globalCreateJsonSchemaFromUrl defined!');
-    }
-    return globalCreateJsonSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
+    return createClient()?.createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
   }
 
   /// Construct and validate a JsonSchema.
