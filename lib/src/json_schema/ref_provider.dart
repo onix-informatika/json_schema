@@ -104,6 +104,6 @@ class RefProvider<T> {
   final T provide;
 }
 
-final defaultHttpRefProvider = RefProvider.async((String ref) async {
+final defaultUrlRefProvider = RefProvider.async((String ref) async {
   return await createClient()?.getSchemaJsonFromUrl(ref);
 });
