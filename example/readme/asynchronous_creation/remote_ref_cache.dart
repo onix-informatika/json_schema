@@ -58,9 +58,9 @@ main() async {
     }
   };
 
-  final RefProvider refProvider = RefProvider.asyncSchema((String ref) async {
+  final RefProvider refProvider = RefProvider.async((String ref) async {
     final Map references = {
-      'https://example.com/geographical-location.schema.json': JsonSchema.createSchema(referencedSchema),
+      'https://example.com/geographical-location.schema.json': referencedSchema,
     };
 
     if (references.containsKey(ref)) {
@@ -71,11 +71,10 @@ main() async {
       return references[ref];
     }
 
-    // Fall back to default URL $ref behavior
-    return await JsonSchema.createSchemaFromUrl(ref);
+    return null;
   });
 
-  final schema = await JsonSchema.createSchemaAsync({
+  final schema = await JsonSchema.createAsync({
     'type': 'array',
     'items': {r'$ref': 'https://example.com/geographical-location.schema.json'}
   }, refProvider: refProvider);

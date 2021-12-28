@@ -99,15 +99,15 @@ class JsonSchema {
 
   /// Create a schema from a JSON [data].
   ///
-  /// This method is asynchronous to support automatic fetching of sub-[JsonSchema]s for items,
+  /// This method is asynchronous to support fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
   ///
-  /// If you want to create a [JsonSchema] synchronously, use [createSchema]. Note that for
-  /// [createSchema] remote reference fetching is not supported.
+  /// If you want to create a [JsonSchema] synchronously, use [create]. Note that for
+  /// [create] remote reference fetching is not supported.
   ///
   /// The [schema] can either be a decoded JSON object (Only [Map] or [bool] per the spec),
   /// or alternatively, a [String] may be passed in and JSON decoding will be handled automatically.
-  static Future<JsonSchema> createSchemaAsync(dynamic schema,
+  static Future<JsonSchema> createAsync(dynamic schema,
       {SchemaVersion schemaVersion, Uri fetchedFromUri, RefProvider refProvider}) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     dynamic data = schema;
@@ -118,7 +118,7 @@ class JsonSchema {
       try {
         data = json.decode(schema);
       } catch (e) {
-        throw ArgumentError('String data provided to createSchemaAsync is not valid JSON.');
+        throw ArgumentError('String data provided to createAsync is not valid JSON.');
       }
     }
 
@@ -137,17 +137,26 @@ class JsonSchema {
           .future;
     }
     throw ArgumentError(
-        'Data provided to createSchemaAsync is not valid: Data must be, or parse to a Map (or bool in draft6 or later). | $data');
+        'Data provided to createAsync is not valid: Data must be, or parse to a Map (or bool in draft6 or later). | $data');
   }
+
+  @Deprecated('Use JsonSchema.createAsync instead')
+  static Future<JsonSchema> createSchemaAsync(
+    dynamic schema, {
+    SchemaVersion schemaVersion,
+    Uri fetchedFromUri,
+    RefProvider refProvider,
+  }) =>
+      createAsync(schema, schemaVersion: schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider);
 
   /// Create a schema from JSON [data].
   ///
   /// This method is synchronous, and doesn't support fetching of remote references, properties, and sub-properties of the
-  /// schema. If you need remote reference support use [createSchemaAsync].
+  /// schema. If you need remote reference support use [createAsync].
   ///
   /// The [schema] can either be a decoded JSON object (Only [Map] or [bool] per the spec),
   /// or alternatively, a [String] may be passed in and JSON decoding will be handled automatically.
-  static JsonSchema createSchema(
+  static JsonSchema create(
     dynamic schema, {
     SchemaVersion schemaVersion,
     Uri fetchedFromUri,
@@ -162,7 +171,7 @@ class JsonSchema {
       try {
         data = json.decode(schema);
       } catch (e) {
-        throw ArgumentError('String data provided to createSchema is not valid JSON.');
+        throw ArgumentError('String data provided to create is not valid JSON.');
       }
     }
 
@@ -189,16 +198,29 @@ class JsonSchema {
       );
     }
     throw ArgumentError(
-        'Data provided to createSchema is not valid: Data must be a Map or a String that parses to a Map (or bool in draft6 or later). | $data');
+        'Data provided to JsonSchema.create is not valid: Data must be a Map or a String that parses to a Map (or bool in draft6 or later). | $data');
   }
+
+  @Deprecated('Use JsonSchema.create instead')
+  static JsonSchema createSchema(
+    dynamic schema, {
+    SchemaVersion schemaVersion,
+    Uri fetchedFromUri,
+    RefProvider refProvider,
+  }) =>
+      create(schema, schemaVersion: schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider);
 
   /// Create a schema from a URL.
   ///
   /// This method is asyncronous to support automatic fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
-  static Future<JsonSchema> createSchemaFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) {
-    return createClient()?.createSchemaFromUrl(schemaUrl, schemaVersion: schemaVersion);
+  static Future<JsonSchema> createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) {
+    return createClient()?.createFromUrl(schemaUrl, schemaVersion: schemaVersion);
   }
+
+  @Deprecated('Use JsonSchema.createFromUrl instead.')
+  static Future<JsonSchema> createSchemaFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) =>
+      createFromUrl(schemaUrl, schemaVersion: schemaVersion);
 
   /// Construct and validate a JsonSchema.
   _initialize({
@@ -328,7 +350,7 @@ class JsonSchema {
             localSchema = _refMap[baseUriString];
           } else if (baseUriString != null && SchemaVersion.fromString(baseUriString) != null) {
             // If the referenced URI is or within versioned schema spec.
-            localSchema = JsonSchema.createSchema(getJsonSchemaDefinitionByRef(baseUriString));
+            localSchema = JsonSchema.create(getJsonSchemaDefinitionByRef(baseUriString));
             _addSchemaToRefMap(baseUriString, localSchema);
           } else {
             // The remote ref needs to be resolved if the above checks failed.
@@ -573,7 +595,7 @@ class JsonSchema {
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
 
-  Future<JsonSchema> _fetchRefSchemaFromAsyncProvider(Uri ref) async {
+  Future<JsonSchema> _fetchRefSchemaFromAsyncProvider(Uri ref, {RefProvider refProvider}) async {
     // Always check refMap first.
     if (_refMap.containsKey(ref.toString())) {
       return _refMap[ref.toString()];
@@ -581,11 +603,13 @@ class JsonSchema {
 
     final Uri baseUri = ref.removeFragment();
 
+    refProvider ??= _refProvider;
+
     // Fallback order for ref provider:
     // 1. Base URI (example: localhost:1234/integer.json)
     // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
     final dynamic schemaDefinition =
-        await _refProvider.provide(baseUri.toString()) ?? await _refProvider.provide('${baseUri}#');
+        await refProvider.provide(baseUri.toString()) ?? await refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -849,6 +873,7 @@ class JsonSchema {
   ///
   /// If [isSync] is true, the provider will be used to fetch remote refs.
   /// If [isSync] is false, the provider will be used if specified, otherwise the default HTTP(S) ref provider will be used.
+  // ignore: deprecated_member_use_from_same_package
   /// If provider type is [RefProviderType.schema], fully resolved + validated schemas are expected from the provider.
   /// If provider type is [RefProviderType.json], the provider expects valid JSON objects from the provider.
   RefProvider _refProvider;
@@ -1363,7 +1388,7 @@ class JsonSchema {
 
     final AsyncRetrievalOperation asyncRefSchemaOperation = _refProvider != null
         ? () => _fetchRefSchemaFromAsyncProvider(ref).then(addSchemaFunction)
-        : () => createSchemaFromUrl(ref.toString()).then(addSchemaFunction);
+        : () => _fetchRefSchemaFromAsyncProvider(ref, refProvider: defaultUrlRefProvider).then(addSchemaFunction);
 
     final SyncRetrievalOperation syncRefSchemaOperation =
         _refProvider != null ? () => addSchemaFunction(_fetchRefSchemaFromSyncProvider(ref)) : null;

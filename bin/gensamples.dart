@@ -51,7 +51,7 @@ main() {
     final dotFilename = join(outPath, '$base.dot');
     final pngOut = join(outPath, '$base.png');
 
-    JsonSchema.createSchemaFromUrl(fname).then((schema) {
+    JsonSchema.createFromUrl(fname).then((schema) {
       schema.refMap.forEach((key, ref) => print('$key : $ref'));
       File(dotFilename).writeAsStringSync(createDot(schema));
     }).then((_) {

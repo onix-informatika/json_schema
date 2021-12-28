@@ -44,7 +44,7 @@ import 'package:json_schema/json_schema.dart';
 main() async {
   final file = "example/readme/asynchronous_creation/geo.schema.json";
 
-  final schema = await JsonSchema.createSchemaFromUrl(file);
+  final schema = await JsonSchema.createFromUrl(file);
 
   // Create some examples to validate against the schema.
   final workivaAmes = {

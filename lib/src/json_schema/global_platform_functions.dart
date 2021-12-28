@@ -48,8 +48,8 @@ import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_cl
 /// explicitly given a [JsonSchema] instance upon construction will
 /// inherit this global one.
 @Deprecated(
-    'The library now automatically configures based on available libraries, use JsonSchema.createSchemaFromUrl instead.')
-CreateJsonSchemaFromUrl get globalCreateJsonSchemaFromUrl => createClient()?.createSchemaFromUrl;
+    'The library now automatically configures based on available libraries, use JsonSchema.createFromUrl instead.')
+CreateJsonSchemaFromUrl get globalCreateJsonSchemaFromUrl => createClient()?.createFromUrl;
 
 @Deprecated('The library now automatically configures based on available libraries, this is a no-op.')
 set globalCreateJsonSchemaFromUrl(CreateJsonSchemaFromUrl createJsonSchemaFromUrl) {}

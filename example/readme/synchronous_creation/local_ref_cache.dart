@@ -56,9 +56,9 @@ main() {
     }
   };
 
-  final RefProvider refProvider = RefProvider.syncSchema((String ref) {
+  final RefProvider refProvider = RefProvider.sync((String ref) {
     final Map references = {
-      'https://example.com/geographical-location.schema.json': JsonSchema.createSchema(referencedSchema),
+      'https://example.com/geographical-location.schema.json': referencedSchema,
     };
 
     if (references.containsKey(ref)) {
@@ -68,7 +68,7 @@ main() {
     return null;
   });
 
-  final schema = JsonSchema.createSchema({
+  final schema = JsonSchema.create({
     'type': 'array',
     'items': {r'$ref': 'https://example.com/geographical-location.schema.json'}
   }, refProvider: refProvider);

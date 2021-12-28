@@ -62,7 +62,7 @@ void main([List<String> args]) {
       // Pull in the official schema, verify description and then ensure
       // that the schema satisfies the schema for schemas
       final url = 'http://json-schema.org/draft-04/schema#';
-      JsonSchema.createSchemaFromUrl(url).then((schema) {
+      JsonSchema.createFromUrl(url).then((schema) {
         expect(schema.schemaMap['description'], 'Core schema meta-schema');
         expect(schema.validate(schema.schemaMap), true);
       });
@@ -71,7 +71,7 @@ void main([List<String> args]) {
       // Pull in the official schema, verify description and then ensure
       // that the schema satisfies the schema for schemas
       final url = 'http://json-schema.org/draft-06/schema#';
-      JsonSchema.createSchemaFromUrl(url).then((schema) {
+      JsonSchema.createFromUrl(url).then((schema) {
         expect(schema.schemaMap['description'], 'Core schema meta-schema');
         expect(schema.validate(schema.schemaMap), true);
       });
@@ -80,7 +80,7 @@ void main([List<String> args]) {
       // Pull in the official schema, verify description and then ensure
       // that the schema satisfies the schema for schemas
       final url = 'http://json-schema.org/draft-07/schema#';
-      JsonSchema.createSchemaFromUrl(url).then((schema) {
+      JsonSchema.createFromUrl(url).then((schema) {
         expect(schema.schemaMap['description'], 'Core schema meta-schema');
         expect(schema.validate(schema.schemaMap), true);
       });

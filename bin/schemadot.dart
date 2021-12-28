@@ -171,7 +171,7 @@ main(List<String> args) {
   }
 
   completer.future.then((schemaText) {
-    final Future schema = JsonSchema.createSchemaAsync(json.decode(schemaText));
+    final Future schema = JsonSchema.createAsync(json.decode(schemaText));
     schema.then((schema) {
       final String dot = createDot(schema);
       if (options['out-file'] != null) {

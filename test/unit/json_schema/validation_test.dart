@@ -121,7 +121,7 @@ void main([List<String> args]) {
                 final bool expectedResult = validationTest['valid'];
 
                 if (isSync) {
-                  final schema = JsonSchema.createSchema(
+                  final schema = JsonSchema.create(
                     schemaData,
                     schemaVersion: schemaVersion,
                     refProvider: refProvider,
@@ -130,7 +130,7 @@ void main([List<String> args]) {
                   expect(validationResult, expectedResult);
                 } else {
                   final checkResult = expectAsync0(() => expect(validationResult, expectedResult));
-                  JsonSchema.createSchemaAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
+                  JsonSchema.createAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
                       .then((schema) {
                     validationResult = schema.validate(instance);
                     checkResult();
@@ -144,8 +144,8 @@ void main([List<String> args]) {
     });
   };
 
-  // Mock Ref Provider for refRemote tests. Emulates what createSchemaFromUrl would return.
-  final RefProvider syncRefJsonProvider = RefProvider.syncJson((String ref) {
+  // Mock Ref Provider for refRemote tests. Emulates what createFromUrl would return.
+  final RefProvider syncRefJsonProvider = RefProvider.sync((String ref) {
     switch (ref) {
       case 'http://localhost:1234/integer.json':
         return json.decode(r'''
@@ -216,21 +216,23 @@ void main([List<String> args]) {
     }
   });
 
+  // ignore: deprecated_member_use_from_same_package
   final RefProvider syncRefProvider = RefProvider.syncSchema((String ref) {
     final schemaDef = syncRefJsonProvider.provide(ref);
     if (schemaDef != null) {
-      return JsonSchema.createSchema(schemaDef);
+      return JsonSchema.create(schemaDef);
     }
 
     return null;
   });
 
-  final RefProvider asyncRefJsonProvider = RefProvider.asyncJson((String ref) async {
+  final RefProvider asyncRefJsonProvider = RefProvider.async((String ref) async {
     // Mock a delayed response.
     await Future.delayed(Duration(milliseconds: 1));
     return syncRefJsonProvider.provide(ref);
   });
 
+  // ignore: deprecated_member_use_from_same_package
   final RefProvider asyncRefProvider = RefProvider.asyncSchema((String ref) async {
     // Mock a delayed response.
     await Future.delayed(Duration(milliseconds: 1));
@@ -379,7 +381,7 @@ void main([List<String> args]) {
         // Pull in the official schema, verify description and then ensure
         // that the schema satisfies the schema for schemas.
         final url = version;
-        JsonSchema.createSchemaFromUrl(url).then(expectAsync1((schema) {
+        JsonSchema.createFromUrl(url).then(expectAsync1((schema) {
           expect(schema.validate(schema.schemaMap), isTrue);
         }));
       });
@@ -388,7 +390,7 @@ void main([List<String> args]) {
 
   group('Nested \$refs in root schema', () {
     test('properties', () async {
-      final barSchema = await JsonSchema.createSchemaAsync({
+      final barSchema = await JsonSchema.createAsync({
         "properties": {
           "foo": {"\$ref": "http://localhost:1234/integer.json#"},
           "bar": {"\$ref": "http://localhost:4321/string.json#"}
@@ -405,7 +407,7 @@ void main([List<String> args]) {
     });
 
     test('items', () async {
-      final schema = await JsonSchema.createSchemaAsync({
+      final schema = await JsonSchema.createAsync({
         "items": {"\$ref": "http://localhost:1234/integer.json"}
       });
 
@@ -417,7 +419,7 @@ void main([List<String> args]) {
     });
 
     test('not / anyOf', () async {
-      final schema = await JsonSchema.createSchemaAsync({
+      final schema = await JsonSchema.createAsync({
         "items": {
           "not": {
             "anyOf": [
@@ -439,7 +441,7 @@ void main([List<String> args]) {
   group('examples property', () {
     group('in draft4', () {
       test('should NOT be supported', () {
-        final schema = JsonSchema.createSchema({
+        final schema = JsonSchema.create({
           "type": "string",
           "examples": ["This", "message", "is", "lost."]
         }, schemaVersion: SchemaVersion.draft4);
@@ -447,7 +449,7 @@ void main([List<String> args]) {
         expect(schema.examples.isEmpty, isTrue);
       });
       test('should still pass the default value to the examples getter', () {
-        final schema = JsonSchema.createSchema({
+        final schema = JsonSchema.create({
           "type": "string",
           "examples": ["This", "message", "is", "lost."],
           "default": "But this one isn't.",
@@ -460,7 +462,7 @@ void main([List<String> args]) {
 
     group('in draft 6', () {
       test('should be supported', () {
-        final schema = JsonSchema.createSchema({
+        final schema = JsonSchema.create({
           "type": "string",
           "examples": ["This", "message", "is", "not", "lost!"]
         }, schemaVersion: SchemaVersion.draft6);
@@ -469,7 +471,7 @@ void main([List<String> args]) {
         expect(schema.examples[4], equals('lost!'));
       });
       test('should append the default value to the examples getter', () {
-        final schema = JsonSchema.createSchema({
+        final schema = JsonSchema.create({
           "type": "string",
           "examples": ["This", "message", "is", "not", "lost!"],
           "default": "And neither is this one",
@@ -484,7 +486,7 @@ void main([List<String> args]) {
 
   test('Schema from relative filesystem URI should be supported', () async {
     // this assumes that tests are run from the root directory of the project
-    final schema = await JsonSchema.createSchemaFromUrl('test/relative_refs/root.json');
+    final schema = await JsonSchema.createFromUrl('test/relative_refs/root.json');
 
     expect(schema.validate({"string": 123, "integer": 123}), isFalse);
     expect(schema.validate({"string": "a string", "integer": "a string"}), isFalse);
@@ -492,7 +494,7 @@ void main([List<String> args]) {
   });
 
   test('Recursive refs from a remote schema should be supported with a json provider', () async {
-    final RefProvider syncRefJsonProvider = RefProvider.syncJson((String ref) {
+    final RefProvider syncRefJsonProvider = RefProvider.sync((String ref) {
       switch (ref) {
         case 'http://localhost:1234/tree.json':
           return {
@@ -524,7 +526,7 @@ void main([List<String> args]) {
       }
     });
 
-    final schema = JsonSchema.createSchema(
+    final schema = JsonSchema.create(
       syncRefJsonProvider.provide('http://localhost:1234/tree.json'),
       refProvider: syncRefJsonProvider,
     );
@@ -562,7 +564,7 @@ void main([List<String> args]) {
   });
 
   test('Should respect configurable format validation', () {
-    final schema = JsonSchema.createSchema({
+    final schema = JsonSchema.create({
       'properties': {
         'someKey': {'format': 'uri-template'}
       }
