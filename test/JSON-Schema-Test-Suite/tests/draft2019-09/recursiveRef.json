@@ -330,14 +330,14 @@
                 "title": "any type of node",
                 "$id": "recursiveRef8_anyLeafNode.json",
                 "$recursiveAnchor": true,
-                "$ref": "recursiveRef8_main.json#/$defs/inner"
+                "$ref": "recursiveRef8_inner.json"
             },
             "else": {
                 "title": "integer node",
                 "$id": "recursiveRef8_integerNode.json",
                 "$recursiveAnchor": true,
                 "type": [ "object", "integer" ],
-                "$ref": "recursiveRef8_main.json#/$defs/inner"
+                "$ref": "recursiveRef8_inner.json"
             }
         },
         "tests": [
@@ -348,6 +348,49 @@
             },
             {
                 "description": "recurse to integerNode - floats are not allowed",
+                "data": { "november": 1.1 },
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "dynamic $recursiveRef destination (not predictable at schema compile time)",
+        "schema": {
+            "$id": "main.json",
+            "$defs": {
+                "inner": {
+                    "$id": "inner.json",
+                    "$recursiveAnchor": true,
+                    "title": "inner",
+                    "additionalProperties": {
+                        "$recursiveRef": "#"
+                    }
+                }
+
+            },
+            "if": { "propertyNames": { "pattern": "^[a-m]" } },
+            "then": {
+                "title": "any type of node",
+                "$id": "anyLeafNode.json",
+                "$recursiveAnchor": true,
+                "$ref": "main.json#/$defs/inner"
+            },
+            "else": {
+                "title": "integer node",
+                "$id": "integerNode.json",
+                "$recursiveAnchor": true,
+                "type": [ "object", "integer" ],
+                "$ref": "main.json#/$defs/inner"
+            }
+        },
+        "tests": [
+            {
+                "description": "numeric node",
+                "data": { "alpha": 1.1 },
+                "valid": true
+            },
+            {
+                "description": "integer node",
                 "data": { "november": 1.1 },
                 "valid": false
             }

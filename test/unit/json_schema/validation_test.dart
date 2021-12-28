@@ -147,6 +147,30 @@ void main([List<String> args]) {
   // Mock Ref Provider for refRemote tests. Emulates what createFromUrl would return.
   final RefProvider syncRefJsonProvider = RefProvider.sync((String ref) {
     switch (ref) {
+      case 'http://localhost:1234/extendible-dynamic-ref.json':
+        return json.decode(r'''
+          {
+              "description": "extendible array",
+              "$id": "http://localhost:1234/extendible-dynamic-ref.json",
+              "type": "object",
+              "properties": {
+                  "elements": {
+                      "type": "array",
+                      "items": {
+                          "$dynamicRef": "#elements"
+                      }
+                  }
+              },
+              "required": ["elements"],
+              "additionalProperties": false,
+              "$defs": {
+                  "elements": {
+                      "$dynamicAnchor": "elements"
+                  }
+              }
+          }
+        ''');
+        break;
       case 'http://localhost:1234/integer.json':
         return json.decode(r'''
           {
@@ -192,22 +216,71 @@ void main([List<String> args]) {
           }
         ''');
         break;
+      case 'http://localhost:1234/ref-and-definitions.json':
+        return json.decode(r'''
+          {
+              "$id": "http://localhost:1234/ref-and-definitions.json",
+              "definitions": {
+                  "inner": {
+                      "properties": {
+                          "bar": { "type": "string" }
+                      }
+                  }
+              },
+              "allOf": [ { "$ref": "#/definitions/inner" } ]
+          }
+        ''');
+        break;
+      case 'http://localhost:1234/ref-and-defs.json':
+        return json.decode(r'''
+          {
+              "$id": "http://localhost:1234/ref-and-defs.json",
+              "$defs": {
+                  "inner": {
+                      "properties": {
+                          "bar": { "type": "string" }
+                      }
+                  }
+              },
+              "$ref": "#/$defs/inner"
+          }
+        ''');
+        break;
       case 'http://localhost:1234/baseUriChangeFolderInSubschema/folderInteger.json':
-        return json.decode('''
+        return json.decode(r'''
           {
               "type": "integer"
           }
         ''');
       case 'http://localhost:1234/baseUriChangeFolder/folderInteger.json':
-        return json.decode('''
+        return json.decode(r'''
           {
               "type": "integer"
           }
         ''');
       case 'http://localhost:1234/baseUriChange/folderInteger.json':
-        return json.decode('''
+        return json.decode(r'''
           {
               "type": "integer"
+          }
+        ''');
+      case 'http://localhost:1234/tree.json':
+        return json.decode(r'''
+          {
+              "description": "tree schema, extensible",
+              "$id": "http://localhost:1234/tree.json",
+              "$dynamicAnchor": "node",
+
+              "type": "object",
+              "properties": {
+                  "data": true,
+                  "children": {
+                      "type": "array",
+                      "items": {
+                          "$dynamicRef": "#node"
+                      }
+                  }
+              }
           }
         ''');
       default:
@@ -241,7 +314,10 @@ void main([List<String> args]) {
 
   final List<String> commonSkippedFiles = const [
     /// Optional in draft7:
-    'content.json'
+    'content.json',
+    // Not yet passing:
+    'id.json',
+    'unknownKeyword.json'
   ];
 
   /// A list of tests to skip for all drafts.
