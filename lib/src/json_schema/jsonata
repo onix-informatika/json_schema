@@ -1,9 +1,0 @@
-//JSONata
-definitions.*.properties.*[type='boolean' or type='string' or type='number' or type='integer'].{
-   'title': title,
-   'description': description,
-   'anyOf': [
-       $.$sift(function($v, $k) {$k ~> /^(?!title$|description$).*/}),
-       {'$ref': '#/definitions/expression'}
-   ]
-}

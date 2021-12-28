@@ -1388,7 +1388,7 @@ class JsonSchema {
 
     final AsyncRetrievalOperation asyncRefSchemaOperation = _refProvider != null
         ? () => _fetchRefSchemaFromAsyncProvider(ref).then(addSchemaFunction)
-        : () => _fetchRefSchemaFromAsyncProvider(ref, refProvider: defaultHttpRefProvider).then(addSchemaFunction);
+        : () => _fetchRefSchemaFromAsyncProvider(ref, refProvider: defaultUrlRefProvider).then(addSchemaFunction);
 
     final SyncRetrievalOperation syncRefSchemaOperation =
         _refProvider != null ? () => addSchemaFunction(_fetchRefSchemaFromSyncProvider(ref)) : null;
