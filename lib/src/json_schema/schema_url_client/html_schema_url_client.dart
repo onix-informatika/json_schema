@@ -6,7 +6,10 @@ import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
+import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
+
+final Logger _logger = Logger('HtmlSchemaUrlClient');
 
 class HtmlSchemaUrlClient extends SchemaUrlClient {
   @override
@@ -17,7 +20,7 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
       uri = uriWithFrag;
     }
     if (uri.scheme != 'file') {
-      // _logger.info('Getting url $uri'); TODO: re-add logger.
+      _logger.info('GET\'ing Schema from URL: $uri');
       final response = await http.get(uri);
 
       var jsonResponse;
@@ -47,7 +50,8 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
       uri = uriWithFrag;
     }
     if (uri.scheme != 'file') {
-      // _logger.info('Getting url $uri'); TODO: re-add logger.
+      _logger.info('GET\'ing Schema JSON from URL: $uri');
+
       final response = await http.get(uri);
 
       var jsonResponse;

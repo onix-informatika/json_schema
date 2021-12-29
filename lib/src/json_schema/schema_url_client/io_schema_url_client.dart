@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:convert' as convert;
 
+import 'package:logging/logging.dart';
+import 'package:rfc_6901/rfc_6901.dart';
+
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
-import 'package:rfc_6901/rfc_6901.dart';
+
+final Logger _logger = Logger('IoSchemaUrlClient');
 
 class IoSchemaUrlClient extends SchemaUrlClient {
   @override
@@ -16,6 +20,7 @@ class IoSchemaUrlClient extends SchemaUrlClient {
     Map schemaMap;
     if (uri.scheme == 'http' || uri.scheme == 'https') {
       // Setup the HTTP request.
+      _logger.info('GET\'ing Schema from URL: $uri');
       final httpRequest = await HttpClient().getUrl(uri);
       httpRequest.followRedirects = true;
       // Fetch the response
@@ -45,6 +50,7 @@ class IoSchemaUrlClient extends SchemaUrlClient {
     Map schemaMap;
     if (uri.scheme == 'http' || uri.scheme == 'https') {
       // Setup the HTTP request.
+      _logger.info('GET\'ing Schema JSON from URL: $uri');
       final httpRequest = await HttpClient().getUrl(uri);
       httpRequest.followRedirects = true;
       // Fetch the response

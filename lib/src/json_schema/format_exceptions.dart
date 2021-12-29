@@ -1,7 +1,5 @@
 class FormatExceptions {
   static FormatException error(String msg, [String path]) {
-    msg = '${path ?? ''}: $msg';
-    // if (logFormatExceptions) _logger.warning(msg); TODO: re-add logger
     return FormatException(msg);
   }
 

@@ -383,8 +383,6 @@ class JsonSchema {
 
       _schemaAssignments.forEach((assignment) => assignment());
       _thisCompleter.complete(_getSchemaFromPath(Uri.parse('#')));
-
-      // _logger.info('Marked $_path complete'); TODO: re-add logger
     }
   }
 
@@ -413,12 +411,6 @@ class JsonSchema {
   }
 
   void _validateSchemaBase() {
-    // _logger.info('Validating schema $_path'); TODO: re-add logger
-
-    if (_isRemoteRef(_schemaMap)) {
-      // _logger.info('Top level schema is ref: $_schemaRefs'); TODO: re-add logger
-    }
-
     _validateAndSetAllProperties();
   }
 
@@ -427,8 +419,6 @@ class JsonSchema {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsAsync();
-
-    // _logger.info('Completed Validating schema $_path'); TODO: re-add logger
   }
 
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
@@ -436,8 +426,6 @@ class JsonSchema {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsSync();
-
-    // _logger.info('Completed Validating schema $_path'); TODO: re-add logger
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.

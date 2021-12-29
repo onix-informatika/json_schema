@@ -40,11 +40,15 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
 import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
+import 'package:rfc_6901/rfc_6901.dart';
+
+final Logger _logger = Logger('Validator');
 
 class Instance {
   Instance(dynamic data, {String path = ''}) {
@@ -87,8 +91,6 @@ class Validator {
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
-    // _logger.info('Validating ${instance.runtimeType}:$instance on ${_rootSchema}'); TODO: re-add logger
-
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
       if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
@@ -119,7 +121,7 @@ class Validator {
       } on FormatException {
         return false;
       } catch (e) {
-        // _logger.shout('Unexpected Exception: $e'); TODO: re-add logger
+        _logger.shout('Unexpected Exception: $e');
         return false;
       }
     }
@@ -186,7 +188,9 @@ class Validator {
         }
       } else {
         final double result = n / multipleOf;
-        if (result.truncate() != result) {
+        if (result == double.infinity) {
+          _err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
+        } else if (result.truncate() != result) {
           _err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
         }
       }
@@ -411,7 +415,9 @@ class Validator {
         }
         break;
       case 'ipv6':
-        if (JsonSchemaValidationRegexes.ipv6.firstMatch(instance.data) == null) {
+        try {
+          Uri.parseIPv6Address(instance.data);
+        } on FormatException catch (_) {
           _err('ipv6" format not accepted $instance', instance.path, schema.path);
         }
         break;
@@ -428,7 +434,9 @@ class Validator {
         break;
       case 'json-pointer':
         if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
-        if (JsonSchemaValidationRegexes.jsonPointer.firstMatch(instance.data) == null) {
+        try {
+          JsonPointer(instance.data);
+        } on FormatException catch (_) {
           _err('json-pointer" format not accepted $instance', instance.path, schema.path);
         }
         break;
@@ -600,8 +608,6 @@ class Validator {
   }
 
   void _err(String msg, String instancePath, String schemaPath) {
-    // _logger.warning(msg); TODO: re-add logger
-
     schemaPath = schemaPath.replaceFirst('#', '');
     _errors.add(ValidationError._(instancePath, schemaPath, msg));
     if (!_reportMultipleErrors) throw FormatException(msg);

@@ -38,25 +38,15 @@
 
 @TestOn('vm')
 
-library json_schema.test_invalid_schemas;
-
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import 'package:json_schema/json_schema.dart';
 
-final Logger _logger = Logger('test_invalid_schemas');
-
-void main([List<String> args]) {
-  if (args?.isEmpty == true) {
-    Logger.root.onRecord.listen((LogRecord r) => print('${r.loggerName} [${r.level}]:\t${r.message}'));
-    Logger.root.level = Level.OFF;
-  }
-
+void main() {
   final Directory testSuiteFolder = Directory('./test/invalid_schemas/draft4');
 
   testSuiteFolder.listSync().forEach((testEntry) {
@@ -70,10 +60,6 @@ void main([List<String> args]) {
 
           test(description, () async {
             final catchException = expectAsync1((e) {
-              _logger.info('Caught expected $e');
-              if (e is! FormatException) {
-                _logger.info('${shortName} threw an unexpected error type of ${e.runtimeType}');
-              }
               expect(e is FormatException, true);
             });
 
