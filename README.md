@@ -8,7 +8,14 @@
 2. `make pubget`
 3. `make format`
 4. `make analyze`
-5. `make test`
+5. `make test-with-serve-remotes`
+
+### Alternative Test Running Strategy (To run specific tests, or pass other args to `dart test`):
+1. `make serve-remotes` (in a separate terminal tab - HTTP fixtures need to be served for tests to pass)
+2. `make test` or `dart test -n <YOUR TEST>` 
+3. SIGINT your `make serve-remotes` tab or run `make stop-serve-remotes`
+
+Note: For convenience, `make stop-serve-remotes` will be run as a prerequisite before `make test-with-serve-remotes` and `make serve-remotes`
 
 ## Simple Example Usage
 

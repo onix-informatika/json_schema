@@ -20,7 +20,22 @@ format:
 analyze:
 	dart analyze
 
-# test recipe does the following:
+.PHONY: serve-remotes
+serve-remotes: stop-serve-remotes
+	dart run ./tool/serve_remotes.dart
+
+.PHONY: stop-serve-remotes
+stop-serve-remotes: 
+	@if [ ! -z `lsof -t -i tcp:1234 -i tcp:4321` ]; then\
+        kill -9 `lsof -t -i tcp:1234 -i tcp:4321`;\
+    fi
+
+.PHONY: test
+test: 
+	dart test
+
+# test-with-serve-remotes recipe does the following:
+# 0) kills any previously running HTTP fixture server
 # 1) starts a dart process to server specification test remotes
 # 2) stores the pid of the serve_remotes.dart process
 # 3) waits 3 seconds to give the server time to start
@@ -28,11 +43,11 @@ analyze:
 # 5) stores the exit code of the tests
 # 6) stops the server
 # 7) exits the process with the return code from the tests
-.PHONY: test
-test: 
+.PHONY: test-with-serve-remotes
+test-with-serve-remotes: stop-serve-remotes
 	{ dart run ./tool/serve_remotes.dart & }; \
 	pid=$$!; \
-	sleep 3; \
+	sleep 1; \
 	dart test; \
 	r=$$?; \
 	kill $$pid; \
