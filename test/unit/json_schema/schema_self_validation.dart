@@ -36,54 +36,20 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-library json_schema.test_validation;
-
 import 'package:json_schema/json_schema.dart';
-import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 
-final Logger _logger = Logger('test_validation');
-
-void main([List<String> args]) {
-  if (args?.isEmpty == true) {
-    Logger.root.onRecord.listen((LogRecord r) => print('${r.loggerName} [${r.level}]:\t${r.message}'));
-    Logger.root.level = Level.OFF;
-  }
-
-  ////////////////////////////////////////////////////////////////////////
-  // Uncomment to see logging of exceptions
-  // Logger.root.onRecord.listen((LogRecord r) =>
-  //   print('${r.loggerName} [${r.level}]:\t${r.message}'));
-
-  Logger.root.level = Level.OFF;
-
+void main() {
   group('Schema self validation', () {
-    test('draft4', () {
-      // Pull in the official schema, verify description and then ensure
-      // that the schema satisfies the schema for schemas
-      final url = 'http://json-schema.org/draft-04/schema#';
-      JsonSchema.createFromUrl(url).then((schema) {
-        expect(schema.schemaMap['description'], 'Core schema meta-schema');
-        expect(schema.validate(schema.schemaMap), true);
+    for (final version in SchemaVersion.values.map((value) => value.toString())) {
+      test('version: $version', () {
+        // Pull in the official schema, verify description and then ensure
+        // that the schema satisfies the schema for schemas.
+        final url = version;
+        JsonSchema.createFromUrl(url).then(expectAsync1((schema) {
+          expect(schema.validate(schema.schemaMap), isTrue);
+        }));
       });
-    });
-    test('draft6', () {
-      // Pull in the official schema, verify description and then ensure
-      // that the schema satisfies the schema for schemas
-      final url = 'http://json-schema.org/draft-06/schema#';
-      JsonSchema.createFromUrl(url).then((schema) {
-        expect(schema.schemaMap['description'], 'Core schema meta-schema');
-        expect(schema.validate(schema.schemaMap), true);
-      });
-    });
-    test('draft7', () {
-      // Pull in the official schema, verify description and then ensure
-      // that the schema satisfies the schema for schemas
-      final url = 'http://json-schema.org/draft-07/schema#';
-      JsonSchema.createFromUrl(url).then((schema) {
-        expect(schema.schemaMap['description'], 'Core schema meta-schema');
-        expect(schema.validate(schema.schemaMap), true);
-      });
-    });
+    }
   });
 }

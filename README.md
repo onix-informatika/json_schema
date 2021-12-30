@@ -8,7 +8,20 @@
 2. `make pubget`
 3. `make format`
 4. `make analyze`
-5. `make test`
+5. `make test-with-serve-remotes`
+
+### Alternative Test Running Strategy (To run specific tests, or pass other args to `dart test`):
+1. `make serve-remotes` (in a separate terminal tab - HTTP fixtures need to be served for tests to pass)
+2. `make test` or `dart test -n <YOUR TEST>` 
+3. SIGINT your `make serve-remotes` tab or run `make stop-serve-remotes`
+
+Note: For convenience, `make stop-serve-remotes` will be run as a prerequisite before `make test-with-serve-remotes` and `make serve-remotes`
+
+### Updating Test Fixtures
+1. `make gen-fixtures` Generates Dart source files that contain the JSON-Schema-Test-Suite tests and fixtures for use in cross-platform testing that doesn't require `dart:io` to read the files on disk.
+2. Commit the results of generation, if any.
+
+Note: CI runs `make gen-fixtures --check` to ensure these are up-to-date on each 
 
 ## Simple Example Usage
 

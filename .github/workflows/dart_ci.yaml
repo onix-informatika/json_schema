@@ -29,5 +29,7 @@ jobs:
         if: ${{ matrix.sdk == 'stable' }}
       - name: Analyze project source
         run: dart analyze
+      - name: Check Generated Fixtures Are Up-To-Date
+        run: make gen-fixtures --check
       - name: Run tests
-        run: dart test
+        run: make test-with-serve-remotes
