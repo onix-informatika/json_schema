@@ -1,6 +1,6 @@
 // This is a command line utility generate Dart code that wraps all JSON
-// defined in workflow_forms. It should be run from the root directory
-// (one up from here). The `gen-json` command in the Makefile will do the right thing.
+// defined in JSON-Schema-Test-Suite. It should be run from the root directory
+// (one up from here). The `gen-fixtures` command in the Makefile will do the right thing.
 
 import 'dart:io';
 
