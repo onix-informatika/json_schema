@@ -1,5 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 Map<String, String> specificationTests = {
+  
   "/draft-next/additionalProperties.json": r"""[
     {
         "description":

@@ -71,10 +71,11 @@ List<File> _jsonFiles(String rootDir) {
 }
 
 void main([List<String> args]) {
-  bool shouldCheck = args.contains('--check');
-  args.removeWhere((arg) => arg == '--check');
+  final argsMutableCopy = List.from(args);
+  bool shouldCheck = argsMutableCopy.contains('--check');
+  argsMutableCopy.removeWhere((arg) => arg == '--check');
 
-  if (args.isEmpty || args[0] == 'specification_remotes') {
+  if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'specification_remotes') {
     final bool didChange = generateFileMapFromDirectory(
       remotesDirectory,
       remotesOutputFile,
@@ -89,7 +90,7 @@ void main([List<String> args]) {
     }
   }
 
-  if (args.isEmpty || args[0] == 'additional_remotes') {
+  if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'additional_remotes') {
     final bool didChange = generateFileMapFromDirectory(
       additionalRemotesDirectory,
       additionalRemotesOutputFile,
@@ -104,7 +105,7 @@ void main([List<String> args]) {
     }
   }
 
-  if (args.isEmpty || args[0] == 'tests') {
+  if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'tests') {
     final bool didChange = generateFileMapFromDirectory(
       testsDirectory,
       testsOutputFile,

@@ -17,6 +17,12 @@
 
 Note: For convenience, `make stop-serve-remotes` will be run as a prerequisite before `make test-with-serve-remotes` and `make serve-remotes`
 
+### Updating Test Fixtures
+1. `make gen-fixtures` Generates Dart source files that contain the JSON-Schema-Test-Suite tests and fixtures for use in cross-platform testing that doesn't require `dart:io` to read the files on disk.
+2. Commit the results of generation, if any.
+
+Note: CI runs `make gen-fixtures --check` to ensure these are up-to-date on each 
+
 ## Simple Example Usage
 
 The simplest way to create a schema is to pass JSON data directly to `JsonSchema.create` with a JSON `String`, or decoded JSON via Dart `Map` or `bool`. 

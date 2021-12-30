@@ -20,6 +20,10 @@ format:
 analyze:
 	dart analyze
 
+.PHONY: gen-fixtures
+gen-fixtures:
+	dart run ./tool/gen.dart
+
 .PHONY: serve-remotes
 serve-remotes: stop-serve-remotes
 	dart run ./tool/serve_remotes.dart

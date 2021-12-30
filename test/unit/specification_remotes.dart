@@ -1,5 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 Map<String, String> specificationRemotes = {
+  
   "http://localhost:1234/baseUriChange/folderInteger.json": r"""{
     "type": "integer"
 }
