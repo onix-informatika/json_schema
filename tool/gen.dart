@@ -47,13 +47,15 @@ Map<String, $rootType> ${variableName} = {
 String _generateRemoteEntries(Map<String, String> schemaFiles,
     {List<String> skipFiles = const [], String fileType = 'String'}) {
   final List<String> entries = [];
+  bool isFirst = true;
   schemaFiles.forEach((String path, String fileContents) {
     if (skipFiles.firstWhere((fileName) => path.endsWith(fileName), orElse: () => null)?.isNotEmpty == true) {
       return;
     }
     entries.add(
-      """\n  "${path}": ${fileType == 'String' ? 'r"""$fileContents"""' : fileContents.replaceAll(r'$', r'\$').replaceAll('\n', '\n  ')}""",
+      """${isFirst ? '' : '\n  '}"${path}": ${fileType == 'String' ? 'r"""$fileContents"""' : fileContents.replaceAll(r'$', r'\$').replaceAll('\n', '\n  ')}""",
     );
+    isFirst = false;
   });
 
   return entries.join(',');
@@ -105,7 +107,7 @@ void main([List<String> args]) {
     }
   }
 
-  if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'tests') {
+  if (argsMutableCopy.isEmpty || args[0] == 'tests') {
     final bool didChange = generateFileMapFromDirectory(
       testsDirectory,
       testsOutputFile,

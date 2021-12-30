@@ -36,10 +36,7 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-// @TestOn('browser')
-
 import 'dart:convert';
-// import 'dart:io';
 import 'package:json_schema/json_schema.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
@@ -49,21 +46,6 @@ import '../specification_remotes.dart';
 import '../specification_tests.dart';
 
 void main() {
-  // // Draft 4 Tests
-  // final Directory testSuiteFolderV4 = Directory('./test/JSON-Schema-Test-Suite/tests/draft4');
-  // final Directory optionalsV4 = Directory(path.joinAll([testSuiteFolderV4.path, 'optional']));
-  // final allDraft4 = testSuiteFolderV4.listSync()..addAll(optionalsV4.listSync());
-
-  // // Draft 6 Tests
-  // final Directory testSuiteFolderV6 = Directory('./test/JSON-Schema-Test-Suite/tests/draft6');
-  // final Directory optionalsV6 = Directory(path.joinAll([testSuiteFolderV6.path, 'optional']));
-  // final allDraft6 = testSuiteFolderV6.listSync()..addAll(optionalsV6.listSync());
-
-  // // Draft 7 Tests
-  // final Directory testSuiteFolderV7 = Directory('./test/JSON-Schema-Test-Suite/tests/draft7');
-  // final Directory optionalsV7 = Directory(path.joinAll([testSuiteFolderV7.path, 'optional']));
-  // final allDraft7 = testSuiteFolderV7.listSync()..addAll(optionalsV7.listSync());
-
   final allDraft4 =
       specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft4'));
   final allDraft6 =
@@ -285,124 +267,4 @@ void main() {
     commonSkippedTests,
     refProvider: asyncRefProvider,
   );
-
-  group('Nested \$refs in root schema', () {
-    test('properties', () async {
-      final barSchema = await JsonSchema.createAsync({
-        "properties": {
-          "foo": {"\$ref": "http://localhost:1234/integer.json#"},
-          "bar": {"\$ref": "http://localhost:4321/string.json#"}
-        },
-        "required": ["foo", "bar"]
-      });
-
-      final isValid = barSchema.validate({"foo": 2, "bar": "test"});
-
-      final isInvalid = barSchema.validate({"foo": 2, "bar": 4});
-
-      expect(isValid, isTrue);
-      expect(isInvalid, isFalse);
-    });
-
-    test('items', () async {
-      final schema = await JsonSchema.createAsync({
-        "items": {"\$ref": "http://localhost:1234/integer.json"}
-      });
-
-      final isValid = schema.validate([1, 2, 3, 4]);
-      final isInvalid = schema.validate([1, 2, 3, '4']);
-
-      expect(isValid, isTrue);
-      expect(isInvalid, isFalse);
-    });
-
-    test('not / anyOf', () async {
-      final schema = await JsonSchema.createAsync({
-        "items": {
-          "not": {
-            "anyOf": [
-              {"\$ref": "http://localhost:1234/integer.json#"},
-              {"\$ref": "http://localhost:4321/string.json#"},
-            ]
-          }
-        }
-      });
-
-      final isValid = schema.validate([3.4]);
-      final isInvalid = schema.validate(['test']);
-
-      expect(isValid, isTrue);
-      expect(isInvalid, isFalse);
-    });
-  });
-
-  test('Recursive refs from a remote schema should be supported with a json provider', () async {
-    final RefProvider syncRefJsonProvider = RefProvider.sync((String ref) {
-      switch (ref) {
-        case 'http://localhost:1234/tree.json':
-          return {
-            "\$id": "http://localhost:1234/tree.json",
-            "description": "tree of nodes",
-            "type": "object",
-            "properties": {
-              "meta": {"type": "string"},
-              "nodes": {
-                "type": "array",
-                "items": {"\$ref": "node.json"}
-              }
-            },
-            "required": ["meta", "nodes"]
-          };
-        case 'http://localhost:1234/node.json':
-          return {
-            "\$id": "http://localhost:1234/node.json",
-            "description": "nodes",
-            "type": "object",
-            "properties": {
-              "value": {"type": "number"},
-              "subtree": {"\$ref": "tree.json"}
-            },
-            "required": ["value"]
-          };
-        default:
-          return null;
-      }
-    });
-
-    final schema = JsonSchema.create(
-      syncRefJsonProvider.provide('http://localhost:1234/tree.json'),
-      refProvider: syncRefJsonProvider,
-    );
-
-    final isValid = schema.validate({
-      "meta": "a string",
-      "nodes": [
-        {
-          "value": 123,
-          "subtree": {"meta": "a string", "nodes": []}
-        }
-      ]
-    });
-
-    final isInvalid = schema.validate({
-      "meta": "a string",
-      "nodes": [
-        {
-          "value": 123,
-          "subtree": {
-            "meta": "a string",
-            "nodes": [
-              {
-                "value": 123,
-                "subtree": {"meta": 123, "nodes": []}
-              }
-            ]
-          }
-        }
-      ]
-    });
-
-    expect(isValid, isTrue);
-    expect(isInvalid, isFalse);
-  });
 }
