@@ -1,4 +1,4 @@
-/// Formats introduced in Draft 4. 
+/// Formats introduced in Draft 4.
 /// Commented out lines are NOT skipped.
 final List<String> skippedDraft4FormatTestFiles = const [
   // 'date-time.json',
@@ -9,7 +9,7 @@ final List<String> skippedDraft4FormatTestFiles = const [
   // 'uri.json',
 ];
 
-/// Formats introduced in Draft 6. 
+/// Formats introduced in Draft 6.
 /// Commented out lines are NOT skipped.
 final List<String> skippedDraft6FormatTestFiles = const [
   // 'json-pointer.json',
@@ -17,9 +17,9 @@ final List<String> skippedDraft6FormatTestFiles = const [
   // 'uri-template.json',
 ];
 
-/// Formats introduced in Draft 6. 
+/// Formats introduced in Draft 6.
 /// Commented out lines are NOT skipped.
-final List<String> skippedDraft7FormatTestFiles  = const [
+final List<String> skippedDraft7FormatTestFiles = const [
   // 'date.json',
   'idn-email.json',
   // 'idn-hostname.json',
@@ -30,7 +30,7 @@ final List<String> skippedDraft7FormatTestFiles  = const [
   // 'time.json',
 ];
 
-/// Optional tests for Draft 7 (Not Optional later, 
+/// Optional tests for Draft 7 (Not Optional later,
 /// so needed for 2019-09, 2020-12, etc):
 final List<String> skippedOptionalDraft7TestFiles = const [
   'content.json',
@@ -44,7 +44,7 @@ final List<String> skippedOptionalTestFiles = const [
 ];
 
 /// These tests are skipped because they do not yet pass.
-/// We strive to keep the length of this list at zero, 
+/// We strive to keep the length of this list at zero,
 /// but sometimes new tests are introducd that don't pass,
 /// and we'd rather be up-to-date than have all tests pass.
 final List<String> skippedNonWorkingTestFiles = const [
@@ -73,7 +73,7 @@ final List<String> skippedLeapSecondTests = const [
   'validation of date-time strings : an invalid date-time past leap second, UTC', // date-time.json
   'validation of date-time strings : an invalid date-time with leap second on a wrong minute, UTC', // date-time.json
   'validation of date-time strings : an invalid date-time with leap second on a wrong hour, UTC', // date-time.json
-  /// Draft 7 and later: 
+  /// Draft 7 and later:
   'validation of time strings : a valid time string with leap second, Zulu', // time.json
   'validation of time strings : valid leap second, zero time-offset', // time.json
   'validation of time strings : valid leap second, positive time-offset', // time.json
