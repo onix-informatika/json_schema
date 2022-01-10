@@ -468,10 +468,15 @@ void main() {
         'someKey': {'foo': 'a'}
       });
 
-      expect(errors.length, 1);
+      // Error for the root object instance path.
+      expect(errors.length, 2);
       expect(errors[0].instancePath, '/someKey');
       expect(errors[0].schemaPath, '/properties/someKey/required');
       expect(errors[0].message, contains('required'));
+      // Second error for the missing property on object.
+      expect(errors[1].instancePath, '/someKey/bar');
+      expect(errors[1].schemaPath, '/properties/someKey/required');
+      expect(errors[1].message, contains('required'));
     });
 
     test('Object pattern properties', () {
