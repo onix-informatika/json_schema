@@ -585,7 +585,7 @@ void main() {
 
       test('without an instance path should add "root" instead of the path', () {
         final errors = schema.validateWithErrors({});
-        expect(errors.length, 1);
+        expect(errors.length, 2);
         expect(errors[0].toString(), '# (root): required prop missing: foo from {}');
       });
     });
