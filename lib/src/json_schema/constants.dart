@@ -78,7 +78,9 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 
   static const SchemaVersion draft7 = SchemaVersion._(2);
 
-  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6, draft7];
+  static const SchemaVersion draft2019_09 = SchemaVersion._(3);
+
+  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6, draft7, draft2019_09];
 
   final int value;
 
@@ -96,9 +98,10 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   @override
   String toString() {
     final draftToStringMap = {
-      draft4: 'http://json-schema.org/draft-04/schema#',
-      draft6: 'http://json-schema.org/draft-06/schema#',
-      draft7: 'http://json-schema.org/draft-07/schema#',
+      draft4: 'https://json-schema.org/draft-04/schema#',
+      draft6: 'https://json-schema.org/draft-06/schema#',
+      draft7: 'https://json-schema.org/draft-07/schema#',
+      draft2019_09: 'https://json-schema.org/draft/2019-09/schema',
     };
     return draftToStringMap[this];
   }
@@ -112,6 +115,8 @@ class SchemaVersion implements Comparable<SchemaVersion> {
         return draft6;
       case 'http://json-schema.org/draft-07/schema#':
         return draft7;
+      case 'https://json-schema.org/draft/2019-09/schema':
+        return draft2019_09;
       default:
         return null;
     }
@@ -123,6 +128,7 @@ String getJsonSchemaDefinitionByRef(String ref) {
     SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
     SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
     SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
+    SchemaVersion.draft2019_09.toString(): JsonSchemaDefinitions.draft2019_09,
   };
 
   if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
@@ -613,6 +619,50 @@ class JsonSchemaDefinitions {
         "not": { "$ref": "#" }
     },
     "default": true
+}
+  ''';
+
+  static String draft2019_09 = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/schema",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/core": true,
+        "https://json-schema.org/draft/2019-09/vocab/applicator": true,
+        "https://json-schema.org/draft/2019-09/vocab/validation": true,
+        "https://json-schema.org/draft/2019-09/vocab/meta-data": true,
+        "https://json-schema.org/draft/2019-09/vocab/format": false,
+        "https://json-schema.org/draft/2019-09/vocab/content": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Core and Validation specifications meta-schema",
+    "allOf": [
+        {"$ref": "meta/core"},
+        {"$ref": "meta/applicator"},
+        {"$ref": "meta/validation"},
+        {"$ref": "meta/meta-data"},
+        {"$ref": "meta/format"},
+        {"$ref": "meta/content"}
+    ],
+    "type": ["object", "boolean"],
+    "properties": {
+        "definitions": {
+            "$comment": "While no longer an official keyword as it is replaced by $defs, this keyword is retained in the meta-schema to prevent incompatible extensions as it remains in common use.",
+            "type": "object",
+            "additionalProperties": { "$recursiveRef": "#" },
+            "default": {}
+        },
+        "dependencies": {
+            "$comment": "\"dependencies\" is no longer a keyword, but schema authors should avoid redefining it to facilitate a smooth transition to \"dependentSchemas\" and \"dependentRequired\"",
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    { "$recursiveRef": "#" },
+                    { "$ref": "meta/validation#/$defs/stringArray" }
+                ]
+            }
+        }
+    }
 }
   ''';
 }

@@ -924,17 +924,17 @@ class JsonSchema {
   static Map<String, SchemaPropertySetter> _accessMapV6 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll({
-      // Note: see http://json-schema.org/draft-06/json-schema-release-notes.html
+      // Note: see https://json-schema.org/draft-06/json-schema-release-notes.html
 
       // Added in draft6
       'const': (JsonSchema s, dynamic v) => s._setConst(v),
       'contains': (JsonSchema s, dynamic v) => s._setContains(v),
       'examples': (JsonSchema s, dynamic v) => s._setExamples(v),
       'propertyNames': (JsonSchema s, dynamic v) => s._setPropertyNames(v),
-      // changed (imcompatible) in draft6
+      // changed (incompatible) in draft6
       'exclusiveMaximum': (JsonSchema s, dynamic v) => s._setExclusiveMaximumV6(v),
       'exclusiveMinimum': (JsonSchema s, dynamic v) => s._setExclusiveMinimumV6(v),
-      '\$id': (JsonSchema s, dynamic v) => s._setId(v),
+      r'$id': (JsonSchema s, dynamic v) => s._setId(v),
       'required': (JsonSchema s, dynamic v) => s._setRequiredV6(v),
     });
 
@@ -942,7 +942,7 @@ class JsonSchema {
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV6)
     ..addAll({
-      // Note: see http://json-schema.org/draft-06/json-schema-release-notes.html
+      // Note: see https://json-schema.org/draft-07/json-schema-release-notes.html
 
       // Added in draft7
       r'$comment': (JsonSchema s, dynamic v) => s._setComment(v),
@@ -953,6 +953,48 @@ class JsonSchema {
       'writeOnly': (JsonSchema s, dynamic v) => s._setWriteOnly(v),
       'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
       'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
+    ..addAll(_baseAccessMap)
+    ..addAll(_accessMapV7)
+    ..addAll({
+      // Note: see https://json-schema.org/draft/2019-09/release-notes.html
+
+      // Added or changed in draft2019_09: Core Vocabulary
+      r'$anchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$defs': (JsonSchema s, dynamic v) => null, // TODO: log some warning if definitions is used.
+      r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
+      r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$ref': (JsonSchema s, dynamic v) => null, // TODO: change behavior
+      r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
+
+      // Added or changed in draft2019_09: Applicator Vocabulary
+      'dependentSchemas': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'unevaluatedItems': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
+
+      // Added or changed in draft2019_09: Applicator Vocabulary
+      'dependentRequired': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'maxContains': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'minContains': (JsonSchema s, dynamic v) => null, // TODO: implement
+
+      // Added or changed in draft2019_09: Format Vocabulary (TODO in other places)
+
+      // Added or changed in draft2019_09: Content Vocabulary
+      'contentEncoding': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'contentSchema': (JsonSchema s, dynamic v) => null, // TODO: implement
+
+      // Added or changed in draft2019_09: Meta-Data Vocabulary
+      'deprecated': (JsonSchema s, dynamic v) => null, // TODO: implement
+    });
+
+    static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
+    ..addAll(_baseAccessMap)
+    ..addAll(_accessMapV2019_09)
+    ..addAll({
+      // Note: see https://json-schema.org/draft/2020-12/release-notes.html
     });
 
   /// Get a nested [JsonSchema] from a path.
