@@ -98,9 +98,9 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   @override
   String toString() {
     final draftToStringMap = {
-      draft4: 'https://json-schema.org/draft-04/schema#',
-      draft6: 'https://json-schema.org/draft-06/schema#',
-      draft7: 'https://json-schema.org/draft-07/schema#',
+      draft4: 'http://json-schema.org/draft-04/schema#',
+      draft6: 'http://json-schema.org/draft-06/schema#',
+      draft7: 'http://json-schema.org/draft-07/schema#',
       draft2019_09: 'https://json-schema.org/draft/2019-09/schema',
     };
     return draftToStringMap[this];
@@ -114,6 +114,12 @@ class SchemaVersion implements Comparable<SchemaVersion> {
       case 'http://json-schema.org/draft-06/schema#':
         return draft6;
       case 'http://json-schema.org/draft-07/schema#':
+        return draft7;
+      case 'https://json-schema.org/draft-04/schema#':
+        return draft4;
+      case 'https://json-schema.org/draft-06/schema#':
+        return draft6;
+      case 'https://json-schema.org/draft-07/schema#':
         return draft7;
       case 'https://json-schema.org/draft/2019-09/schema':
         return draft2019_09;

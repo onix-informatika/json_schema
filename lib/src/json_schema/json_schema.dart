@@ -560,7 +560,8 @@ class JsonSchema {
       return JsonSchema._fromMap(_root, schemaDefinition, path, parent: this);
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (schemaDefinition is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    } else if (schemaDefinition is bool &&
+        [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
       return JsonSchema._fromBool(_root, schemaDefinition, path, parent: this);
     }
     throw ArgumentError(
@@ -1514,7 +1515,8 @@ class JsonSchema {
   _createOrRetrieveSchema(String path, dynamic schema, SchemaAssigner assigner, {mustBeValid = true}) {
     var throwError;
 
-    if (schema is bool && ![SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion))
+    if (schema is bool &&
+        ![SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion))
       throwError = () => throw FormatExceptions.schema(path, schema);
     if (schema is! Map && schema is! bool) throwError = () => throw FormatExceptions.schema(path, schema);
 
@@ -1594,7 +1596,9 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
   _setElse(dynamic value) {
-    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    if (value is Map ||
+        value is bool &&
+            [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
       _createOrRetrieveSchema('$_path/else', value, (rhs) => _elseSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1653,7 +1657,9 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
   _setIf(dynamic value) {
-    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    if (value is Map ||
+        value is bool &&
+            [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
       _createOrRetrieveSchema('$_path/if', value, (rhs) => _ifSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');

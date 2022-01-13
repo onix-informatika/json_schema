@@ -52,6 +52,8 @@ void main() {
       specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft6'));
   final allDraft7 =
       specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft7'));
+  final allDraft2019 =
+      specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft2019-09'));
 
   final runAllTestsForDraftX = (SchemaVersion schemaVersion, Iterable<MapEntry<String, String>> allTests,
       List<String> skipFiles, List<String> skipTests,
@@ -63,6 +65,8 @@ void main() {
       shortSchemaVersion = 'draft6';
     } else if (schemaVersion == SchemaVersion.draft7) {
       shortSchemaVersion = 'draft7';
+    } else if (schemaVersion == SchemaVersion.draft2019_09) {
+      shortSchemaVersion = 'draft2019';
     }
 
     allTests.forEach((testEntry) {
@@ -150,7 +154,7 @@ void main() {
     return deprecatedSyncRefSchemaProvider.provide(ref);
   });
 
-  // Run all tests asynchronously with no ref provider.
+  //Run all tests asynchronously with no ref provider.
   runAllTestsForDraftX(
     SchemaVersion.draft4,
     allDraft4,
@@ -169,6 +173,7 @@ void main() {
     commonSkippedTestFiles,
     commonSkippedTests,
   );
+  runAllTestsForDraftX(SchemaVersion.draft2019_09, allDraft2019, commonSkippedTestFiles, commonSkippedTests);
 
   // Run all tests synchronously with a sync ref provider.
   runAllTestsForDraftX(
@@ -190,6 +195,14 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft7,
     allDraft7,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: deprecatedSyncRefSchemaProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    allDraft2019,
     commonSkippedTestFiles,
     commonSkippedTests,
     isSync: true,
@@ -221,6 +234,22 @@ void main() {
     isSync: true,
     refProvider: syncRefProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft7,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    allDraft2019,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefProvider,
+  );
 
   // Run all tests asynchronously with an async ref provider.
   runAllTestsForDraftX(
@@ -244,6 +273,20 @@ void main() {
     commonSkippedTests,
     refProvider: deprecatedAsyncRefSchemaProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft7,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: deprecatedAsyncRefSchemaProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    allDraft2019,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: deprecatedAsyncRefSchemaProvider,
+  );
 
   // Run all tests asynchronously with an async json provider.
   runAllTestsForDraftX(
@@ -263,6 +306,20 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft7,
     allDraft6,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: asyncRefProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft7,
+    allDraft7,
+    commonSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: asyncRefProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    allDraft2019,
     commonSkippedTestFiles,
     commonSkippedTests,
     refProvider: asyncRefProvider,
