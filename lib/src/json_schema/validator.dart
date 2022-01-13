@@ -292,7 +292,16 @@ class Validator {
     }
 
     if (schema.contains != null) {
-      if (!instance.data.any((item) => Validator(schema.contains).validate(item))) {
+      final maxContains = schema.maxContains;
+      final minContains = schema.minContains ?? ((maxContains is int) ? 1 : null);
+      final containsItems = instance.data.where((item) => Validator(schema.contains).validate(item)).toList();
+      if (minContains is int && containsItems.length < minContains) {
+        _err('minContains violated: $instance', instance.path, schema.path);
+      }
+      if (maxContains is int && containsItems.length > maxContains) {
+        _err('maxContains violated: $instance', instance.path, schema.path);
+      }
+      if (containsItems.length == 0 && !(minContains is int && minContains == 0)) {
         _err('contains violated: $instance', instance.path, schema.path);
       }
     }

@@ -175,8 +175,6 @@ final List<String> draft9SkippedTestFiles = [
   "items.json",
   "hostname.json",
   "json-pointer.json",
-  "maxContains.json",
-  "minContains.json",
   "not.json",
   "propertyNames.json",
   "recursiveRef.json",
