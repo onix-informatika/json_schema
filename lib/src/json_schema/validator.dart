@@ -135,7 +135,7 @@ class Validator {
     }
 
     _validate(_rootSchema, data);
-    return _errors.isEmpty || (treatWarningsAsErrors && _warnings.isEmpty);
+    return _errors.isEmpty && (!treatWarningsAsErrors || _warnings.isEmpty);
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
