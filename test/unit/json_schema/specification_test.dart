@@ -173,7 +173,12 @@ void main() {
     commonSkippedTestFiles,
     commonSkippedTests,
   );
-  runAllTestsForDraftX(SchemaVersion.draft2019_09, allDraft2019, commonSkippedTestFiles, commonSkippedTests);
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    allDraft2019,
+    draft9SkippedTestFiles,
+    commonSkippedTests,
+  );
 
   // Run all tests synchronously with a sync ref provider.
   runAllTestsForDraftX(
@@ -203,7 +208,7 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    commonSkippedTestFiles,
+    draft9SkippedTestFiles,
     commonSkippedTests,
     isSync: true,
     refProvider: deprecatedSyncRefSchemaProvider,
@@ -245,7 +250,7 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    commonSkippedTestFiles,
+    draft9SkippedTestFiles,
     commonSkippedTests,
     isSync: true,
     refProvider: syncRefProvider,
@@ -283,7 +288,7 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    commonSkippedTestFiles,
+    draft9SkippedTestFiles,
     commonSkippedTests,
     refProvider: deprecatedAsyncRefSchemaProvider,
   );
@@ -320,7 +325,7 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    commonSkippedTestFiles,
+    draft9SkippedTestFiles,
     commonSkippedTests,
     refProvider: asyncRefProvider,
   );
