@@ -112,7 +112,7 @@ class Validator {
       }
     }
     _validateFormats = validateFormats;
-    _treatWarningsAsErrors = treatWarningsAsErrors ?? false;
+    _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -235,7 +235,7 @@ class Validator {
   }
 
   void _validateDeprecated(JsonSchema schema, dynamic instance) {
-    if (schema.deprecated) {
+    if (schema.deprecated == true) {
       _warn('deprecated ${instance}', instance.path, schema.path);
     }
   }
@@ -605,7 +605,7 @@ class Validator {
     if (schema.notSchema != null) _validateNot(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
-    if (schema.deprecated) _validateDeprecated(schema, instance);
+    if (schema.deprecated == true) _validateDeprecated(schema, instance);
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
