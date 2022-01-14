@@ -1480,16 +1480,28 @@ class JsonSchema {
 
   /// Validate [instance] against this schema, returning a boolean indicating whether
   /// validation succeeded or failed.
-  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) =>
+  bool validate(dynamic instance,
+          {bool reportMultipleErrors = false,
+          bool parseJson = false,
+          bool validateFormats,
+          bool treatWarningsAsErrors = false}) =>
       Validator(this).validate(instance,
-          reportMultipleErrors: reportMultipleErrors, parseJson: parseJson, validateFormats: validateFormats);
+          reportMultipleErrors: reportMultipleErrors,
+          parseJson: parseJson,
+          validateFormats: validateFormats,
+          treatWarningsAsErrors: treatWarningsAsErrors);
 
   /// Validate [instance] against this schema, returning a list of [ValidationError]
   /// objects with information about any validation errors that occurred.
-  List<ValidationError> validateWithErrors(dynamic instance, {bool parseJson = false, bool validateFormats}) {
+  List<ValidationError> validateWithErrors(dynamic instance,
+      {bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors = false}) {
     final validator = Validator(this);
-    validator.validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
-    return validator.errorObjects;
+    validator.validate(instance,
+        reportMultipleErrors: true,
+        parseJson: parseJson,
+        validateFormats: validateFormats,
+        treatWarningsAsErrors: treatWarningsAsErrors);
+    return treatWarningsAsErrors ? validator.errorObjects + validator.warningObjects : validator.errorObjects;
   }
 
   // --------------------------------------------------------------------------
