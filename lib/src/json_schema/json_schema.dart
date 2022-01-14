@@ -814,16 +814,6 @@ class JsonSchema {
   /// Whether the items in the list must be unique.
   bool _uniqueItems = false;
 
-  /// The minimum number of elements in the list that are valid against the schema for [contains]
-  ///
-  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
-  int get minContains => _minContains;
-
-  /// The maximum number of elements in the list that are valid against the schema for [contains]
-  ///
-  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
-  int get maxContains => _maxContains;
-
   // --------------------------------------------------------------------------
   // Schema Sub-Property Related Fields
   // --------------------------------------------------------------------------
@@ -1346,6 +1336,16 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.13
   bool get uniqueItems => _uniqueItems;
+
+  /// The minimum number of elements in the list that are valid against the schema for [contains]
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
+  int get minContains => _minContains;
+
+  /// The maximum number of elements in the list that are valid against the schema for [contains]
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
+  int get maxContains => _maxContains;
 
   // --------------------------------------------------------------------------
   // Schema Sub-Property Related Getters
