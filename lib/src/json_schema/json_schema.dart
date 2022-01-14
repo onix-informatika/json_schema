@@ -687,6 +687,9 @@ class JsonSchema {
   /// Included [JsonSchema] definitions.
   Map<String, JsonSchema> _definitions = {};
 
+  /// Whether the [JsonSchema] is deprecated.
+  bool _deprecated;
+
   /// Description of the [JsonSchema].
   String _description;
 
@@ -996,7 +999,7 @@ class JsonSchema {
       'contentSchema': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Meta-Data Vocabulary
-      'deprecated': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
     });
 
   static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
@@ -1106,6 +1109,11 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-7.1
   Map<String, JsonSchema> get definitions => _definitions;
+
+  /// Whether the JSON Schema is deprecated.
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.9.3
+  bool get deprecated => _deprecated;
 
   /// Description of the [JsonSchema].
   ///
@@ -1488,16 +1496,28 @@ class JsonSchema {
 
   /// Validate [instance] against this schema, returning a boolean indicating whether
   /// validation succeeded or failed.
-  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) =>
+  bool validate(dynamic instance,
+          {bool reportMultipleErrors = false,
+          bool parseJson = false,
+          bool validateFormats,
+          bool treatWarningsAsErrors = false}) =>
       Validator(this).validate(instance,
-          reportMultipleErrors: reportMultipleErrors, parseJson: parseJson, validateFormats: validateFormats);
+          reportMultipleErrors: reportMultipleErrors,
+          parseJson: parseJson,
+          validateFormats: validateFormats,
+          treatWarningsAsErrors: treatWarningsAsErrors);
 
   /// Validate [instance] against this schema, returning a list of [ValidationError]
   /// objects with information about any validation errors that occurred.
-  List<ValidationError> validateWithErrors(dynamic instance, {bool parseJson = false, bool validateFormats}) {
+  List<ValidationError> validateWithErrors(dynamic instance,
+      {bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors = false}) {
     final validator = Validator(this);
-    validator.validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
-    return validator.errorObjects;
+    validator.validate(instance,
+        reportMultipleErrors: true,
+        parseJson: parseJson,
+        validateFormats: validateFormats,
+        treatWarningsAsErrors: treatWarningsAsErrors);
+    return treatWarningsAsErrors ? validator.errorObjects + validator.warningObjects : validator.errorObjects;
   }
 
   // --------------------------------------------------------------------------
@@ -1599,6 +1619,9 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'definitions' JSON Schema keyword.
   _setDefinitions(dynamic value) => (TypeValidators.object('definition', value))
       .forEach((k, v) => _createOrRetrieveSchema('$_path/definitions/$k', v, (rhs) => _definitions[k] = rhs));
+
+  /// Validate, calculate and set the value of the 'deprecated' JSON Schema keyword.
+  _setDeprecated(dynamic value) => _deprecated = TypeValidators.boolean('deprecated', value);
 
   /// Validate, calculate and set the value of the 'description' JSON Schema keyword.
   _setDescription(dynamic value) => _description = TypeValidators.string('description', value);

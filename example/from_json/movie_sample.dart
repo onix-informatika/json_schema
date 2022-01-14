@@ -77,8 +77,10 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final bool validates = validator.validate(movies);
+    final bool validates = validator.validate(movies, reportMultipleErrors: true, treatWarningsAsErrors: true);
+
     if (!validates) {
+      print('Warnings: ${validator.warnings}');
       print('Errors: ${validator.errors}');
     } else {
       print('$movies:\nvalidates!');
