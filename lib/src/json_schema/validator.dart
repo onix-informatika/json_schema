@@ -97,7 +97,10 @@ class Validator {
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
-      {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors}) {
+      {bool reportMultipleErrors = false,
+      bool parseJson = false,
+      bool validateFormats,
+      bool treatWarningsAsErrors = false}) {
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
       if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
@@ -109,7 +112,7 @@ class Validator {
       }
     }
     _validateFormats = validateFormats;
-    _treatWarningsAsErrors = treatWarningsAsErrors;
+    _treatWarningsAsErrors = treatWarningsAsErrors ?? false;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
