@@ -279,6 +279,8 @@ class JsonSchema {
       accessMap = _accessMapV4;
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
+    } else if (_root.schemaVersion == SchemaVersion.draft2019_09){
+      accessMap = _accessMapV2019_09;
     } else {
       accessMap = _accessMapV7;
     }
