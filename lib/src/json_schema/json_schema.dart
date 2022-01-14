@@ -799,10 +799,16 @@ class JsonSchema {
   /// [JsonSchema] definition that at least one item must match to be valid.
   JsonSchema _contains;
 
-  /// Maimum number of items allowed.
+  /// Minimum number of [_contains] required.
+  int _minContains;
+
+  /// Maximum number of [_contains] allowed
+  int _maxContains;
+
+  /// Maximum number of items allowed.
   int _maxItems;
 
-  /// Maimum number of items allowed.
+  /// Minimum number of items allowed.
   int _minItems;
 
   /// Whether the items in the list must be unique.
@@ -983,8 +989,8 @@ class JsonSchema {
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentRequired': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
-      'maxContains': (JsonSchema s, dynamic v) => null, // TODO: implement
-      'minContains': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
+      'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
 
       // Added or changed in draft2019_09: Format Vocabulary (TODO in other places)
 
@@ -1330,6 +1336,16 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.13
   bool get uniqueItems => _uniqueItems;
+
+  /// The minimum number of elements in the list that are valid against the schema for [contains]
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
+  int get minContains => _minContains;
+
+  /// The maximum number of elements in the list that are valid against the schema for [contains]
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.4.4
+  int get maxContains => _maxContains;
 
   // --------------------------------------------------------------------------
   // Schema Sub-Property Related Getters
@@ -1811,6 +1827,12 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'contains' JSON Schema keyword.
   _setContains(dynamic value) => _createOrRetrieveSchema('$_path/contains', value, (rhs) => _contains = rhs);
+
+  /// Validate, calculate and set the value of the 'minContains' JSON Schema keyword.
+  _setMinContains(dynamic value) => _minContains = TypeValidators.nonNegativeInt('minContains', value);
+
+  /// Validate, calculate and set the value of the 'maxContains' JSON Schema keyword.
+  _setMaxContains(dynamic value) => _maxContains = TypeValidators.nonNegativeInt('maxContains', value);
 
   /// Validate, calculate and set the value of the 'examples' JSON Schema keyword.
   _setExamples(dynamic value) => _examples = TypeValidators.list('examples', value);
