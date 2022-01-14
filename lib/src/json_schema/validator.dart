@@ -85,12 +85,19 @@ class Validator {
 
   List<String> get errors => _errors.map((e) => e.toString()).toList();
 
+  List<String> get warnings => _warnings.map((e) => e.toString()).toList();
+
   List<ValidationError> get errorObjects => _errors;
+
+  List<ValidationError> get warningObjects => _warnings;
 
   bool _validateFormats;
 
+  bool _treatWarningsAsErrors;
+
   /// Validate the [instance] against the this validator's schema
-  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
+  bool validate(dynamic instance,
+      {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors}) {
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
       if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
@@ -102,6 +109,7 @@ class Validator {
       }
     }
     _validateFormats = validateFormats;
+    _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -127,7 +135,7 @@ class Validator {
     }
 
     _validate(_rootSchema, data);
-    return _errors.isEmpty;
+    return _errors.isEmpty || (treatWarningsAsErrors && _warnings.isEmpty);
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
@@ -220,6 +228,12 @@ class Validator {
       } on StateError {
         _err('enum violated ${instance}', instance.path, schema.path);
       }
+    }
+  }
+
+  void _validateDeprecated(JsonSchema schema, dynamic instance) {
+    if (schema.deprecated) {
+      _warn('deprecated ${instance}', instance.path, schema.path);
     }
   }
 
@@ -579,6 +593,7 @@ class Validator {
     if (schema.notSchema != null) _validateNot(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
+    if (schema.deprecated) _validateDeprecated(schema, instance);
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
@@ -613,7 +628,14 @@ class Validator {
     if (!_reportMultipleErrors) throw FormatException(msg);
   }
 
+  void _warn(String msg, String instancePath, String schemaPath) {
+    schemaPath = schemaPath.replaceFirst('#', '');
+    _warnings.add(ValidationError._(instancePath, schemaPath, msg));
+    if (!_reportMultipleErrors && _treatWarningsAsErrors) throw FormatException(msg);
+  }
+
   JsonSchema _rootSchema;
   List<ValidationError> _errors = [];
+  List<ValidationError> _warnings = [];
   bool _reportMultipleErrors;
 }
