@@ -279,7 +279,7 @@ class JsonSchema {
       accessMap = _accessMapV4;
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
-    } else if (_root.schemaVersion == SchemaVersion.draft2019_09){
+    } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
       accessMap = _accessMapV2019_09;
     } else {
       accessMap = _accessMapV7;
@@ -993,7 +993,7 @@ class JsonSchema {
       'deprecated': (JsonSchema s, dynamic v) => null, // TODO: implement
     });
 
-    static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
+  static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV2019_09)
     ..addAll({

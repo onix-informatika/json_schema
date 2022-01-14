@@ -174,10 +174,10 @@ void main() {
     commonSkippedTests,
   );
   runAllTestsForDraftX(
-      SchemaVersion.draft2019_09,
-      allDraft2019,
-      draft9SkippedTestFiles,
-      commonSkippedTests
+    SchemaVersion.draft2019_09,
+    allDraft2019,
+    draft9SkippedTestFiles,
+    commonSkippedTests,
   );
 
   // Run all tests synchronously with a sync ref provider.

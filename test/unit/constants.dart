@@ -152,7 +152,6 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedRelativeJsonPointerFormatTest)
   ..addAll(skppedIdnHostnameFormatTests);
 
-
 final List<String> draft9SkippedTestFiles = [
   "anchor.json",
   "boolean_schema.json",
