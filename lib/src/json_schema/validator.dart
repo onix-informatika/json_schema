@@ -293,7 +293,7 @@ class Validator {
 
     if (schema.contains != null) {
       final maxContains = schema.maxContains;
-      final minContains = schema.minContains ?? ((maxContains is int) ? 1 : null);
+      final minContains = schema.minContains;
       final containsItems = instance.data.where((item) => Validator(schema.contains).validate(item)).toList();
       if (minContains is int && containsItems.length < minContains) {
         _err('minContains violated: $instance', instance.path, schema.path);
