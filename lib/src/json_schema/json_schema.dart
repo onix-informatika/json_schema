@@ -687,6 +687,9 @@ class JsonSchema {
   /// Included [JsonSchema] definitions.
   Map<String, JsonSchema> _definitions = {};
 
+  /// Included [JsonSchema] $defs.
+  Map<String, JsonSchema> _defs = {};
+
   /// Whether the [JsonSchema] is deprecated.
   bool _deprecated;
 
@@ -879,6 +882,7 @@ class JsonSchema {
   RefProvider _refProvider;
 
   static Map<String, SchemaPropertyGetter> _baseAccessGetterMap = {
+    r'$defs': (JsonSchema s) => s.defs,
     'definitions': (JsonSchema s) => s.definitions,
     'properties': (JsonSchema s) => s.properties,
     'items': (JsonSchema s) => s.items ?? s.itemsList,
@@ -975,7 +979,7 @@ class JsonSchema {
 
       // Added or changed in draft2019_09: Core Vocabulary
       r'$anchor': (JsonSchema s, dynamic v) => null, // TODO: implement
-      r'$defs': (JsonSchema s, dynamic v) => null, // TODO: log some warning if definitions is used.
+      r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
       r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
       r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
@@ -1109,6 +1113,11 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-7.1
   Map<String, JsonSchema> get definitions => _definitions;
+
+  /// Included [JsonSchema] $defs.
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.5
+  Map<String, JsonSchema> get defs => _defs;
 
   /// Whether the JSON Schema is deprecated.
   ///
@@ -1619,6 +1628,10 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'definitions' JSON Schema keyword.
   _setDefinitions(dynamic value) => (TypeValidators.object('definition', value))
       .forEach((k, v) => _createOrRetrieveSchema('$_path/definitions/$k', v, (rhs) => _definitions[k] = rhs));
+
+  /// Validate, calculate and set the value of the '$defs' JSON Schema keyword.
+  _setDefs(dynamic value) => (TypeValidators.object(r'$defs', value))
+      .forEach((k, v) => _createOrRetrieveSchema('$_path/\$defs/$k', v, (rhs) => _defs[k] = rhs));
 
   /// Validate, calculate and set the value of the 'deprecated' JSON Schema keyword.
   _setDeprecated(dynamic value) => _deprecated = TypeValidators.boolean('deprecated', value);
