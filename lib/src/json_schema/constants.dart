@@ -37,8 +37,7 @@
 //     THE SOFTWARE.
 
 class JsonSchemaValidationRegexes {
-  // Spec: the ISO 8601 ABNF as given in Appendix A of RFC 3339
-  // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
+  // Spec: https://datatracker.ietf.org/doc/html/rfc3339#appendix-A
   static RegExp duration = RegExp(
       r'^P(\d{1,}W|T(\d{1,}H(\d{1,}M(\d{1,}S)?)?|\d{1,}M(\d{1,}S)?|\d{1,}S)|(\d{1,}D|\d{1,}M(\d{1,}D)?|\d{1,}Y(\d{1,}M(\d{1,}D)?)?)(T(\d{1,}H(\d{1,}M(\d{1,}S)?)?|\d{1,}M(\d{1,}S)?|\d{1,}S))?)$');
 
