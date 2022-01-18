@@ -148,7 +148,7 @@ class Validator {
       return instance is String;
     } else if (type == SchemaType.integer) {
       return instance is int ||
-          ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
+          ([SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schema.schemaVersion) &&
               instance is num &&
               instance.remainder(1) == 0);
     } else if (type == SchemaType.number) {
@@ -580,7 +580,14 @@ class Validator {
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
     while (schema.ref != null) {
-      schema = schema.resolvePath(schema.ref);
+      var nextSchema = schema.resolvePath(schema.ref);
+      if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
+          schema.schemaMap.length > 1 &&
+          nextSchema.schemaBool == null) {
+        schema.mixinForRef(nextSchema);
+      } else {
+        schema = nextSchema;
+      }
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
