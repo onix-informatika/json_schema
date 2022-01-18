@@ -497,7 +497,7 @@ class Validator {
       case 'uuid':
         if (SchemaVersion.draft2019_09.compareTo(schema.schemaVersion) > 0) return;
         if (JsonSchemaValidationRegexes.uuid.firstMatch(instance.data) == null) {
-          _err('"duration" format not accepted $instance', instance.path, schema.path);
+          _err('"uuid" format not accepted $instance', instance.path, schema.path);
         }
         break;
       default:
