@@ -103,7 +103,7 @@ class Validator {
       bool treatWarningsAsErrors = false}) {
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
-      if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
+      if (_rootSchema.schemaVersion <= SchemaVersion.draft7) {
         // By default, formats are validated on a best-effort basis from draft4 through draft7.
         validateFormats = true;
       } else {
@@ -148,7 +148,7 @@ class Validator {
       return instance is String;
     } else if (type == SchemaType.integer) {
       return instance is int ||
-          ([SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schema.schemaVersion) &&
+          (schema.schemaVersion >= SchemaVersion.draft6 &&
               instance is num &&
               instance.remainder(1) == 0);
     } else if (type == SchemaType.number) {
