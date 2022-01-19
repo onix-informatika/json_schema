@@ -98,6 +98,11 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   @override
   int compareTo(SchemaVersion other) => value.compareTo(other.value);
 
+  bool operator <(Object other) => other is SchemaVersion && this.compareTo(other) < 0;
+  bool operator >(Object other) => other is SchemaVersion && this.compareTo(other) > 0;
+  bool operator <=(Object other) => other is SchemaVersion && this.compareTo(other) <= 0;
+  bool operator >=(Object other) => other is SchemaVersion && this.compareTo(other) >= 0;
+
   @override
   String toString() {
     final draftToStringMap = {
