@@ -153,8 +153,6 @@ final List<String> commonSkippedTests = []
   ..addAll(skppedIdnHostnameFormatTests);
 
 final List<String> draft2019SkippedTestFiles = [
-  "anchor.json",
-  "boolean_schema.json",
   "date.json",
   "date-time.json",
   "defs.json",

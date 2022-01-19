@@ -131,7 +131,7 @@ class JsonSchema {
           .future;
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(version)) {
+    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(version)) {
       return JsonSchema._fromRootBool(data, schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider)
           ._thisCompleter
           .future;
@@ -188,7 +188,7 @@ class JsonSchema {
       );
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
       return JsonSchema._fromRootBool(
         data,
         schemaVersion,
@@ -623,7 +623,8 @@ class JsonSchema {
         fetchedFromUri: baseUri,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
-    } else if (schemaDefinition is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    } else if (schemaDefinition is bool &&
+        [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
       baseSchema = JsonSchema._fromRootBool(
         schemaDefinition,
         schemaVersion,
@@ -734,6 +735,9 @@ class JsonSchema {
 
   /// Base URI of the ID. All sub-schemas are resolved against this
   Uri _idBase;
+
+  /// Something like and ID, but different.
+  String _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   JsonSchema _ifSchema;
@@ -978,7 +982,7 @@ class JsonSchema {
       // Note: see https://json-schema.org/draft/2019-09/release-notes.html
 
       // Added or changed in draft2019_09: Core Vocabulary
-      r'$anchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v), // TODO: implement
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
       // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
@@ -1205,6 +1209,9 @@ class JsonSchema {
 
     return root.id;
   }
+
+  /// Anchor from something or other
+  String get anchor => _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   ///
@@ -1706,6 +1713,15 @@ class JsonSchema {
     final String refMapString = '$_id${_id.hasFragment ? '' : '#'}';
     _addSchemaToRefMap(refMapString, this);
     return _id;
+  }
+
+  /// Do stuff with $anchor
+  _setAnchor(dynamic value) {
+    _anchor = TypeValidators.anchorString(r"$anchor", value);
+    final uri = _inheritedUri ?? _uri ?? '';
+    final String refMapString = '$uri#$_anchor';
+    _addSchemaToRefMap(refMapString, this);
+    return _anchor;
   }
 
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
