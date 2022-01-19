@@ -300,8 +300,6 @@ final List<String> draft2019SkippedTestFiles = [
   "hostname.json",
   "json-pointer.json",
   "recursiveRef.json",
-  "refOfUnknownKeyword.json",
-  "refRemote.json",
   "regex.json",
   "relative-json-pointer.json",
   "time.json",

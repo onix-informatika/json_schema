@@ -214,23 +214,6 @@ void main() {
     isSync: true,
     refProvider: deprecatedSyncRefSchemaProvider,
   );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    allDraft2019,
-    draft2019SkippedTestFiles,
-    draft2019SkippedTests,
-    isSync: true,
-    refProvider: deprecatedSyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    draft2019Format,
-    draft2019FormatSkippedTestFiles,
-    commonSkippedTests,
-    isSync: true,
-    refProvider: deprecatedSyncRefSchemaProvider,
-    validateFormats: true,
-  );
 
   // Run all tests synchronously with a sync json provider.
   runAllTestsForDraftX(
@@ -311,21 +294,6 @@ void main() {
     commonSkippedTestFiles,
     commonSkippedTests,
     refProvider: deprecatedAsyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    allDraft2019,
-    draft2019SkippedTestFiles,
-    draft2019SkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    draft2019Format,
-    draft2019FormatSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
-    validateFormats: true,
   );
 
   // Run all tests asynchronously with an async json provider.

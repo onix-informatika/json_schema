@@ -1175,7 +1175,7 @@ class JsonSchema {
   /// The value of the exclusiveMaximum for the [JsonSchema], if any exists.
   num get exclusiveMaximum {
     // If we're beyond draft4, the property contains the value, return it.
-    if (schemaVersion != SchemaVersion.draft4) {
+    if (schemaVersion > SchemaVersion.draft4) {
       return _exclusiveMaximumV6;
 
       // If we're on draft4, the property is a bool, so return the max instead.
@@ -1733,7 +1733,7 @@ class JsonSchema {
     return _id;
   }
 
-  /// Do stuff with $anchor
+  /// Validate, set, and register the value of the '$anchor' JSON Schema keyword.
   _setAnchor(dynamic value) {
     _anchor = TypeValidators.anchorString(r"$anchor", value);
     final uri = _inheritedUri ?? _uri ?? '';
