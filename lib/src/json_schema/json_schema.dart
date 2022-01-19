@@ -994,7 +994,7 @@ class JsonSchema {
       // Note: see https://json-schema.org/draft/2019-09/release-notes.html
 
       // Added or changed in draft2019_09: Core Vocabulary
-      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v), // TODO: implement
+      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
       // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
