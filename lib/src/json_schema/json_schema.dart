@@ -1921,7 +1921,7 @@ class JsonSchema {
   _setRequiredV6(dynamic value) =>
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
 
-  /// Mixin a another JsonSchema into this one. All references must be resolved before calling.
+  /// Mixin another JsonSchema into this one. All references must be resolved before calling.
   mixinForRef(JsonSchema ref) {
     this._schemaMap.remove(r'$ref');
     this._ref = null;
