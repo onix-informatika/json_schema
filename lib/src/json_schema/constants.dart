@@ -648,7 +648,7 @@ class JsonSchemaDefinitions {
          ${Draft2019Subschemas.core},
          ${Draft2019Subschemas.format},
          ${Draft2019Subschemas.metadata},
-         ${Draft2019Subschemas.validation},
+         ${Draft2019Subschemas.validation}
     ],''' +
       r'''
     "type": ["object", "boolean"],
