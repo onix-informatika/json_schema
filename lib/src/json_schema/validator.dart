@@ -148,9 +148,7 @@ class Validator {
       return instance is String;
     } else if (type == SchemaType.integer) {
       return instance is int ||
-          (schema.schemaVersion >= SchemaVersion.draft6 &&
-              instance is num &&
-              instance.remainder(1) == 0);
+          (schema.schemaVersion >= SchemaVersion.draft6 && instance is num && instance.remainder(1) == 0);
     } else if (type == SchemaType.number) {
       return instance is num;
     } else if (type == SchemaType.array) {
