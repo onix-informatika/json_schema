@@ -980,10 +980,9 @@ class JsonSchema {
       // Added or changed in draft2019_09: Core Vocabulary
       r'$anchor': (JsonSchema s, dynamic v) => null, // TODO: implement
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
-      r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
+      // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
       r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
-      r'$ref': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
@@ -1921,4 +1920,14 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'required' JSON Schema keyword.
   _setRequiredV6(dynamic value) =>
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
+
+  /// Mixin another JsonSchema into this one. All references must be resolved before calling.
+  mixinForRef(JsonSchema ref) {
+    this._schemaMap.remove(r'$ref');
+    this._ref = null;
+    // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
+    this._schemaMap.deepMerge(ref._schemaMap);
+
+    this._validateAndSetAllProperties();
+  }
 }
