@@ -1451,6 +1451,13 @@ class JsonSchema {
       }
     };
 
+    // If the schema is a static schema that we have inlined, just return it.
+    final staticSchema = getJsonSchemaDefinitionByRef(ref.toString());
+    if (staticSchema != null) {
+      addSchemaFunction(JsonSchema.create(staticSchema));
+      return;
+    }
+
     final AsyncRetrievalOperation asyncRefSchemaOperation = _refProvider != null
         ? () => _fetchRefSchemaFromAsyncProvider(ref).then(addSchemaFunction)
         : () => _fetchRefSchemaFromAsyncProvider(ref, refProvider: defaultUrlRefProvider).then(addSchemaFunction);
@@ -1813,7 +1820,9 @@ class JsonSchema {
 
   /// Validate, calculate and set items of the 'pattern' JSON Schema prop that are also [JsonSchema]s.
   _setItems(dynamic value) {
-    if (value is Map || (value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion))) {
+    if (value is Map ||
+        (value is bool &&
+            [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion))) {
       _createOrRetrieveSchema('$_path/items', value, (rhs) => _items = rhs);
     } else if (value is List) {
       int index = 0;
