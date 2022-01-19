@@ -1925,6 +1925,7 @@ class JsonSchema {
   mixinForRef(JsonSchema ref) {
     this._schemaMap.remove(r'$ref');
     this._ref = null;
+    // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
     this._schemaMap.deepMerge(ref._schemaMap);
 
     this._validateAndSetAllProperties();
