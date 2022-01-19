@@ -131,8 +131,7 @@ class JsonSchema {
           .future;
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool &&
-        version != SchemaVersion.draft4) {
+    } else if (data is bool && version != SchemaVersion.draft4) {
       return JsonSchema._fromRootBool(data, schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider)
           ._thisCompleter
           .future;
@@ -189,8 +188,7 @@ class JsonSchema {
       );
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool &&
-        schemaVersion != SchemaVersion.draft4) {
+    } else if (data is bool && schemaVersion != SchemaVersion.draft4) {
       return JsonSchema._fromRootBool(
         data,
         schemaVersion,
