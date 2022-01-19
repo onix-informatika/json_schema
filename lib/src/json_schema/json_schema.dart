@@ -416,11 +416,18 @@ class JsonSchema {
     _validateAndSetAllProperties();
   }
 
+  void _validateVocabulary() {
+    if (schemaVersion.compareTo(SchemaVersion.draft2019_09) >= 0 && this != _root && _vocabulary != null) {
+      throw FormatExceptions.error(r'Only top-level schemas are allowed to contain a $vocabulary');
+    }
+  }
+
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
   void _validateSchemaAsync() {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsAsync();
+    _validateVocabulary();
   }
 
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
@@ -428,6 +435,7 @@ class JsonSchema {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsSync();
+    _validateVocabulary();
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
@@ -783,6 +791,9 @@ class JsonSchema {
   /// Whether the schema is write-only.
   bool _writeOnly = false;
 
+  // For metaschemas, indicates the requiredness of each vocabulary subschema.
+  Map<Uri, bool> _vocabulary;
+
   // --------------------------------------------------------------------------
   // Schema List Item Related Fields
   // --------------------------------------------------------------------------
@@ -984,7 +995,7 @@ class JsonSchema {
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
       r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
       r'$ref': (JsonSchema s, dynamic v) => null, // TODO: change behavior
-      r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$vocabulary': (JsonSchema s, dynamic v) => s._setVocabulary(v),
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentSchemas': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
@@ -1297,6 +1308,11 @@ class JsonSchema {
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
   bool get writeOnly => _writeOnly;
+
+  /// Whether the JSON Schema is write-only.
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
+  Map<Uri, bool> get vocabulary => _vocabulary;
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Getters
@@ -1807,6 +1823,17 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'type' JSON Schema keyword.
   _setType(dynamic value) => _typeList = TypeValidators.typeList('type', value);
+
+  /// Validate, calculate and set the value of the '$vocabulary' JSON Schema keyword.
+  _setVocabulary(dynamic value) {
+    try {
+      _vocabulary = TypeValidators.object(r'$vocabulary', value)
+          .cast<String, bool>()
+          .map<Uri, bool>((key, value) => MapEntry(Uri.parse(key), value));
+    } catch (RuntimeException) {
+      throw FormatExceptions.error(r'$vocabulary must be a map from URI to bool');
+    }
+  }
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Property Setters

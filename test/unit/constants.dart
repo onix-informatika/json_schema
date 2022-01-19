@@ -191,5 +191,5 @@ final List<String> draft9SkippedTestFiles = [
   "uri-reference.json",
   "uri-template.json",
   "uuid.json",
-  "vocabulary.json",
+  //"vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
