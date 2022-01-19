@@ -746,7 +746,7 @@ class JsonSchema {
   /// Base URI of the ID. All sub-schemas are resolved against this
   Uri _idBase;
 
-  /// Something like and ID, but different.
+  /// An identifier for a subschema.
   String _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
@@ -1220,7 +1220,7 @@ class JsonSchema {
     return root.id;
   }
 
-  /// Anchor from something or other
+  /// A name used to reference a [JsonSchema] object.
   String get anchor => _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
@@ -1846,7 +1846,7 @@ class JsonSchema {
       _createOrRetrieveSchema('$_path/items', value, (rhs) => _items = rhs);
     } else if (value is List) {
       int index = 0;
-      _itemsList = List(value.length);
+      _itemsList = []..length = value.length;
       for (int i = 0; i < value.length; i++) {
         _createOrRetrieveSchema('$_path/items/${index++}', value[i], (rhs) => _itemsList[i] = rhs);
       }
