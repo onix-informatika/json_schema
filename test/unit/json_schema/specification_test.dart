@@ -54,10 +54,12 @@ void main() {
       specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft7'));
   final allDraft2019 =
       specificationTests.entries.where((MapEntry<String, String> entry) => entry.key.startsWith('/draft2019-09'));
+  final draft2019Format = specificationTests.entries
+      .where((MapEntry<String, String> entry) => entry.key.startsWith('/draft2019-09/optional/format'));
 
   final runAllTestsForDraftX = (SchemaVersion schemaVersion, Iterable<MapEntry<String, String>> allTests,
       List<String> skipFiles, List<String> skipTests,
-      {bool isSync = false, RefProvider refProvider}) {
+      {bool isSync = false, bool validateFormats, RefProvider refProvider}) {
     String shortSchemaVersion = schemaVersion.toString();
     if (schemaVersion == SchemaVersion.draft4) {
       shortSchemaVersion = 'draft4';
@@ -108,13 +110,13 @@ void main() {
                     schemaVersion: schemaVersion,
                     refProvider: refProvider,
                   );
-                  validationResults = schema.validateWithErrors(instance);
+                  validationResults = schema.validateWithErrors(instance, validateFormats: validateFormats);
                   expect(validationResults.isEmpty, expectedResult);
                 } else {
                   final checkResultAsync = expectAsync2(checkResult);
                   JsonSchema.createAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
                       .then((schema) {
-                    validationResults = schema.validateWithErrors(instance);
+                    validationResults = schema.validateWithErrors(instance, validateFormats: validateFormats);
                     checkResultAsync(validationResults, expectedResult);
                   });
                 }
@@ -179,6 +181,13 @@ void main() {
     draft2019SkippedTestFiles,
     draft2019SkippedTests,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    draft2019Format,
+    draft2019FormatSkippedTestFiles,
+    commonSkippedTests,
+    validateFormats: true,
+  );
 
   // Run all tests synchronously with a sync ref provider.
   runAllTestsForDraftX(
@@ -212,6 +221,15 @@ void main() {
     draft2019SkippedTests,
     isSync: true,
     refProvider: deprecatedSyncRefSchemaProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    draft2019Format,
+    draft2019FormatSkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: deprecatedSyncRefSchemaProvider,
+    validateFormats: true,
   );
 
   // Run all tests synchronously with a sync json provider.
@@ -255,6 +273,15 @@ void main() {
     isSync: true,
     refProvider: syncRefProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    draft2019Format,
+    draft2019FormatSkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefProvider,
+    validateFormats: true,
+  );
 
   // Run all tests asynchronously with an async ref provider.
   runAllTestsForDraftX(
@@ -292,6 +319,14 @@ void main() {
     draft2019SkippedTests,
     refProvider: deprecatedAsyncRefSchemaProvider,
   );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    draft2019Format,
+    draft2019FormatSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: deprecatedAsyncRefSchemaProvider,
+    validateFormats: true,
+  );
 
   // Run all tests asynchronously with an async json provider.
   runAllTestsForDraftX(
@@ -328,5 +363,13 @@ void main() {
     draft2019SkippedTestFiles,
     draft2019SkippedTests,
     refProvider: asyncRefProvider,
+  );
+  runAllTestsForDraftX(
+    SchemaVersion.draft2019_09,
+    draft2019Format,
+    draft2019FormatSkippedTestFiles,
+    commonSkippedTests,
+    refProvider: asyncRefProvider,
+    validateFormats: true,
   );
 }
