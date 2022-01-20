@@ -101,12 +101,10 @@ class Validator {
       bool parseJson = false,
       bool validateFormats,
       bool treatWarningsAsErrors = false}) {
-
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
-    _validateFormats =
-        validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
+    _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
