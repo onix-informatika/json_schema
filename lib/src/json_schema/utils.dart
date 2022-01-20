@@ -109,10 +109,11 @@ class DefaultValidators {
 
 extension DeepMerge<K> on Map<K, dynamic> {
   /// Merge other into this with properties in this taking precedence.
+  /// Lists ARE NOT concatenated together.
   Map<K, dynamic> deepMerge(Map<K, dynamic> other) {
     other.forEach((key, value) {
       if (this.containsKey(key)) {
-        if (value is Map && this[key].runtimeType == value.runtimeType) {
+        if (value is Map && this[key] is Map) {
           this[key] = (this[key] as Map).deepMerge(value);
         } // Else don't clobber what is is there
       } else {

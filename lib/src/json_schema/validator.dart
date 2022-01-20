@@ -101,17 +101,12 @@ class Validator {
       bool parseJson = false,
       bool validateFormats,
       bool treatWarningsAsErrors = false}) {
-    if (validateFormats == null) {
-      // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
-      if (_rootSchema.schemaVersion <= SchemaVersion.draft7) {
-        // By default, formats are validated on a best-effort basis from draft4 through draft7.
-        validateFormats = true;
-      } else {
-        // Starting with Draft 2019-09, formats shouldn't be validated by default.
-        validateFormats = false;
-      }
-    }
-    _validateFormats = validateFormats;
+
+    // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
+    // By default, formats are validated on a best-effort basis from draft4 through draft7.
+    // Starting with Draft 2019-09, formats shouldn't be validated by default.
+    _validateFormats =
+        validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
@@ -393,7 +388,7 @@ class Validator {
         final isValid = defaultValidators.uriValidator ?? (_) => false;
 
         if (!isValid(instance.data)) {
-          _err('"uri" format not accepted $instance', instance.path, schema.path);
+          _err('"iri" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'iri-reference':
@@ -442,17 +437,29 @@ class Validator {
         try {
           Uri.parseIPv6Address(instance.data);
         } on FormatException catch (_) {
-          _err('ipv6" format not accepted $instance', instance.path, schema.path);
+          _err('"ipv6" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'hostname':
-        if (JsonSchemaValidationRegexes.hostname.firstMatch(instance.data) == null) {
+        final regexp = schema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0
+            ? JsonSchemaValidationRegexes.hostname
+            // Updated in Draft 2019-09
+            : JsonSchemaValidationRegexes.hostnameDraft2019;
+
+        if (regexp.firstMatch(instance.data) == null) {
           _err('"hostname" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'idn-hostname':
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        if (JsonSchemaValidationRegexes.idnHostname.firstMatch(instance.data) == null) {
+        // Introduced in Draft 7
+        if (schema.schemaVersion.compareTo(SchemaVersion.draft7) < 0) return;
+
+        final regexp = schema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0
+            ? JsonSchemaValidationRegexes.idnHostname
+            // Updated in Draft 2019-09
+            : JsonSchemaValidationRegexes.idnHostnameDraft2019;
+
+        if (regexp.firstMatch(instance.data) == null) {
           _err('"idn-hostname" format not accepted $instance', instance.path, schema.path);
         }
         break;
@@ -461,13 +468,13 @@ class Validator {
         try {
           JsonPointer(instance.data);
         } on FormatException catch (_) {
-          _err('json-pointer" format not accepted $instance', instance.path, schema.path);
+          _err('"json-pointer" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'relative-json-pointer':
         if (SchemaVersion.draft7 != schema.schemaVersion) return;
         if (JsonSchemaValidationRegexes.relativeJsonPointer.firstMatch(instance.data) == null) {
-          _err('relative-json-pointer" format not accepted $instance', instance.path, schema.path);
+          _err('"relative-json-pointer" format not accepted $instance', instance.path, schema.path);
         }
         break;
       case 'regex':
@@ -478,6 +485,18 @@ class Validator {
           RegExp(instance.data, unicode: true);
         } catch (e) {
           _err('"regex" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'duration':
+        if (SchemaVersion.draft2019_09.compareTo(schema.schemaVersion) > 0) return;
+        if (JsonSchemaValidationRegexes.duration.firstMatch(instance.data) == null) {
+          _err('"duration" format not accepted $instance', instance.path, schema.path);
+        }
+        break;
+      case 'uuid':
+        if (SchemaVersion.draft2019_09.compareTo(schema.schemaVersion) > 0) return;
+        if (JsonSchemaValidationRegexes.uuid.firstMatch(instance.data) == null) {
+          _err('"uuid" format not accepted $instance', instance.path, schema.path);
         }
         break;
       default:
@@ -558,7 +577,10 @@ class Validator {
     if (schema.requiredProperties != null) {
       schema.requiredProperties.forEach((prop) {
         if (!instance.data.containsKey(prop)) {
+          // One error for the root object that contains the missing property.
           _err('required prop missing: ${prop} from $instance', instance.path, schema.path + '/required');
+          // Another error for the property on the root object. (Allows consumers to identify errors for individual fields)
+          _err('required prop missing: ${prop} from $instance', '${instance.path}/${prop}', schema.path + '/required');
         }
       });
     }

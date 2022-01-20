@@ -714,6 +714,9 @@ class JsonSchema {
   /// Content Encoding.
   String _contentEncoding;
 
+  /// Content Schema.
+  String _contentSchema;
+
   /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
   JsonSchema _elseSchema;
 
@@ -1010,8 +1013,7 @@ class JsonSchema {
       // Added or changed in draft2019_09: Format Vocabulary (TODO in other places)
 
       // Added or changed in draft2019_09: Content Vocabulary
-      'contentEncoding': (JsonSchema s, dynamic v) => null, // TODO: implement
-      'contentSchema': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'contentSchema': (JsonSchema s, dynamic v) => s._setContentSchema(v),
 
       // Added or changed in draft2019_09: Meta-Data Vocabulary
       'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
@@ -1154,6 +1156,11 @@ class JsonSchema {
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.8.3
   String get contentEncoding => _contentEncoding;
+
+  /// Description of the [JsonSchema].
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.8.5
+  String get contentSchema => _contentSchema;
 
   /// A [JsonSchema] used for validataion if the schema doesn't validate against the 'if' schema.
   ///
@@ -1661,6 +1668,9 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'contentEncoding' JSON Schema keyword.
   _setContentEncoding(dynamic value) => _contentEncoding = TypeValidators.string('contentEncoding', value);
 
+  /// Validate, calculate and set the value of the 'contentSchema' JSON Schema keyword.
+  _setContentSchema(dynamic value) => _contentSchema = TypeValidators.string('contentSchema', value);
+
   /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
   _setElse(dynamic value) {
     if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
@@ -1943,10 +1953,11 @@ class JsonSchema {
   _setRequiredV6(dynamic value) =>
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
 
-  /// Mixin a another JsonSchema into this one. All references must be resolved before calling.
+  /// Mixin another JsonSchema into this one. All references must be resolved before calling.
   mixinForRef(JsonSchema ref) {
     this._schemaMap.remove(r'$ref');
     this._ref = null;
+    // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
     this._schemaMap.deepMerge(ref._schemaMap);
 
     this._validateAndSetAllProperties();
