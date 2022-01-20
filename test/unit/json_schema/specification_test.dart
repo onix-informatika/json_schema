@@ -178,8 +178,8 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    draft9SkippedTestFiles,
-    commonSkippedTests,
+    draft2019SkippedTestFiles,
+    draft2019SkippedTests,
   );
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
@@ -217,8 +217,8 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    draft9SkippedTestFiles,
-    commonSkippedTests,
+    draft2019SkippedTestFiles,
+    draft2019SkippedTests,
     isSync: true,
     refProvider: deprecatedSyncRefSchemaProvider,
   );
@@ -268,8 +268,8 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    draft9SkippedTestFiles,
-    commonSkippedTests,
+    draft2019SkippedTestFiles,
+    draft2019SkippedTests,
     isSync: true,
     refProvider: syncRefProvider,
   );
@@ -315,8 +315,8 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    draft9SkippedTestFiles,
-    commonSkippedTests,
+    draft2019SkippedTestFiles,
+    draft2019SkippedTests,
     refProvider: deprecatedAsyncRefSchemaProvider,
   );
   runAllTestsForDraftX(
@@ -360,8 +360,8 @@ void main() {
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
     allDraft2019,
-    draft9SkippedTestFiles,
-    commonSkippedTests,
+    draft2019SkippedTestFiles,
+    draft2019SkippedTests,
     refProvider: asyncRefProvider,
   );
   runAllTestsForDraftX(

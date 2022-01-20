@@ -283,7 +283,7 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedURITests)
   ..addAll(skippedUUIDTests);
 
-final List<String> draft9SkippedTestFiles = [
+final List<String> draft2019SkippedTestFiles = [
   "anchor.json",
   "boolean_schema.json",
   "date.json",
@@ -309,7 +309,6 @@ final List<String> draft9SkippedTestFiles = [
   "not.json",
   "propertyNames.json",
   "recursiveRef.json",
-  "ref.json",
   "refOfUnknownKeyword.json",
   "refRemote.json",
   "regex.json",
@@ -324,5 +323,11 @@ final List<String> draft9SkippedTestFiles = [
   "uuid.json",
   "vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
+
+final List<String> draft2019SkippedTests = [
+  'remote ref, containing refs itself : remote ref valid',
+  'remote ref, containing refs itself : remote ref invalid',
+  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
+]..addAll(commonSkippedTests);
 
 final List<String> draft2019FormatSkippedTestFiles = [];
