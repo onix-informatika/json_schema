@@ -104,8 +104,7 @@ class Validator {
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
-    _validateFormats =
-        validateFormats ?? _rootSchema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0 ? true : false;
+    _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
@@ -142,9 +141,7 @@ class Validator {
       return instance is String;
     } else if (type == SchemaType.integer) {
       return instance is int ||
-          ([SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schema.schemaVersion) &&
-              instance is num &&
-              instance.remainder(1) == 0);
+          (schema.schemaVersion >= SchemaVersion.draft6 && instance is num && instance.remainder(1) == 0);
     } else if (type == SchemaType.number) {
       return instance is num;
     } else if (type == SchemaType.array) {

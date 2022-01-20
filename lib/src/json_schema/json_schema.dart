@@ -131,7 +131,7 @@ class JsonSchema {
           .future;
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(version)) {
+    } else if (data is bool && version >= SchemaVersion.draft6) {
       return JsonSchema._fromRootBool(data, schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider)
           ._thisCompleter
           .future;
@@ -188,7 +188,7 @@ class JsonSchema {
       );
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (data is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    } else if (data is bool && schemaVersion >= SchemaVersion.draft6) {
       return JsonSchema._fromRootBool(
         data,
         schemaVersion,
@@ -285,9 +285,7 @@ class JsonSchema {
       accessMap = _accessMapV7;
     }
 
-    // Iterate over all string keys of the root JSON Schema Map. Calculate, validate and
-    // set all properties according to spec.
-    _schemaMap.forEach((k, v) {
+    processAttribute(String k, dynamic v) {
       /// Get the _set<X> method from the [accessMap] based on the [Map] string key.
       final SchemaPropertySetter accessor = accessMap[k];
       if (accessor != null) {
@@ -299,6 +297,18 @@ class JsonSchema {
           final String refPath = rhs._translateLocalRefToFullUri(Uri.parse(rhs.path)).toString();
           return _refMap[refPath] = rhs;
         }, mustBeValid: false);
+      }
+    }
+
+    // Some sibling attributes depend on $id being setup first.
+    if (_schemaMap.containsKey(r'$id')) {
+      processAttribute(r'$id', _schemaMap[r'$id']);
+    }
+    // Iterate over all string keys of the root JSON Schema Map. Calculate, validate and
+    // set all properties according to spec.
+    _schemaMap.forEach((k, v) {
+      if (k != r'$id') {
+        processAttribute(k, v);
       }
     });
   }
@@ -562,8 +572,7 @@ class JsonSchema {
       return JsonSchema._fromMap(_root, schemaDefinition, path, parent: this);
 
       // Boolean schemas are only supported in draft 6 and later.
-    } else if (schemaDefinition is bool &&
-        [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
+    } else if (schemaDefinition is bool && schemaVersion >= SchemaVersion.draft6) {
       return JsonSchema._fromBool(_root, schemaDefinition, path, parent: this);
     }
     throw ArgumentError(
@@ -623,7 +632,7 @@ class JsonSchema {
         fetchedFromUri: baseUri,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
-    } else if (schemaDefinition is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    } else if (schemaDefinition is bool && schemaVersion >= SchemaVersion.draft6) {
       baseSchema = JsonSchema._fromRootBool(
         schemaDefinition,
         schemaVersion,
@@ -737,6 +746,9 @@ class JsonSchema {
 
   /// Base URI of the ID. All sub-schemas are resolved against this
   Uri _idBase;
+
+  /// An identifier for a subschema.
+  String _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   JsonSchema _ifSchema;
@@ -981,7 +993,7 @@ class JsonSchema {
       // Note: see https://json-schema.org/draft/2019-09/release-notes.html
 
       // Added or changed in draft2019_09: Core Vocabulary
-      r'$anchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
       // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
       r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
@@ -1162,8 +1174,8 @@ class JsonSchema {
 
   /// The value of the exclusiveMaximum for the [JsonSchema], if any exists.
   num get exclusiveMaximum {
-    // If we're on draft6, the property contains the value, return it.
-    if ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    // If we're beyond draft4, the property contains the value, return it.
+    if (schemaVersion != SchemaVersion.draft4) {
       return _exclusiveMaximumV6;
 
       // If we're on draft4, the property is a bool, so return the max instead.
@@ -1180,8 +1192,8 @@ class JsonSchema {
 
   /// The value of the exclusiveMaximum for the [JsonSchema], if any exists.
   num get exclusiveMinimum {
-    // If we're on draft6, the property contains the value, return it.
-    if ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    // If we're beyond draft4, the property contains the value, return it.
+    if (schemaVersion >= SchemaVersion.draft6) {
       return _exclusiveMinimumV6;
 
       // If we're on draft4, the property is a bool, so return the min instead.
@@ -1212,6 +1224,9 @@ class JsonSchema {
 
     return root.id;
   }
+
+  /// A name used to reference a [JsonSchema] object.
+  String get anchor => _anchor;
 
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   ///
@@ -1568,8 +1583,7 @@ class JsonSchema {
   _createOrRetrieveSchema(String path, dynamic schema, SchemaAssigner assigner, {mustBeValid = true}) {
     var throwError;
 
-    if (schema is bool &&
-        ![SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion))
+    if (schema is bool && !(schemaVersion >= SchemaVersion.draft6))
       throwError = () => throw FormatExceptions.schema(path, schema);
     if (schema is! Map && schema is! bool) throwError = () => throw FormatExceptions.schema(path, schema);
 
@@ -1659,9 +1673,7 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'else' JSON Schema keyword.
   _setElse(dynamic value) {
-    if (value is Map ||
-        value is bool &&
-            [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
+    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
       _createOrRetrieveSchema('$_path/else', value, (rhs) => _elseSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1701,6 +1713,9 @@ class JsonSchema {
 
         // If the $id has a fragment, append it to the base, or use it alone.
       } else if (_id.fragment != null && _id.fragment.isNotEmpty) {
+        if (schemaVersion >= SchemaVersion.draft2019_09) {
+          throw FormatExceptions.error('\$id may only be a URI-references without a fragment: $value');
+        }
         _id = Uri.parse('${_inheritedId ?? ''}#${_id.fragment}');
       }
     }
@@ -1718,11 +1733,18 @@ class JsonSchema {
     return _id;
   }
 
+  /// Do stuff with $anchor
+  _setAnchor(dynamic value) {
+    _anchor = TypeValidators.anchorString(r"$anchor", value);
+    final uri = _inheritedUri ?? _uri ?? '';
+    final String refMapString = '$uri#$_anchor';
+    _addSchemaToRefMap(refMapString, this);
+    return _anchor;
+  }
+
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
   _setIf(dynamic value) {
-    if (value is Map ||
-        value is bool &&
-            [SchemaVersion.draft6, SchemaVersion.draft7, SchemaVersion.draft2019_09].contains(schemaVersion)) {
+    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
       _createOrRetrieveSchema('$_path/if', value, (rhs) => _ifSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1746,7 +1768,7 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'not' JSON Schema keyword.
   _setNot(dynamic value) {
-    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
       _createOrRetrieveSchema('$_path/not', value, (rhs) => _notSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1761,7 +1783,7 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'propertyNames' JSON Schema keyword.
   _setPropertyNames(dynamic value) {
-    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
       _createOrRetrieveSchema('$_path/propertyNames', value, (rhs) => _propertyNamesSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1807,7 +1829,7 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'then' JSON Schema keyword.
   _setThen(dynamic value) {
-    if (value is Map || value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
       _createOrRetrieveSchema('$_path/then', value, (rhs) => _thenSchema = rhs);
     } else {
       throw FormatExceptions.error('items must be object (or boolean in draft6 and later): $value');
@@ -1823,11 +1845,11 @@ class JsonSchema {
 
   /// Validate, calculate and set items of the 'pattern' JSON Schema prop that are also [JsonSchema]s.
   _setItems(dynamic value) {
-    if (value is Map || (value is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion))) {
+    if (value is Map || (value is bool && schemaVersion >= SchemaVersion.draft6)) {
       _createOrRetrieveSchema('$_path/items', value, (rhs) => _items = rhs);
     } else if (value is List) {
       int index = 0;
-      _itemsList = List(value.length);
+      _itemsList = []..length = value.length;
       for (int i = 0; i < value.length; i++) {
         _createOrRetrieveSchema('$_path/items/${index++}', value[i], (rhs) => _itemsList[i] = rhs);
       }
@@ -1889,7 +1911,7 @@ class JsonSchema {
 
   /// Validate, calculate and set the value of the 'dependencies' JSON Schema keyword.
   _setDependencies(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
-        if (v is Map || v is bool && [SchemaVersion.draft6, SchemaVersion.draft7].contains(schemaVersion)) {
+        if (v is Map || v is bool && schemaVersion >= SchemaVersion.draft6) {
           _createOrRetrieveSchema('$_path/dependencies/$k', v, (rhs) => _schemaDependencies[k] = rhs);
         } else if (v is List) {
           // Dependencies must have contents in draft4, but can be empty in draft6 and later
