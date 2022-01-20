@@ -114,6 +114,7 @@ class Validator {
     _validateFormats = validateFormats;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
+    // TODO error if required vocabularies has something unknown
     dynamic data = instance;
     if (parseJson && instance is String) {
       try {
@@ -650,4 +651,29 @@ class Validator {
   List<ValidationError> _errors = [];
   List<ValidationError> _warnings = [];
   bool _reportMultipleErrors;
+}
+
+class Vocabularies {
+  static final _supported = {
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/core"),
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator"),
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation"),
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data"),
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/format"),
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/content"),
+  };
+
+  Vocabularies.fromDefined(Map<Uri, bool> v) {
+    v.forEach((uri, isRequired) {
+      declared.add(uri);
+      if (!_supported.contains(uri)) unsupported.add(uri);
+      if (isRequired) required.add(uri);
+    });
+  }
+
+  /// Vocabularies declared for use for validation.
+  final Set<Uri> declared = {};
+
+  final Set<Uri> unsupported = {};
+  final Set<Uri> required = {};
 }
