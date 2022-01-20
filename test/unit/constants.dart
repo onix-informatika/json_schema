@@ -324,4 +324,10 @@ final List<String> draft2019SkippedTestFiles = [
   "vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
 
+final List<String> draft2019SkippedTests = [
+  'remote ref, containing refs itself : remote ref valid',
+  'remote ref, containing refs itself : remote ref invalid',
+  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
+]..addAll(commonSkippedTests);
+
 final List<String> draft2019FormatSkippedTestFiles = [];
