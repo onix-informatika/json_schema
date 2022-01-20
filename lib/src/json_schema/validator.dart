@@ -104,8 +104,7 @@ class Validator {
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
-    _validateFormats =
-        validateFormats ?? _rootSchema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0 ? true : false;
+    _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
     // TODO error if required vocabularies has something unknown
@@ -143,9 +142,7 @@ class Validator {
       return instance is String;
     } else if (type == SchemaType.integer) {
       return instance is int ||
-          ([SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion) &&
-              instance is num &&
-              instance.remainder(1) == 0);
+          (schema.schemaVersion >= SchemaVersion.draft6 && instance is num && instance.remainder(1) == 0);
     } else if (type == SchemaType.number) {
       return instance is num;
     } else if (type == SchemaType.array) {
@@ -579,7 +576,10 @@ class Validator {
     if (schema.requiredProperties != null) {
       schema.requiredProperties.forEach((prop) {
         if (!instance.data.containsKey(prop)) {
+          // One error for the root object that contains the missing property.
           _err('required prop missing: ${prop} from $instance', instance.path, schema.path + '/required');
+          // Another error for the property on the root object. (Allows consumers to identify errors for individual fields)
+          _err('required prop missing: ${prop} from $instance', '${instance.path}/${prop}', schema.path + '/required');
         }
       });
     }
@@ -599,7 +599,14 @@ class Validator {
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
     while (schema.ref != null) {
-      schema = schema.resolvePath(schema.ref);
+      var nextSchema = schema.resolvePath(schema.ref);
+      if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
+          schema.schemaMap.length > 1 &&
+          nextSchema.schemaBool == null) {
+        schema.mixinForRef(nextSchema);
+      } else {
+        schema = nextSchema;
+      }
     }
 
     /// If the [JsonSchema] is a bool, always return this value.

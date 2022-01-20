@@ -283,9 +283,7 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedURITests)
   ..addAll(skippedUUIDTests);
 
-final List<String> draft9SkippedTestFiles = [
-  "anchor.json",
-  "boolean_schema.json",
+final List<String> draft2019SkippedTestFiles = [
   "date.json",
   "date-time.json",
   "defs.json",
@@ -294,28 +292,19 @@ final List<String> draft9SkippedTestFiles = [
   "duration.json",
   "ecmascript-regex.json",
   "email.json",
-  "exclusiveMaximum.json",
-  "exclusiveMinimum.json",
   "idn-hostname.json",
-  "if-then-else.json",
-  "infinite-loop-detection.json",
   "iri.json",
   "iri-reference.json",
   "ipv4.json",
   "ipv6.json",
-  "items.json",
   "hostname.json",
   "json-pointer.json",
-  "not.json",
-  "propertyNames.json",
   "recursiveRef.json",
-  "ref.json",
   "refOfUnknownKeyword.json",
   "refRemote.json",
   "regex.json",
   "relative-json-pointer.json",
   "time.json",
-  "type.json",
   "unevaluatedItems.json",
   "unevaluatedProperties.json",
   "uri.json",
@@ -324,5 +313,11 @@ final List<String> draft9SkippedTestFiles = [
   "uuid.json",
   //"vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
+
+final List<String> draft2019SkippedTests = [
+  'remote ref, containing refs itself : remote ref valid',
+  'remote ref, containing refs itself : remote ref invalid',
+  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
+]..addAll(commonSkippedTests);
 
 final List<String> draft2019FormatSkippedTestFiles = [];

@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-
 import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/format_exceptions.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
@@ -101,5 +100,14 @@ class TypeValidators {
     } catch (e) {
       throw FormatExceptions.error('$key must be a valid URI: $value ($e)');
     }
+  }
+
+  static String anchorString(String key, dynamic value) {
+    final String id = string(key, value);
+    if (JsonSchemaValidationRegexes.anchor.hasMatch(id)) {
+      return id;
+    }
+    throw FormatExceptions.error(
+        "$key must start with a letter ([A-Za-z]), followed by any number of letters, digits ([0-9]), hyphens (\"-\"), underscores (\"_\"), colons (\":\"), or periods (\".\"): $value");
   }
 }
