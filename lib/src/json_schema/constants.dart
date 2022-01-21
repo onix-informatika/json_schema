@@ -164,13 +164,22 @@ Map getJsonSchemaDefinitionByRef(String ref) {
     SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
     SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
     SchemaVersion.draft2019_09.toString(): JsonSchemaDefinitions.draft2019_09,
+    "https://json-schema.org/draft/2019-09/meta/validation": Draft2019Subschemas.validation,
+    "https://json-schema.org/draft/2019-09/vocab/validation": Draft2019Subschemas.validation,
+    "https://json-schema.org/draft/2019-09/meta/format": Draft2019Subschemas.format,
+    "https://json-schema.org/draft/2019-09/vocab/format": Draft2019Subschemas.format,
+    "https://json-schema.org/draft/2019-09/meta/core": Draft2019Subschemas.core,
+    "https://json-schema.org/draft/2019-09/vocab/core": Draft2019Subschemas.core,
+    "https://json-schema.org/draft/2019-09/meta/metadata": Draft2019Subschemas.metadata,
+    "https://json-schema.org/draft/2019-09/vocab/metadata": Draft2019Subschemas.metadata,
+    "https://json-schema.org/draft/2019-09/meta/applicator": Draft2019Subschemas.applicator,
+    "https://json-schema.org/draft/2019-09/vocab/applicator": Draft2019Subschemas.applicator,
+    "https://json-schema.org/draft/2019-09/meta/content": Draft2019Subschemas.content,
+    "https://json-schema.org/draft/2019-09/vocab/content": Draft2019Subschemas.content,
   };
 
-  if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
-    return json.decode(mapping[ref]);
-  }
-
-  return null;
+  final mapped = mapping[ref];
+  return mapped != null ? json.decode(mapped) : null;
 }
 
 class JsonSchemaDefinitions {

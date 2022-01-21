@@ -427,9 +427,9 @@ class JsonSchema {
   }
 
   void _validateVocabulary() {
-    if (schemaVersion.compareTo(SchemaVersion.draft2019_09) >= 0 && this != _root && _vocabulary != null) {
-      throw FormatExceptions.error(r'Only top-level schemas are allowed to contain a $vocabulary');
-    }
+    // if (schemaVersion.compareTo(SchemaVersion.draft2019_09) >= 0 && this != _root && _vocabulary != null) {
+    //   throw FormatExceptions.error(r'Only top-level schemas are allowed to contain a $vocabulary');
+    // }
   }
 
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
@@ -757,6 +757,9 @@ class JsonSchema {
   /// ID of the [JsonSchema].
   Uri _id;
 
+  /// Metaschema id of the [JsonSchema].
+  Uri _schema;
+
   /// Base URI of the ID. All sub-schemas are resolved against this
   Uri _idBase;
 
@@ -959,8 +962,7 @@ class JsonSchema {
     'maxProperties': (JsonSchema s, dynamic v) => s._setMaxProperties(v),
     'minProperties': (JsonSchema s, dynamic v) => s._setMinProperties(v),
     'patternProperties': (JsonSchema s, dynamic v) => s._setPatternProperties(v),
-    // $schema property always gets set separately, no action required.
-    '\$schema': (JsonSchema s, dynamic v) => null,
+    '\$schema': (JsonSchema s, dynamic v) => s._setSchema(v),
   };
 
   /// Map to allow getters to be accessed by String key.
@@ -1019,7 +1021,7 @@ class JsonSchema {
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
       r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
       r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
-      r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$vocabulary': (JsonSchema s, dynamic v) => s._setVocabulary(v),
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
@@ -1346,10 +1348,18 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
   bool get writeOnly => _writeOnly;
 
-  /// The vocabularies defined for the [JsonSchema].
+  /// The vocabularies defined by the schema of this [JsonSchema].
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
-  Map<Uri, bool> get vocabulary => _root._vocabulary ?? Map<Uri, bool>();
+  Map<Uri, bool> get vocabulary => _vocabulary ?? Map<Uri, bool>();
+
+  /// The vocabularies defined by the schema of this [JsonSchema].
+  ///
+  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
+  Map<Uri, bool> metaschemaVocabulary() {
+    return this._refMap[_schema?.toString()]?.vocabulary ??
+        JsonSchema._fromRootMap(getJsonSchemaDefinitionByRef(schemaVersion.toString()), _schemaVersion).vocabulary;
+  }
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Getters
@@ -1767,6 +1777,12 @@ class JsonSchema {
     final String refMapString = '$_id${_id.hasFragment ? '' : '#'}';
     _addSchemaToRefMap(refMapString, this);
     return _id;
+  }
+
+  /// Validate, calculate and set the value of the '$schema' JSON Schema keyword.
+  _setSchema(dynamic value) {
+    _schema = TypeValidators.uri(r'$schema', value);
+    _addRefRetrievals(_schema);
   }
 
   /// Validate, set, and register the value of the '$anchor' JSON Schema keyword.

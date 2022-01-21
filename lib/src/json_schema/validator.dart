@@ -141,7 +141,7 @@ class Validator {
   }
 
   bool _initializeVocabulary() {
-    _vocabulary = Vocabulary.fromDefined(_rootSchema.schemaVersion, _rootSchema.vocabulary);
+    _vocabulary = Vocabulary.fromDefined(_rootSchema.schemaVersion, _rootSchema.metaschemaVocabulary());
     if (_rootSchema.schemaVersion < SchemaVersion.draft2019_09) return true;
 
     final supportsRequired = _vocabulary.requiredButUnsupported.isEmpty;
@@ -280,28 +280,23 @@ class Validator {
     } else {
       final items = schema.itemsList;
 
-      if (items != null) {
-        final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-        if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-          final expected = items.length;
-          final end = min(expected, actual);
-          for (int i = 0; i < end; i++) {
-            assert(items[i] != null);
+      if (items != null && _vocabulary.isUsed(Vocabulary.APPLICATOR)) {
+        final expected = items.length;
+        final end = min(expected, actual);
+        for (int i = 0; i < end; i++) {
+          assert(items[i] != null);
+          final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+          _validate(items[i], itemInstance);
+        }
+        if (schema.additionalItemsSchema != null) {
+          for (int i = end; i < actual; i++) {
             final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-            _validate(items[i], itemInstance);
+            _validate(schema.additionalItemsSchema, itemInstance);
           }
-          if (schema.additionalItemsSchema != null && _vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-            for (int i = end; i < actual; i++) {
-              final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-              _validate(schema.additionalItemsSchema, itemInstance);
-            }
-          } else if (schema.additionalItemsBool != null) {
-            if (!schema.additionalItemsBool && actual > end) {
-              warnOrErr('additionalItems false', instance.path, schema.path + '/additionalItems');
-            }
+        } else if (schema.additionalItemsBool != null) {
+          if (!schema.additionalItemsBool && actual > end) {
+            _err('additionalItems false', instance.path, schema.path + '/additionalItems');
           }
-        } else {
-          warnOrErr('found "items"', instance.path, schema.path);
         }
       }
     }
@@ -344,57 +339,33 @@ class Validator {
   }
 
   void _validateAllOf(JsonSchema schema, Instance instance) {
-    if (schema.allOf != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-      if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-        if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
-          warnOrErr('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
-        }
-      } else {
-        warnOrErr('found "allOf"', instance.path, schema.path);
-      }
+    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
+      warnOrErr('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    if (schema.anyOf != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-      if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-        if (!schema.anyOf.any((s) => Validator(s).validate(instance))) {
-          warnOrErr('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path,
-              schema.path + '/anyOf');
-        }
-      } else {
-        warnOrErr('found "anyOf"', instance.path, schema.path);
-      }
+    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    if (!schema.anyOf.any((s) => Validator(s).validate(instance))) {
+      warnOrErr(
+          '${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
     }
   }
 
   void _validateOneOf(JsonSchema schema, Instance instance) {
-    if (schema.oneOf != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-      if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-        try {
-          schema.oneOf.singleWhere((s) => Validator(s).validate(instance));
-        } on StateError catch (notOneOf) {
-          warnOrErr('${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
-        }
-      } else {
-        warnOrErr('found "oneOf"', instance.path, schema.path);
-      }
+    try {
+      schema.oneOf.singleWhere((s) => Validator(s).validate(instance));
+    } on StateError catch (notOneOf) {
+      _getVocabularyErrFunc(Vocabulary.APPLICATOR)(
+          '${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
     }
   }
 
   void _validateNot(JsonSchema schema, Instance instance) {
-    if (schema.notSchema != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-      if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-        if (Validator(schema.notSchema).validate(instance)) {
-          warnOrErr('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
-        }
-      } else {
-        warnOrErr('found "not"', instance.path, schema.path);
-      }
+    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    if (Validator(schema.notSchema).validate(instance)) {
+      warnOrErr('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
   }
 
@@ -559,48 +530,41 @@ class Validator {
   }
 
   void _objectPropertyValidation(JsonSchema schema, Instance instance) {
+    if (!_vocabulary.isUsed(Vocabulary.APPLICATOR)) return;
     final propMustValidate = schema.additionalPropertiesBool != null && !schema.additionalPropertiesBool;
 
-    if (schema.additionalPropertiesBool != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
-
-      if (_vocabulary.isUsed(Vocabulary.APPLICATOR)) {
-        instance.data.forEach((k, v) {
-          // Validate property names against the provided schema, if any.
-          if (schema.propertyNamesSchema != null) {
-            _validate(schema.propertyNamesSchema, k);
-          }
-
-          final newInstance = Instance(v, path: '${instance.path}/$k');
-
-          bool propCovered = false;
-          final JsonSchema propSchema = schema.properties[k];
-          if (propSchema != null) {
-            assert(propSchema != null);
-            _validate(propSchema, newInstance);
-            propCovered = true;
-          }
-
-          schema.patternProperties.forEach((regex, patternSchema) {
-            if (regex.hasMatch(k)) {
-              assert(patternSchema != null);
-              _validate(patternSchema, newInstance);
-              propCovered = true;
-            }
-          });
-
-          if (!propCovered) {
-            if (schema.additionalPropertiesSchema != null) {
-              _validate(schema.additionalPropertiesSchema, newInstance);
-            } else if (propMustValidate) {
-              warnOrErr('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
-            }
-          }
-        });
-      } else {
-        warnOrErr('found "additionalProperties"', instance.path, schema.path);
+    instance.data.forEach((k, v) {
+      // Validate property names against the provided schema, if any.
+      if (schema.propertyNamesSchema != null) {
+        _validate(schema.propertyNamesSchema, k);
       }
-    }
+
+      final newInstance = Instance(v, path: '${instance.path}/$k');
+
+      bool propCovered = false;
+      final JsonSchema propSchema = schema.properties[k];
+      if (propSchema != null) {
+        assert(propSchema != null);
+        _validate(propSchema, newInstance);
+        propCovered = true;
+      }
+
+      schema.patternProperties.forEach((regex, patternSchema) {
+        if (regex.hasMatch(k)) {
+          assert(patternSchema != null);
+          _validate(patternSchema, newInstance);
+          propCovered = true;
+        }
+      });
+
+      if (!propCovered) {
+        if (schema.additionalPropertiesSchema != null) {
+          _validate(schema.additionalPropertiesSchema, newInstance);
+        } else if (propMustValidate) {
+          _err('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
+        }
+      }
+    });
   }
 
   void _propertyDependenciesValidation(JsonSchema schema, Instance instance) {
