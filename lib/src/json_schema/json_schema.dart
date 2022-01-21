@@ -1998,16 +1998,17 @@ class JsonSchema {
     this._validateAndSetAllProperties();
   }
 
-  // If this is a recursive Anchor, find it's first recursive anchor parent.
-  JsonSchema findRecursiveParent() {
-    var curHit = this;
-    var curNode = this;
-    while (curNode._parent != null) {
-      curNode = curNode._parent;
-      if (curNode.recursiveAnchor) {
-        curHit = curNode;
+  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
+  /// or null of there is no recursiveAnchor found.
+  JsonSchema furthestRecursiveAnchorParent() {
+    JsonSchema lastFound = this.recursiveAnchor ? this : null;
+    var possibleAnchor = this._parent;
+    while (possibleAnchor != null) {
+      if (possibleAnchor.recursiveAnchor) {
+        lastFound = possibleAnchor;
       }
+      possibleAnchor = possibleAnchor._parent;
     }
-    return curHit;
+    return lastFound;
   }
 }

@@ -600,7 +600,7 @@ class Validator {
     while (schema.ref != null || schema.recursiveRef != null) {
       var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
       if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
-        schema = nextSchema.findRecursiveParent();
+        schema = nextSchema.furthestRecursiveAnchorParent();
       } else if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
           schema.schemaMap.length > 1 &&
           nextSchema.schemaBool == null) {
