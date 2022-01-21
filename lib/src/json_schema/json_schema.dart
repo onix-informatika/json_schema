@@ -354,7 +354,7 @@ class JsonSchema {
           final Uri baseUri = schemaUri.scheme.isNotEmpty ? schemaUri.removeFragment() : schemaUri;
           final String baseUriString = '${baseUri}#';
 
-          if (baseUri == _inheritedUri) {
+          if (baseUri.path == _inheritedUri?.path) {
             // If the ref base is the same as the _inheritedUri, ref is _root schema.
             localSchema = _root;
           } else if (baseUriString != null && _refMap[baseUriString] != null) {
@@ -783,6 +783,12 @@ class JsonSchema {
   /// Ref to the URI of the [JsonSchema].
   Uri _ref;
 
+  /// If the [JsonSchema] is an anchor point for recursive references.
+  bool _recursiveAnchor;
+
+  /// RecursiveRef to the Uri of the [JsonSchema].
+  Uri _recursiveRef;
+
   /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
   JsonSchema _thenSchema;
 
@@ -995,9 +1001,8 @@ class JsonSchema {
       // Added or changed in draft2019_09: Core Vocabulary
       r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
-      // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
-      r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
-      r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
+      r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
       r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
@@ -1294,6 +1299,12 @@ class JsonSchema {
   /// Ref to the URI of the [JsonSchema].
   Uri get ref => _ref;
 
+  /// Whether the [JsonSchema] is a recursive anchor point or not.
+  bool get recursiveAnchor => _recursiveAnchor ?? false;
+
+  /// RecursiveRef to the URI of the [JsonSchema].
+  Uri get recursiveRef => _recursiveRef;
+
   /// Title of the [JsonSchema].
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-7.2
@@ -1492,7 +1503,7 @@ class JsonSchema {
     // TODO: add a more advanced check to find out if the $ref is local.
     // Does it have a fragment? Append the base and check if it exists in the _refMap
     // Does it have a path? Append the base and check if it exists in the _refMap
-    if (ref.scheme.isEmpty) {
+    if (ref.scheme.isEmpty && ref.path != _root._uri?.path) {
       /// If the ref has a path, append it to the inheritedUriBase
       if (ref.path != null && ref.path != '/' && ref.path.isNotEmpty) {
         final String path = ref.path.startsWith('/') ? ref.path : '/${ref.path}';
@@ -1607,8 +1618,12 @@ class JsonSchema {
       // Add retrievals to _root schema.
       _addRefRetrievals(ref);
 
-      // Schema Assignments get resolved later from the root schema.
-      _schemaAssignments.add(() => assigner(_getSchemaFromPath(ref)));
+      if (_root.schemaVersion < SchemaVersion.draft2019_09) {
+        _schemaAssignments.add(() => assigner(_getSchemaFromPath(ref)));
+      } else {
+        // References can be 'dynamic' at validation time for draft 2019.
+        assigner(_createSubSchema(schema, path));
+      }
     } else {
       // Sub schema can be created immediately.
       assigner(_createSubSchema(schema, path));
@@ -1742,6 +1757,11 @@ class JsonSchema {
     return _anchor;
   }
 
+  /// Validate, set the value of the '$recursiveAnchor' JSON Schema keyword.
+  _setRecursiveAnchor(dynamic value) {
+    _recursiveAnchor = TypeValidators.boolean(r'$recursiveAnchor', value);
+  }
+
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
   _setIf(dynamic value) {
     if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
@@ -1809,6 +1829,21 @@ class JsonSchema {
     } else {
       // Add _ref to _localRefs to be validated during schema path resolution.
       _root._localRefs.add(_ref);
+    }
+  }
+
+  /// Validate, calculate and set the value of the '$recursiveRef' JSON Schema keyword.
+  _setRecursiveRef(dynamic value) {
+    _recursiveRef = _translateLocalRefToFullUri(TypeValidators.uri(r'$recursiveRef', value));
+
+    // The ref's base is a relative file path, so it should be treated as a relative file URI
+    final isRelativeFileUri = _inheritedUriBase != null && _inheritedUriBase.scheme.isEmpty;
+    if (_recursiveRef.scheme.isNotEmpty || isRelativeFileUri) {
+      // Add retrievals to _root schema.
+      _addRefRetrievals(_recursiveRef);
+    } else {
+      // Add _ref to _localRefs to be validated during schema path resolution.
+      _root._localRefs.add(_recursiveRef);
     }
   }
 
@@ -1961,5 +1996,18 @@ class JsonSchema {
     this._schemaMap.deepMerge(ref._schemaMap);
 
     this._validateAndSetAllProperties();
+  }
+
+  // If this is a recursive Anchor, find it's first recursive anchor parent.
+  JsonSchema findRecursiveParent() {
+    var curHit = this;
+    var curNode = this;
+    while (curNode._parent != null) {
+      curNode = curNode._parent;
+      if (curNode.recursiveAnchor) {
+        curHit = curNode;
+      }
+    }
+    return curHit;
   }
 }
