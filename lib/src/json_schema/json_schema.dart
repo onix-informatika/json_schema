@@ -783,7 +783,7 @@ class JsonSchema {
   /// Ref to the URI of the [JsonSchema].
   Uri _ref;
 
-  /// If the [JsonSchema] is an anchor point for recursive references.
+  /// Whether the [JsonSchema] is an anchor point for recursive references.
   bool _recursiveAnchor;
 
   /// RecursiveRef to the Uri of the [JsonSchema].
