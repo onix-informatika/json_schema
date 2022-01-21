@@ -36,6 +36,8 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+import 'dart:convert';
+
 class JsonSchemaValidationRegexes {
   // Spec: https://datatracker.ietf.org/doc/html/rfc3339#appendix-A
   static RegExp duration = RegExp(
@@ -156,7 +158,7 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   }
 }
 
-String getJsonSchemaDefinitionByRef(String ref) {
+Map getJsonSchemaDefinitionByRef(String ref) {
   final mapping = {
     SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
     SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
@@ -165,7 +167,7 @@ String getJsonSchemaDefinitionByRef(String ref) {
   };
 
   if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
-    return mapping[ref];
+    return json.decode(mapping[ref]);
   }
 
   return null;

@@ -590,7 +590,9 @@ class JsonSchema {
     // Fallback order for ref provider:
     // 1. Base URI (example: localhost:1234/integer.json)
     // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = _refProvider.provide(baseUri.toString()) ?? _refProvider.provide('${baseUri}#');
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        _refProvider.provide(baseUri.toString()) ??
+        _refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -608,8 +610,9 @@ class JsonSchema {
     // Fallback order for ref provider:
     // 1. Base URI (example: localhost:1234/integer.json)
     // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition =
-        await refProvider.provide(baseUri.toString()) ?? await refProvider.provide('${baseUri}#');
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        await refProvider.provide(baseUri.toString()) ??
+        await refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -1472,13 +1475,6 @@ class JsonSchema {
         throw FormatExceptions.error(exceptionMessage);
       }
     };
-
-    // If the schema is a static schema that we have inlined, just return it.
-    final staticSchema = getJsonSchemaDefinitionByRef(ref.toString());
-    if (staticSchema != null) {
-      addSchemaFunction(JsonSchema.create(staticSchema));
-      return;
-    }
 
     final AsyncRetrievalOperation asyncRefSchemaOperation = _refProvider != null
         ? () => _fetchRefSchemaFromAsyncProvider(ref).then(addSchemaFunction)
