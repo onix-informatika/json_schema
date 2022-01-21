@@ -1953,8 +1953,7 @@ class JsonSchema {
           v.forEach((propDep) {
             if (propDep is! String) throw FormatExceptions.string('propertyDependency', v);
 
-            if (uniqueDeps.contains(propDep))
-              throw FormatExceptions.error('dependentRequired items must be unique: $v');
+            if (uniqueDeps.contains(propDep)) throw FormatExceptions.error('dependentRequired item must be unique: $v');
 
             _propertyDependencies.putIfAbsent(k, () => []).add(propDep);
             uniqueDeps.add(propDep);
