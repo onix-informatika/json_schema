@@ -1942,7 +1942,7 @@ class JsonSchema {
         }
       });
 
-  _setDependentRequired(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
+  _setDependentRequired(dynamic value) => (TypeValidators.object('dependentRequired', value)).forEach((k, v) {
         if (v is List) {
           // Dependencies must have contents in draft4, but can be empty in draft6 and later
           if (schemaVersion == SchemaVersion.draft4) {
