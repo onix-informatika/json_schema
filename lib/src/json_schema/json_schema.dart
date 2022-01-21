@@ -1946,7 +1946,7 @@ class JsonSchema {
         if (v is List) {
           // Dependencies must have contents in draft4, but can be empty in draft6 and later
           if (schemaVersion == SchemaVersion.draft4) {
-            if (v.isEmpty) throw FormatExceptions.error('dependentRequired items must be non-empty array');
+            if (v.isEmpty) throw FormatExceptions.error('dependentRequired item must be non-empty array');
           }
 
           final Set uniqueDeps = Set();
