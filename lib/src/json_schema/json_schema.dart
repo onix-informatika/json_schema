@@ -1001,12 +1001,12 @@ class JsonSchema {
       r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentSchemas': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
       'unevaluatedItems': (JsonSchema s, dynamic v) => null, // TODO: implement
       'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentRequired': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
       'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
       'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
 
@@ -1933,6 +1933,37 @@ class JsonSchema {
               'dependency values must be object or array (or boolean in draft6 and later): $v');
         }
       });
+
+  _setDependentSchemas(dynamic value) => (TypeValidators.object('dependentSchemas', value)).forEach((k, v) {
+        if (v is Map || v is bool && schemaVersion >= SchemaVersion.draft6) {
+          _createOrRetrieveSchema('$_path/dependentSchemas/$k', v, (rhs) => _schemaDependencies[k] = rhs);
+        } else {
+          throw FormatExceptions.error('dependentSchemas values must be object (or boolean in draft6 and later): $v');
+        }
+      });
+
+
+ _setDependentRequired(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
+   if (v is List) {
+     // Dependencies must have contents in draft4, but can be empty in draft6 and later
+     if (schemaVersion == SchemaVersion.draft4) {
+       if (v.isEmpty) throw FormatExceptions.error('property dependencies must be non-empty array');
+     }
+
+     final Set uniqueDeps = Set();
+     v.forEach((propDep) {
+       if (propDep is! String) throw FormatExceptions.string('propertyDependency', v);
+
+       if (uniqueDeps.contains(propDep)) throw FormatExceptions.error('property dependencies must be unique: $v');
+
+       _propertyDependencies.putIfAbsent(k, () => []).add(propDep);
+       uniqueDeps.add(propDep);
+     });
+   } else {
+     throw FormatExceptions.error(
+         'dependentRequired values must an array: $v');
+   }
+ });
 
   /// Validate, calculate and set the value of the 'maxProperties' JSON Schema keyword.
   _setMaxProperties(dynamic value) => _maxProperties = TypeValidators.nonNegativeInt('maxProperties', value);
