@@ -623,9 +623,11 @@ class Validator {
 
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
-    while (schema.ref != null) {
-      var nextSchema = schema.resolvePath(schema.ref);
-      if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
+    while (schema.ref != null || schema.recursiveRef != null) {
+      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
+      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
+        schema = nextSchema.furthestRecursiveAnchorParent();
+      } else if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
           schema.schemaMap.length > 1 &&
           nextSchema.schemaBool == null) {
         schema.mixinForRef(nextSchema);

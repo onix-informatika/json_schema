@@ -287,8 +287,6 @@ final List<String> draft2019SkippedTestFiles = [
   "date.json",
   "date-time.json",
   "defs.json",
-  "dependentRequired.json",
-  "dependentSchemas.json",
   "duration.json",
   "ecmascript-regex.json",
   "email.json",
@@ -299,9 +297,6 @@ final List<String> draft2019SkippedTestFiles = [
   "ipv6.json",
   "hostname.json",
   "json-pointer.json",
-  "recursiveRef.json",
-  "refOfUnknownKeyword.json",
-  "refRemote.json",
   "regex.json",
   "relative-json-pointer.json",
   "time.json",
@@ -315,8 +310,7 @@ final List<String> draft2019SkippedTestFiles = [
 ]..addAll(commonSkippedTestFiles);
 
 final List<String> draft2019SkippedTests = [
-  'remote ref, containing refs itself : remote ref valid',
-  'remote ref, containing refs itself : remote ref invalid',
+  // Requires unevaluatedProperties support
   'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
 ]..addAll(commonSkippedTests);
 

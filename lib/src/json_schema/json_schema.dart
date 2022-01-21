@@ -354,7 +354,7 @@ class JsonSchema {
           final Uri baseUri = schemaUri.scheme.isNotEmpty ? schemaUri.removeFragment() : schemaUri;
           final String baseUriString = '${baseUri}#';
 
-          if (baseUri == _inheritedUri) {
+          if (baseUri.path == _inheritedUri?.path) {
             // If the ref base is the same as the _inheritedUri, ref is _root schema.
             localSchema = _root;
           } else if (baseUriString != null && _refMap[baseUriString] != null) {
@@ -596,9 +596,12 @@ class JsonSchema {
     final Uri baseUri = ref.removeFragment();
 
     // Fallback order for ref provider:
-    // 1. Base URI (example: localhost:1234/integer.json)
-    // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = _refProvider.provide(baseUri.toString()) ?? _refProvider.provide('${baseUri}#');
+    // 1. Statically-known schema definition (skips ref provider)
+    // 2. Base URI (example: localhost:1234/integer.json)
+    // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        _refProvider.provide(baseUri.toString()) ??
+        _refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -614,10 +617,12 @@ class JsonSchema {
     refProvider ??= _refProvider;
 
     // Fallback order for ref provider:
-    // 1. Base URI (example: localhost:1234/integer.json)
-    // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition =
-        await refProvider.provide(baseUri.toString()) ?? await refProvider.provide('${baseUri}#');
+    // 1. Statically-known schema definition (skips ref provider)
+    // 2. Base URI (example: localhost:1234/integer.json)
+    // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        await refProvider.provide(baseUri.toString()) ??
+        await refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -790,6 +795,12 @@ class JsonSchema {
 
   /// Ref to the URI of the [JsonSchema].
   Uri _ref;
+
+  /// Whether the [JsonSchema] is an anchor point for recursive references.
+  bool _recursiveAnchor;
+
+  /// RecursiveRef to the Uri of the [JsonSchema].
+  Uri _recursiveRef;
 
   /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
   JsonSchema _thenSchema;
@@ -1006,18 +1017,17 @@ class JsonSchema {
       // Added or changed in draft2019_09: Core Vocabulary
       r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
       r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
-      // r'$id': (JsonSchema s, dynamic v) => null, // TODO: change behavior
-      r'$recursiveRef': (JsonSchema s, dynamic v) => null, // TODO: implement
-      r'$recursiveAnchor': (JsonSchema s, dynamic v) => null, // TODO: implement
+      r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
+      r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
       r'$vocabulary': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentSchemas': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
       'unevaluatedItems': (JsonSchema s, dynamic v) => null, // TODO: implement
       'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentRequired': (JsonSchema s, dynamic v) => null, // TODO: implement, deprecate dependencies?
+      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
       'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
       'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
 
@@ -1186,7 +1196,7 @@ class JsonSchema {
   /// The value of the exclusiveMaximum for the [JsonSchema], if any exists.
   num get exclusiveMaximum {
     // If we're beyond draft4, the property contains the value, return it.
-    if (schemaVersion != SchemaVersion.draft4) {
+    if (schemaVersion > SchemaVersion.draft4) {
       return _exclusiveMaximumV6;
 
       // If we're on draft4, the property is a bool, so return the max instead.
@@ -1304,6 +1314,12 @@ class JsonSchema {
 
   /// Ref to the URI of the [JsonSchema].
   Uri get ref => _ref;
+
+  /// Whether the [JsonSchema] is a recursive anchor point or not.
+  bool get recursiveAnchor => _recursiveAnchor ?? false;
+
+  /// RecursiveRef to the URI of the [JsonSchema].
+  Uri get recursiveRef => _recursiveRef;
 
   /// Title of the [JsonSchema].
   ///
@@ -1508,7 +1524,7 @@ class JsonSchema {
     // TODO: add a more advanced check to find out if the $ref is local.
     // Does it have a fragment? Append the base and check if it exists in the _refMap
     // Does it have a path? Append the base and check if it exists in the _refMap
-    if (ref.scheme.isEmpty) {
+    if (ref.scheme.isEmpty && ref.path != _root._uri?.path) {
       /// If the ref has a path, append it to the inheritedUriBase
       if (ref.path != null && ref.path != '/' && ref.path.isNotEmpty) {
         final String path = ref.path.startsWith('/') ? ref.path : '/${ref.path}';
@@ -1623,8 +1639,12 @@ class JsonSchema {
       // Add retrievals to _root schema.
       _addRefRetrievals(ref);
 
-      // Schema Assignments get resolved later from the root schema.
-      _schemaAssignments.add(() => assigner(_getSchemaFromPath(ref)));
+      if (_root.schemaVersion < SchemaVersion.draft2019_09) {
+        _schemaAssignments.add(() => assigner(_getSchemaFromPath(ref)));
+      } else {
+        // References can be 'dynamic' at validation time for draft 2019.
+        assigner(_createSubSchema(schema, path));
+      }
     } else {
       // Sub schema can be created immediately.
       assigner(_createSubSchema(schema, path));
@@ -1749,13 +1769,18 @@ class JsonSchema {
     return _id;
   }
 
-  /// Do stuff with $anchor
+  /// Validate, set, and register the value of the '$anchor' JSON Schema keyword.
   _setAnchor(dynamic value) {
     _anchor = TypeValidators.anchorString(r"$anchor", value);
     final uri = _inheritedUri ?? _uri ?? '';
     final String refMapString = '$uri#$_anchor';
     _addSchemaToRefMap(refMapString, this);
     return _anchor;
+  }
+
+  /// Validate, set the value of the '$recursiveAnchor' JSON Schema keyword.
+  _setRecursiveAnchor(dynamic value) {
+    _recursiveAnchor = TypeValidators.boolean(r'$recursiveAnchor', value);
   }
 
   /// Validate, calculate and set the value of the 'if' JSON Schema keyword.
@@ -1825,6 +1850,21 @@ class JsonSchema {
     } else {
       // Add _ref to _localRefs to be validated during schema path resolution.
       _root._localRefs.add(_ref);
+    }
+  }
+
+  /// Validate, calculate and set the value of the '$recursiveRef' JSON Schema keyword.
+  _setRecursiveRef(dynamic value) {
+    _recursiveRef = _translateLocalRefToFullUri(TypeValidators.uri(r'$recursiveRef', value));
+
+    // The ref's base is a relative file path, so it should be treated as a relative file URI
+    final isRelativeFileUri = _inheritedUriBase != null && _inheritedUriBase.scheme.isEmpty;
+    if (_recursiveRef.scheme.isNotEmpty || isRelativeFileUri) {
+      // Add retrievals to _root schema.
+      _addRefRetrievals(_recursiveRef);
+    } else {
+      // Add _ref to _localRefs to be validated during schema path resolution.
+      _root._localRefs.add(_recursiveRef);
     }
   }
 
@@ -1961,6 +2001,36 @@ class JsonSchema {
         }
       });
 
+  _setDependentSchemas(dynamic value) => (TypeValidators.object('dependentSchemas', value)).forEach((k, v) {
+        if (v is Map || v is bool && schemaVersion >= SchemaVersion.draft6) {
+          _createOrRetrieveSchema('$_path/dependentSchemas/$k', v, (rhs) => _schemaDependencies[k] = rhs);
+        } else {
+          throw FormatExceptions.error('dependentSchemas values must be object (or boolean in draft6 and later): $v');
+        }
+      });
+
+  _setDependentRequired(dynamic value) => (TypeValidators.object('dependentRequired', value)).forEach((k, v) {
+        if (v is List) {
+          // Dependencies must have contents in draft4, but can be empty in draft6 and later
+          if (schemaVersion == SchemaVersion.draft4) {
+            if (v.isEmpty) throw FormatExceptions.error('dependentRequired must be non-empty array');
+          }
+
+          final Set uniqueDeps = Set();
+          v.forEach((propDep) {
+            if (propDep is! String) throw FormatExceptions.string('propertyDependency', v);
+
+            if (uniqueDeps.contains(propDep))
+              throw FormatExceptions.error('dependentRequired items must be unique: $v');
+
+            _propertyDependencies.putIfAbsent(k, () => []).add(propDep);
+            uniqueDeps.add(propDep);
+          });
+        } else {
+          throw FormatExceptions.error('dependentRequired values must an array: $v');
+        }
+      });
+
   /// Validate, calculate and set the value of the 'maxProperties' JSON Schema keyword.
   _setMaxProperties(dynamic value) => _maxProperties = TypeValidators.nonNegativeInt('maxProperties', value);
 
@@ -1988,5 +2058,19 @@ class JsonSchema {
     this._schemaMap.deepMerge(ref._schemaMap);
 
     this._validateAndSetAllProperties();
+  }
+
+  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
+  /// or null of there is no recursiveAnchor found.
+  JsonSchema furthestRecursiveAnchorParent() {
+    JsonSchema lastFound = this.recursiveAnchor ? this : null;
+    var possibleAnchor = this._parent;
+    while (possibleAnchor != null) {
+      if (possibleAnchor.recursiveAnchor) {
+        lastFound = possibleAnchor;
+      }
+      possibleAnchor = possibleAnchor._parent;
+    }
+    return lastFound;
   }
 }
