@@ -95,6 +95,8 @@ class Validator {
 
   bool _treatWarningsAsErrors;
 
+  Vocabulary _vocabulary;
+
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
       {bool reportMultipleErrors = false,
@@ -117,6 +119,9 @@ class Validator {
       }
     }
 
+    // Initialize and validate the vocabularies required for validation
+    if (!_initializeVocabulary()) return false;
+
     _reportMultipleErrors = reportMultipleErrors;
     _errors = [];
     if (!_reportMultipleErrors) {
@@ -133,6 +138,24 @@ class Validator {
 
     _validate(_rootSchema, data);
     return _errors.isEmpty && (!treatWarningsAsErrors || _warnings.isEmpty);
+  }
+
+  bool _initializeVocabulary() {
+    _vocabulary = Vocabulary.fromDefined(_rootSchema.schemaVersion, _rootSchema.vocabulary);
+    if (_rootSchema.schemaVersion < SchemaVersion.draft2019_09) return true;
+
+    final supportsRequired = _vocabulary.requiredButUnsupported.isEmpty;
+    if (!supportsRequired) {
+      _err('no support for required vocabularies: ${_vocabulary.requiredButUnsupported}', '', '#');
+    }
+
+    // TODO is this appropriate?
+    final supportsRequestedFormatValidation = !_validateFormats || _vocabulary.isUsed(Vocabulary.FORMAT);
+    if (!supportsRequestedFormatValidation) {
+      _err('Cannot validate formats as requested without format vocabulary', '', '#');
+    }
+
+    return _vocabulary.requiredButUnsupported.isEmpty;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
@@ -163,23 +186,25 @@ class Validator {
     final exclusiveMaximum = schema.exclusiveMaximum;
     final exclusiveMinimum = schema.exclusiveMinimum;
 
+    final err = _getVocabularyErrFunc(Vocabulary.VALIDATION);
+
     if (exclusiveMaximum != null) {
       if (n >= exclusiveMaximum) {
-        _err('exclusiveMaximum exceeded ($n >= $exclusiveMaximum)', instance.path, schema.path);
+        err('exclusiveMaximum exceeded ($n >= $exclusiveMaximum)', instance.path, schema.path);
       }
     } else if (maximum != null) {
       if (n > maximum) {
-        _err('maximum exceeded ($n > $maximum)', instance.path, schema.path);
+        err('maximum exceeded ($n > $maximum)', instance.path, schema.path);
       }
     }
 
     if (exclusiveMinimum != null) {
       if (n <= exclusiveMinimum) {
-        _err('exclusiveMinimum violated ($n <= $exclusiveMinimum)', instance.path, schema.path);
+        err('exclusiveMinimum violated ($n <= $exclusiveMinimum)', instance.path, schema.path);
       }
     } else if (minimum != null) {
       if (n < minimum) {
-        _err('minimum violated ($n < $minimum)', instance.path, schema.path);
+        err('minimum violated ($n < $minimum)', instance.path, schema.path);
       }
     }
 
@@ -187,14 +212,14 @@ class Validator {
     if (multipleOf != null) {
       if (multipleOf is int && n is int) {
         if (0 != n % multipleOf) {
-          _err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
+          err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
         }
       } else {
         final double result = n / multipleOf;
         if (result == double.infinity) {
-          _err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
+          err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
         } else if (result.truncate() != result) {
-          _err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
+          err('multipleOf violated ($n % $multipleOf)', instance.path, schema.path);
         }
       }
     }
@@ -672,33 +697,53 @@ class Validator {
     if (!_reportMultipleErrors && _treatWarningsAsErrors) throw FormatException(msg);
   }
 
+  Function(String, String, String) _getVocabularyErrFunc(Uri v) {
+    return _vocabulary.isUsed(v)
+        ? _err
+        : (String msg, String instancePath, String schemaPath) =>
+            _warn('ignoring vocabulary $v: $msg', instancePath, schemaPath);
+  }
+
   JsonSchema _rootSchema;
   List<ValidationError> _errors = [];
   List<ValidationError> _warnings = [];
   bool _reportMultipleErrors;
 }
 
-class Vocabularies {
-  static final _supported = {
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/core"),
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator"),
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation"),
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data"),
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/format"),
-    Uri.parse("https://json-schema.org/draft/2019-09/vocab/content"),
+class Vocabulary {
+  static final CORE = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
+  static final APPLICATOR = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
+  static final VALIDATION = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
+  static final METADATA = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
+  static final FORMAT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
+  static final CONTENT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
+  static final SUPPORTED = {
+    CORE,
+    APPLICATOR,
+    VALIDATION,
+    METADATA,
+    FORMAT,
+    CONTENT,
   };
 
-  Vocabularies.fromDefined(Map<Uri, bool> v) {
-    v.forEach((uri, isRequired) {
-      declared.add(uri);
-      if (!_supported.contains(uri)) unsupported.add(uri);
-      if (isRequired) required.add(uri);
-    });
+  Vocabulary.fromDefined(SchemaVersion version, Map<Uri, bool> v) {
+    if (version < SchemaVersion.draft2019_09) {
+      // For simplicity's sake
+      used.addAll(SUPPORTED);
+    } else {
+      v.forEach((uri, isRequired) {
+        used.add(uri);
+        if (isRequired && !SUPPORTED.contains(uri)) requiredButUnsupported.add(uri);
+      });
+    }
   }
 
-  /// Vocabularies declared for use for validation.
-  final Set<Uri> declared = {};
+  bool isUsed(Uri v) {
+    return used.contains(v);
+  }
 
-  final Set<Uri> unsupported = {};
-  final Set<Uri> required = {};
+  /// Vocabularies to be used for validation.
+  final Set<Uri> used = {};
+
+  final Set<Uri> requiredButUnsupported = {};
 }

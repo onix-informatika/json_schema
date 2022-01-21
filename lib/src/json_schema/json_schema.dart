@@ -1333,7 +1333,7 @@ class JsonSchema {
   /// The vocabularies defined for the [JsonSchema].
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
-  Map<Uri, bool> get vocabulary => _root.vocabulary ?? Map<Uri, bool>();
+  Map<Uri, bool> get vocabulary => _root._vocabulary ?? Map<Uri, bool>();
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Getters
