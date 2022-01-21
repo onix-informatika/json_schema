@@ -1942,28 +1942,26 @@ class JsonSchema {
         }
       });
 
+  _setDependentRequired(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
+        if (v is List) {
+          // Dependencies must have contents in draft4, but can be empty in draft6 and later
+          if (schemaVersion == SchemaVersion.draft4) {
+            if (v.isEmpty) throw FormatExceptions.error('property dependencies must be non-empty array');
+          }
 
- _setDependentRequired(dynamic value) => (TypeValidators.object('dependencies', value)).forEach((k, v) {
-   if (v is List) {
-     // Dependencies must have contents in draft4, but can be empty in draft6 and later
-     if (schemaVersion == SchemaVersion.draft4) {
-       if (v.isEmpty) throw FormatExceptions.error('property dependencies must be non-empty array');
-     }
+          final Set uniqueDeps = Set();
+          v.forEach((propDep) {
+            if (propDep is! String) throw FormatExceptions.string('propertyDependency', v);
 
-     final Set uniqueDeps = Set();
-     v.forEach((propDep) {
-       if (propDep is! String) throw FormatExceptions.string('propertyDependency', v);
+            if (uniqueDeps.contains(propDep)) throw FormatExceptions.error('property dependencies must be unique: $v');
 
-       if (uniqueDeps.contains(propDep)) throw FormatExceptions.error('property dependencies must be unique: $v');
-
-       _propertyDependencies.putIfAbsent(k, () => []).add(propDep);
-       uniqueDeps.add(propDep);
-     });
-   } else {
-     throw FormatExceptions.error(
-         'dependentRequired values must an array: $v');
-   }
- });
+            _propertyDependencies.putIfAbsent(k, () => []).add(propDep);
+            uniqueDeps.add(propDep);
+          });
+        } else {
+          throw FormatExceptions.error('dependentRequired values must an array: $v');
+        }
+      });
 
   /// Validate, calculate and set the value of the 'maxProperties' JSON Schema keyword.
   _setMaxProperties(dynamic value) => _maxProperties = TypeValidators.nonNegativeInt('maxProperties', value);
