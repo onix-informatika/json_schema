@@ -287,8 +287,6 @@ final List<String> draft2019SkippedTestFiles = [
   "date.json",
   "date-time.json",
   "defs.json",
-  "dependentRequired.json",
-  "dependentSchemas.json",
   "duration.json",
   "ecmascript-regex.json",
   "email.json",
