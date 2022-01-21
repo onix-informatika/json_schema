@@ -310,9 +310,6 @@ final List<String> draft2019SkippedTestFiles = [
 ]..addAll(commonSkippedTestFiles);
 
 final List<String> draft2019SkippedTests = [
-  // Requires loading draft 2019 as a remote reference.
-  'remote ref, containing refs itself : remote ref valid',
-  'remote ref, containing refs itself : remote ref invalid',
   // Requires unevaluatedProperties support
   'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
 ]..addAll(commonSkippedTests);

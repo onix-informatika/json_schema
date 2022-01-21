@@ -588,9 +588,12 @@ class JsonSchema {
     final Uri baseUri = ref.removeFragment();
 
     // Fallback order for ref provider:
-    // 1. Base URI (example: localhost:1234/integer.json)
-    // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = _refProvider.provide(baseUri.toString()) ?? _refProvider.provide('${baseUri}#');
+    // 1. Statically-known schema definition (skips ref provider)
+    // 2. Base URI (example: localhost:1234/integer.json)
+    // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        _refProvider.provide(baseUri.toString()) ??
+        _refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -606,10 +609,12 @@ class JsonSchema {
     refProvider ??= _refProvider;
 
     // Fallback order for ref provider:
-    // 1. Base URI (example: localhost:1234/integer.json)
-    // 2. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition =
-        await refProvider.provide(baseUri.toString()) ?? await refProvider.provide('${baseUri}#');
+    // 1. Statically-known schema definition (skips ref provider)
+    // 2. Base URI (example: localhost:1234/integer.json)
+    // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
+    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+        await refProvider.provide(baseUri.toString()) ??
+        await refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
