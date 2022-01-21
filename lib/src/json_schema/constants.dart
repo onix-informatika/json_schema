@@ -86,6 +86,9 @@ class JsonSchemaValidationRegexes {
   // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
   // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
   static RegExp fullDate = RegExp(r'^([0-9]{4})(-?)(1[0-2]|0[1-9])\2(3[01]|0[1-9]|[12][0-9])$');
+
+  // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.3
+  static RegExp anchor = RegExp(r"^[A-Za-z][\w\-.:]+$");
 }
 
 class SchemaVersion implements Comparable<SchemaVersion> {
@@ -113,6 +116,11 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 
   @override
   int compareTo(SchemaVersion other) => value.compareTo(other.value);
+
+  bool operator <(Object other) => other is SchemaVersion && this.compareTo(other) < 0;
+  bool operator >(Object other) => other is SchemaVersion && this.compareTo(other) > 0;
+  bool operator <=(Object other) => other is SchemaVersion && this.compareTo(other) <= 0;
+  bool operator >=(Object other) => other is SchemaVersion && this.compareTo(other) >= 0;
 
   @override
   String toString() {
