@@ -268,7 +268,7 @@ class Validator {
         final expected = items.length;
         final end = min(expected, actual);
         // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
-        _evaluatedItems = max(evaluatedItems, end);
+        _evaluatedItems = max(this.evaluatedItems, end);
         for (int i = 0; i < end; i++) {
           assert(items[i] != null);
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
@@ -329,12 +329,12 @@ class Validator {
   _validateUnvaluatedItems(JsonSchema schema, Instance instance) {
     final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
-      if (schema.unevaluatedItems is bool) {
-        if (schema.unevaluatedItems == false && actual > _evaluatedItems) {
+      if (schema.unevaluatedItems.schemaBool != null) {
+        if (schema.unevaluatedItems.schemaBool == false && actual > this.evaluatedItems) {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
         }
       } else {
-        for (int i = evaluatedItems; i < actual; i++) {
+        for (int i = this.evaluatedItems; i < actual; i++) {
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
           _validate(schema.unevaluatedItems, itemInstance);
         }
