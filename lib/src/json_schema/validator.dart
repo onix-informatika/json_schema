@@ -326,7 +326,7 @@ class Validator {
     }
   }
 
-  _validateUnvaluatedItems(JsonSchema schema, Instance instance) {
+  _validateUnevaluatedItems(JsonSchema schema, Instance instance) {
     final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
       if (schema.unevaluatedItems.schemaBool != null) {
@@ -671,7 +671,7 @@ class Validator {
     if (schema.anyOf.isNotEmpty) _validateAnyOf(schema, instance);
     if (schema.oneOf.isNotEmpty) _validateOneOf(schema, instance);
     if (schema.notSchema != null) _validateNot(schema, instance);
-    if (instance.data is List) _validateUnvaluatedItems(schema, instance);
+    if (instance.data is List) _validateUnevaluatedItems(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
