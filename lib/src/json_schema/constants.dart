@@ -158,7 +158,7 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   }
 }
 
-Map getJsonSchemaDefinitionByRef(String ref) {
+Map getStaticSchemaDefinitionById(String ref) {
   final mapping = {
     SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
     SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
@@ -997,4 +997,21 @@ class Draft2019Subschemas {
         "contentSchema": { "$recursiveRef": "#" }
     }
 }''';
+}
+
+class SupportedVocabularies {
+  static final CORE = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
+  static final APPLICATOR = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
+  static final VALIDATION = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
+  static final METADATA = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
+  static final FORMAT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
+  static final CONTENT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
+  static final ALL = {
+    CORE,
+    APPLICATOR,
+    VALIDATION,
+    METADATA,
+    FORMAT,
+    CONTENT,
+  };
 }

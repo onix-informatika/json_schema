@@ -37,9 +37,11 @@
 //     THE SOFTWARE.
 
 import 'dart:convert';
+import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:json_schema/src/json_schema/format_exceptions.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -95,7 +97,8 @@ class Validator {
 
   bool _treatWarningsAsErrors;
 
-  Vocabulary _vocabulary;
+  /// The set of vocabularies (from the schema's metaschema) to be used for validation
+  Set<Uri> _vocabulary;
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
@@ -109,7 +112,6 @@ class Validator {
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
-    // TODO error if required vocabularies has something unknown
     dynamic data = instance;
     if (parseJson && instance is String) {
       try {
@@ -119,11 +121,9 @@ class Validator {
       }
     }
 
-    // Initialize and validate the vocabularies required for validation
-    if (!_initializeVocabulary()) return false;
-
     _reportMultipleErrors = reportMultipleErrors;
-    _errors = [];
+    // Initialize and validate the vocabulary to be used for validation
+    _vocabulary = getVocabulary(_rootSchema);
     if (!_reportMultipleErrors) {
       try {
         _validate(_rootSchema, data);
@@ -140,16 +140,23 @@ class Validator {
     return _errors.isEmpty && (!treatWarningsAsErrors || _warnings.isEmpty);
   }
 
-  bool _initializeVocabulary() {
-    _vocabulary = Vocabulary.fromDefined(_rootSchema.schemaVersion, _rootSchema.metaschemaVocabulary());
-    if (_rootSchema.schemaVersion < SchemaVersion.draft2019_09) return true;
-
-    final supportsRequired = _vocabulary.requiredButUnsupported.isEmpty;
-    if (!supportsRequired) {
-      _err('no support for required vocabularies: ${_vocabulary.requiredButUnsupported}', '', '#');
+  Set<Uri> getVocabulary(JsonSchema s) {
+    if (s.schemaVersion < SchemaVersion.draft2019_09) {
+      // For simplicity's sake, we just use all supported vocabularies for drafts older than 2019.
+      return SupportedVocabularies.ALL;
+    } else {
+      final vocab = s.metaschemaVocabulary();
+      vocab.forEach((uri, isRequired) {
+        if (!SupportedVocabularies.ALL.contains(uri)) {
+          if (isRequired) {
+            throw ArgumentError("unsupported vocabulary required for validation", "$uri");
+          } else {
+            _warn('unsupported optional vocabulary in use: $uri', '', r'$schema');
+          }
+        }
+      });
+      return Set.of(vocab.keys).intersection(SupportedVocabularies.ALL);
     }
-
-    return _vocabulary.requiredButUnsupported.isEmpty;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
@@ -180,7 +187,7 @@ class Validator {
     final exclusiveMaximum = schema.exclusiveMaximum;
     final exclusiveMinimum = schema.exclusiveMinimum;
 
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.VALIDATION);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.VALIDATION);
 
     if (exclusiveMaximum != null) {
       if (n >= exclusiveMaximum) {
@@ -223,7 +230,7 @@ class Validator {
     final typeList = schema.typeList;
     if (typeList != null && typeList.isNotEmpty) {
       if (!typeList.any((type) => _typeMatch(type, schema, instance.data))) {
-        _getVocabularyErrFunc(Vocabulary.VALIDATION)(
+        _errFuncForVocabulary(SupportedVocabularies.VALIDATION)(
             'type: wanted ${typeList} got $instance', instance.path, schema.path);
       }
     }
@@ -231,7 +238,7 @@ class Validator {
 
   void _constValidation(JsonSchema schema, dynamic instance) {
     if (schema.hasConst && !DeepCollectionEquality().equals(instance.data, schema.constValue)) {
-      _getVocabularyErrFunc(Vocabulary.VALIDATION)('const violated ${instance}', instance.path, schema.path);
+      _errFuncForVocabulary(SupportedVocabularies.VALIDATION)('const violated ${instance}', instance.path, schema.path);
     }
   }
 
@@ -241,7 +248,8 @@ class Validator {
       try {
         enumValues.singleWhere((v) => DeepCollectionEquality().equals(instance.data, v));
       } on StateError {
-        _getVocabularyErrFunc(Vocabulary.VALIDATION)('enum violated ${instance}', instance.path, schema.path);
+        _errFuncForVocabulary(SupportedVocabularies.VALIDATION)(
+            'enum violated ${instance}', instance.path, schema.path);
       }
     }
   }
@@ -253,7 +261,7 @@ class Validator {
   }
 
   void _stringValidation(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.VALIDATION);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.VALIDATION);
     final actual = instance.data.runes.length;
     final minLength = schema.minLength;
     final maxLength = schema.maxLength;
@@ -280,7 +288,7 @@ class Validator {
     } else {
       final items = schema.itemsList;
 
-      if (items != null && _vocabulary.isUsed(Vocabulary.APPLICATOR)) {
+      if (items != null && _vocabulary.contains(SupportedVocabularies.APPLICATOR)) {
         final expected = items.length;
         final end = min(expected, actual);
         for (int i = 0; i < end; i++) {
@@ -301,7 +309,7 @@ class Validator {
       }
     }
 
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.VALIDATION);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.VALIDATION);
     final maxItems = schema.maxItems;
     final minItems = schema.minItems;
     if (maxItems is int && actual > maxItems) {
@@ -339,14 +347,14 @@ class Validator {
   }
 
   void _validateAllOf(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
       warnOrErr('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     if (!schema.anyOf.any((s) => Validator(s).validate(instance))) {
       warnOrErr(
           '${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
@@ -357,13 +365,13 @@ class Validator {
     try {
       schema.oneOf.singleWhere((s) => Validator(s).validate(instance));
     } on StateError catch (notOneOf) {
-      _getVocabularyErrFunc(Vocabulary.APPLICATOR)(
+      _errFuncForVocabulary(SupportedVocabularies.APPLICATOR)(
           '${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
     }
   }
 
   void _validateNot(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     if (Validator(schema.notSchema).validate(instance)) {
       warnOrErr('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
@@ -374,7 +382,7 @@ class Validator {
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
 
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.FORMAT);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.FORMAT);
     switch (schema.format) {
       case 'date-time':
         try {
@@ -530,7 +538,7 @@ class Validator {
   }
 
   void _objectPropertyValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.isUsed(Vocabulary.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
     final propMustValidate = schema.additionalPropertiesBool != null && !schema.additionalPropertiesBool;
 
     instance.data.forEach((k, v) {
@@ -568,7 +576,7 @@ class Validator {
   }
 
   void _propertyDependenciesValidation(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     schema.propertyDependencies.forEach((k, dependencies) {
       if (instance.data.containsKey(k)) {
         if (!dependencies.every((prop) => instance.data.containsKey(prop))) {
@@ -579,7 +587,7 @@ class Validator {
   }
 
   void _schemaDependenciesValidation(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
         if (!Validator(otherSchema).validate(instance)) {
@@ -590,7 +598,7 @@ class Validator {
   }
 
   void _objectValidation(JsonSchema schema, Instance instance) {
-    final warnOrErr = _getVocabularyErrFunc(Vocabulary.VALIDATION);
+    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.VALIDATION);
     // Min / Max Props
     final numProps = instance.data.length;
     final minProps = schema.minProperties;
@@ -668,7 +676,7 @@ class Validator {
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
     if (schema.ifSchema != null) {
-      final warnOrErr = _getVocabularyErrFunc(Vocabulary.APPLICATOR);
+      final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
 
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
@@ -706,8 +714,8 @@ class Validator {
     if (!_reportMultipleErrors && _treatWarningsAsErrors) throw FormatException(msg);
   }
 
-  Function(String, String, String) _getVocabularyErrFunc(Uri v) {
-    return _vocabulary.isUsed(v)
+  Function(String, String, String) _errFuncForVocabulary(Uri v) {
+    return _vocabulary.contains(v)
         ? _err
         : (String msg, String instancePath, String schemaPath) =>
             _warn('ignoring vocabulary $v: $msg', instancePath, schemaPath);
@@ -717,42 +725,4 @@ class Validator {
   List<ValidationError> _errors = [];
   List<ValidationError> _warnings = [];
   bool _reportMultipleErrors;
-}
-
-class Vocabulary {
-  static final CORE = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
-  static final APPLICATOR = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
-  static final VALIDATION = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
-  static final METADATA = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
-  static final FORMAT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
-  static final CONTENT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
-  static final SUPPORTED = {
-    CORE,
-    APPLICATOR,
-    VALIDATION,
-    METADATA,
-    FORMAT,
-    CONTENT,
-  };
-
-  Vocabulary.fromDefined(SchemaVersion version, Map<Uri, bool> v) {
-    if (version < SchemaVersion.draft2019_09) {
-      // For simplicity's sake
-      used.addAll(SUPPORTED);
-    } else {
-      v.forEach((uri, isRequired) {
-        used.add(uri);
-        if (isRequired && !SUPPORTED.contains(uri)) requiredButUnsupported.add(uri);
-      });
-    }
-  }
-
-  bool isUsed(Uri v) {
-    return used.contains(v);
-  }
-
-  /// Vocabularies to be used for validation.
-  final Set<Uri> used = {};
-
-  final Set<Uri> requiredButUnsupported = {};
 }

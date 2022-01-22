@@ -306,7 +306,6 @@ final List<String> draft2019SkippedTestFiles = [
   "uri-reference.json",
   "uri-template.json",
   "uuid.json",
-  //"vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
 
 final List<String> draft2019SkippedTests = [

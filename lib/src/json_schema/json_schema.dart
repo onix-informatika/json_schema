@@ -362,7 +362,7 @@ class JsonSchema {
             localSchema = _refMap[baseUriString];
           } else if (baseUriString != null && SchemaVersion.fromString(baseUriString) != null) {
             // If the referenced URI is or within versioned schema spec.
-            localSchema = JsonSchema.create(getJsonSchemaDefinitionByRef(baseUriString));
+            localSchema = JsonSchema.create(getStaticSchemaDefinitionById(baseUriString));
             _addSchemaToRefMap(baseUriString, localSchema);
           } else {
             // The remote ref needs to be resolved if the above checks failed.
@@ -426,18 +426,11 @@ class JsonSchema {
     _validateAndSetAllProperties();
   }
 
-  void _validateVocabulary() {
-    // if (schemaVersion.compareTo(SchemaVersion.draft2019_09) >= 0 && this != _root && _vocabulary != null) {
-    //   throw FormatExceptions.error(r'Only top-level schemas are allowed to contain a $vocabulary');
-    // }
-  }
-
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
   void _validateSchemaAsync() {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsAsync();
-    _validateVocabulary();
   }
 
   /// Validate that a given [JsonSchema] conforms to the official JSON Schema spec.
@@ -445,7 +438,6 @@ class JsonSchema {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsSync();
-    _validateVocabulary();
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
@@ -599,7 +591,7 @@ class JsonSchema {
     // 1. Statically-known schema definition (skips ref provider)
     // 2. Base URI (example: localhost:1234/integer.json)
     // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+    final dynamic schemaDefinition = getStaticSchemaDefinitionById(ref.toString()) ??
         _refProvider.provide(baseUri.toString()) ??
         _refProvider.provide('${baseUri}#');
 
@@ -620,7 +612,7 @@ class JsonSchema {
     // 1. Statically-known schema definition (skips ref provider)
     // 2. Base URI (example: localhost:1234/integer.json)
     // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = getJsonSchemaDefinitionByRef(ref.toString()) ??
+    final dynamic schemaDefinition = getStaticSchemaDefinitionById(ref.toString()) ??
         await refProvider.provide(baseUri.toString()) ??
         await refProvider.provide('${baseUri}#');
 
@@ -820,7 +812,7 @@ class JsonSchema {
   /// Whether the schema is write-only.
   bool _writeOnly = false;
 
-  // For metaschemas, indicates the requiredness of each vocabulary subschema.
+  // For metaschemas, indicates the vocabularies in use and the requiredness of each for processing schemas.
   Map<Uri, bool> _vocabulary;
 
   // --------------------------------------------------------------------------
@@ -1348,17 +1340,17 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
   bool get writeOnly => _writeOnly;
 
-  /// The vocabularies defined by the schema of this [JsonSchema].
+  /// The vocabularies defined by this [JsonSchema].
   ///
-  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
   Map<Uri, bool> get vocabulary => _vocabulary ?? Map<Uri, bool>();
 
-  /// The vocabularies defined by the schema of this [JsonSchema].
+  /// The vocabularies defined by the metaschema of this [JsonSchema].
   ///
-  /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
   Map<Uri, bool> metaschemaVocabulary() {
     return this._refMap[_schema?.toString()]?.vocabulary ??
-        JsonSchema._fromRootMap(getJsonSchemaDefinitionByRef(schemaVersion.toString()), _schemaVersion).vocabulary;
+        JsonSchema._fromRootMap(getStaticSchemaDefinitionById(schemaVersion.toString()), _schemaVersion).vocabulary;
   }
 
   // --------------------------------------------------------------------------
@@ -1782,6 +1774,7 @@ class JsonSchema {
   /// Validate, calculate and set the value of the '$schema' JSON Schema keyword.
   _setSchema(dynamic value) {
     _schema = TypeValidators.uri(r'$schema', value);
+    // Retrieve the metaschema so it can be introspected for properties such as vocabularies.
     _addRefRetrievals(_schema);
   }
 
@@ -1918,7 +1911,7 @@ class JsonSchema {
           .cast<String, bool>()
           .map<Uri, bool>((key, value) => MapEntry(Uri.parse(key), value));
     } catch (RuntimeException) {
-      throw FormatExceptions.error(r'$vocabulary must be a map from URI to bool');
+      throw FormatExceptions.error('\$vocabulary must be a map from URI to bool: $value');
     }
   }
 
@@ -2070,8 +2063,13 @@ class JsonSchema {
   mixinForRef(JsonSchema ref) {
     this._schemaMap.remove(r'$ref');
     this._ref = null;
+
+    // $vocabulary is not inheritable through a $ref
+    // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2.2
+    final toMerge = Map<String, dynamic>.from(ref._schemaMap);
+    toMerge.remove(r'$vocabulary');
     // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
-    this._schemaMap.deepMerge(ref._schemaMap);
+    this._schemaMap.deepMerge(toMerge);
 
     this._validateAndSetAllProperties();
   }
