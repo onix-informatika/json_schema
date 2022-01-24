@@ -6207,7 +6207,7 @@ Map<String, String> specificationTests = {
         "description": "schema that uses custom metaschema with format-assertion: false",
         "schema": {
             "$id": "https://schema/using/format-assertion/false",
-            "$schema": "http://localhost:1234/draft2020-12/format-assertion-false.json",
+            "$schema": "http://localhost:1234/draft-next/format-assertion-false.json",
             "format": "ipv4"
         },
         "tests": [
@@ -6227,7 +6227,7 @@ Map<String, String> specificationTests = {
         "description": "schema that uses custom metaschema with format-assertion: true",
         "schema": {
             "$id": "https://schema/using/format-assertion/true",
-            "$schema": "http://localhost:1234/draft2020-12/format-assertion-true.json",
+            "$schema": "http://localhost:1234/draft-next/format-assertion-true.json",
             "format": "ipv4"
         },
         "tests": [
@@ -13044,7 +13044,7 @@ Map<String, String> specificationTests = {
         "description": "schema that uses custom metaschema with with no validation vocabulary",
         "schema": {
             "$id": "https://schema/using/no/validation",
-            "$schema": "http://localhost:1234/draft2020-12/metaschema-no-validation.json",
+            "$schema": "http://localhost:1234/draft-next/metaschema-no-validation.json",
             "properties": {
                 "badProperty": false,
                 "numberProperty": {
@@ -20671,6 +20671,50 @@ Map<String, String> specificationTests = {
                 "description": "non-ascii digits should be rejected",
                 "data": "1২:00:00Z",
                 "valid": false
+            }
+        ]
+    }
+]
+""",
+  "/draft2019-09/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
             }
         ]
     }
@@ -33801,6 +33845,50 @@ Map<String, String> specificationTests = {
     }
 ]
 """,
+  "/draft2020-12/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
+            }
+        ]
+    }
+]
+""",
   "/draft2020-12/optional/format/uri-reference.json": r"""[
     {
         "description": "validation of URI References",
@@ -46320,6 +46408,50 @@ Map<String, String> specificationTests = {
     }
 ]
 """,
+  "/draft4/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
+            }
+        ]
+    }
+]
+""",
   "/draft4/optional/format/uri.json": r"""[
     {
         "description": "validation of URIs",
@@ -49858,27 +49990,6 @@ Map<String, String> specificationTests = {
             {
                 "description": "matches neither items nor contains",
                 "data": [ 1, 5 ],
-                "valid": false
-            }
-        ]
-    },
-    {
-        "description": "contains with false if subschema",
-        "schema": {
-            "contains": {
-                "if": false,
-                "else": true
-            }
-        },
-        "tests": [
-            {
-                "description": "any non-empty array is valid",
-                "data": ["foo"],
-                "valid": true
-            },
-            {
-                "description": "empty array is invalid",
-                "data": [],
                 "valid": false
             }
         ]
@@ -53485,6 +53596,50 @@ Map<String, String> specificationTests = {
                 "description": "not a valid JSON-pointer (isn't empty nor starts with /) #3",
                 "data": "a/a",
                 "valid": false
+            }
+        ]
+    }
+]
+""",
+  "/draft6/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
             }
         ]
     }
@@ -62858,6 +63013,50 @@ Map<String, String> specificationTests = {
                 "description": "non-ascii digits should be rejected",
                 "data": "1২:00:00Z",
                 "valid": false
+            }
+        ]
+    }
+]
+""",
+  "/draft7/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
             }
         ]
     }
@@ -73686,6 +73885,50 @@ Map<String, String> specificationTests = {
                 "description": "non-ascii digits should be rejected",
                 "data": "1২:00:00Z",
                 "valid": false
+            }
+        ]
+    }
+]
+""",
+  "/latest/optional/format/unknown.json": r"""[
+    {
+        "description": "unknown format",
+        "schema": { "format": "unknown" },
+        "tests": [
+            {
+                "description": "unknown formats ignore integers",
+                "data": 12,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore floats",
+                "data": 13.7,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore objects",
+                "data": {},
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore arrays",
+                "data": [],
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore booleans",
+                "data": false,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore nulls",
+                "data": null,
+                "valid": true
+            },
+            {
+                "description": "unknown formats ignore strings",
+                "data": "string",
+                "valid": true
             }
         ]
     }
