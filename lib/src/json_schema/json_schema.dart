@@ -863,6 +863,7 @@ class JsonSchema {
 
   Map<String, JsonSchema> _schemaDependencies = {};
 
+  /// [JsonSchema] that unevaluated properties must conform to.
   JsonSchema _unevaluatedProperties;
 
   /// The maximum number of properties allowed.
@@ -1422,6 +1423,9 @@ class JsonSchema {
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.20
   JsonSchema get additionalPropertiesSchema => _additionalPropertiesSchema;
 
+  /// [JsonSchema] that unevaluated properties must conform to.
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.2.4
   JsonSchema get unevaluatedProperties => _unevaluatedProperties;
 
   /// [JsonSchema] definition that at least one item must match to be valid.
@@ -1961,6 +1965,7 @@ class JsonSchema {
     }
   }
 
+  /// Validate,calculate and set the value of the 'unevaluatedProperties' JSON Schema keyword.
   _setUnevaluatedProperties(dynamic value) {
     _createOrRetrieveSchema('$_path/unevaluatedProperties', value, (rhs) => _unevaluatedProperties = rhs);
   }
