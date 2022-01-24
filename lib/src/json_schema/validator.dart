@@ -85,7 +85,7 @@ class Validator {
 
   Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
     if (inEvaluatedItemsContext) {
-      _createUnevaluatedItemsContext();
+      _pushUnevaluatedItemsContext();
     }
   }
 
@@ -101,7 +101,9 @@ class Validator {
 
   bool _treatWarningsAsErrors;
 
-  // Keep track of the number of evaluated items in a list.
+  /// Keep track of the number of evaluated items contexts in a list, treating the list as a stack.
+  /// The context is an [int], representing the number of successful evaluations for the list in the
+  /// given context.
   List<int> _evaluatedItemsContext = [];
 
   /// Validate the [instance] against the this validator's schema
@@ -273,7 +275,7 @@ class Validator {
         final expected = items.length;
         final end = min(expected, actual);
         // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
-        _setMaxEvaluatedTimeCount(end);
+        _setMaxEvaluatedItemCount(end);
         for (int i = 0; i < end; i++) {
           assert(items[i] != null);
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
@@ -354,7 +356,7 @@ class Validator {
     var v = Validator._(s, inEvaluatedItemsContext: _isInUnevaluatedItemContext());
     var isValid = v.validate(instance);
     if (isValid) {
-      _setMaxEvaluatedTimeCount(v._getEvaluatedItemCount());
+      _setMaxEvaluatedItemCount(v._getEvaluatedItemCount());
     }
     return isValid;
   }
@@ -366,6 +368,8 @@ class Validator {
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
+    // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
+    // to properly account for evaluated properties and items.
     var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance)).toList();
     if (!results.any((s) => s)) {
       // TODO: deal with /anyOf
@@ -375,7 +379,7 @@ class Validator {
 
   void _validateOneOf(JsonSchema schema, Instance instance) {
     try {
-      schema.oneOf.map((s) => _validateAndCaptureEvaluations(s, instance)).singleWhere((s) => s == true);
+      schema.oneOf.map((s) => _validateAndCaptureEvaluations(s, instance)).singleWhere((s) => s);
     } on StateError catch (notOneOf) {
       // TODO: deal with oneOf
       _err('${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
@@ -640,7 +644,7 @@ class Validator {
     }
 
     if (schema.unevaluatedItems != null) {
-      _createUnevaluatedItemsContext();
+      _pushUnevaluatedItemsContext();
     }
 
     /// If the [JsonSchema] being validated is a ref, pull the ref
@@ -684,7 +688,7 @@ class Validator {
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
 
     if (schema.unevaluatedItems != null) {
-      _dropUnevaluatedItemsContext();
+      _popUnevaluatedItemsContext();
     }
   }
 
@@ -717,14 +721,14 @@ class Validator {
   //////
   // Helper functions to deal with unevaluatedItems.
   //////
-  _createUnevaluatedItemsContext() {
+  _pushUnevaluatedItemsContext() {
     _evaluatedItemsContext.add(0);
   }
 
-  _dropUnevaluatedItemsContext() {
+  _popUnevaluatedItemsContext() {
     if (_evaluatedItemsContext.isNotEmpty) {
       var last = _evaluatedItemsContext.removeLast();
-      _setMaxEvaluatedTimeCount(last);
+      _setMaxEvaluatedItemCount(last);
     }
   }
 
@@ -738,7 +742,7 @@ class Validator {
     }
   }
 
-  _setMaxEvaluatedTimeCount(int count) {
+  _setMaxEvaluatedItemCount(int count) {
     if (_evaluatedItemsContext.isNotEmpty) {
       _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = max(_evaluatedItemsContext.last, count);
     }
