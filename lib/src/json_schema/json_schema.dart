@@ -1000,6 +1000,9 @@ class JsonSchema {
   static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV7)
+    // Unfortunately the spec does not explicitly say to ignore these old keywords,
+    // nor do the spec tests offer an answer. However, the sane thing to do seems to be to ignore them,
+    // otherwise we get into undocumented territory.
     ..remove(r'$definitions')
     ..remove(r'$dependencies')
     ..addAll({
