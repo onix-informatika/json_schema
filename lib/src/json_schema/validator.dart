@@ -61,6 +61,45 @@ class Instance {
 
   @override
   toString() => data.toString();
+
+  @override
+  bool operator ==(Object other) => other is Instance && this.path == other.path;
+
+  @override
+  int get hashCode => this.path.hashCode;
+}
+
+/// A helper class to keep track of properties that have been evaluated or not evaluated.
+class EvaluatedPropertiesContext {
+  EvaluatedPropertiesContext();
+
+  Set<Instance> _unevaluatedProperties = Set<Instance>();
+  Set<Instance> _evaluatedProperties = Set<Instance>();
+
+  Set<Instance> get unevaluatedProperties => _unevaluatedProperties;
+
+  Set<Instance> get evaluatedProperties => _evaluatedProperties;
+
+  addUnevaluatedProp(Instance i) {
+    if (!_evaluatedProperties.contains(i)) {
+      _unevaluatedProperties.add(i);
+    }
+  }
+
+  addEvaluatedProp(Instance i) {
+    _unevaluatedProperties.remove(i);
+    _evaluatedProperties.add(i);
+  }
+
+  merge(EvaluatedPropertiesContext other) {
+    other._evaluatedProperties.forEach(this.addEvaluatedProp);
+    other._unevaluatedProperties.forEach(this.addUnevaluatedProp);
+  }
+
+  setAllEvaluated() {
+    _evaluatedProperties.addAll(_unevaluatedProperties);
+    _unevaluatedProperties.clear();
+  }
 }
 
 class ValidationError {
@@ -83,9 +122,14 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
-  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
+  /// A private constructor for recursive validations.
+  /// [inEvaluatedItemsContext] and [inEvaluatedPropertiesContext] are used to pass in the parents context state.
+  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false, bool inEvaluatedPropertiesContext = false}) {
     if (inEvaluatedItemsContext) {
       _pushEvaluatedItemsContext();
+    }
+    if (inEvaluatedPropertiesContext) {
+      _pushEvaluatedPropertiesContext();
     }
   }
 
@@ -105,6 +149,16 @@ class Validator {
   /// The context is an [int], representing the number of successful evaluations for the list in the
   /// given context.
   List<int> _evaluatedItemsContext = [];
+
+  /// Keep track of the evaluate properties contexts in a list, treating the list as a stack.
+  /// The context is an [EvaluatedPropertiesContext], containing sets of evaluated and unevaluated properties.
+  List<EvaluatedPropertiesContext> _evaluatedPropertiesContext = [];
+
+  get evaluatedProperties =>
+      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last.evaluatedProperties : Set<Instance>();
+
+  get unevaluatedProperties =>
+      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last.unevaluatedProperties : Set<Instance>();
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
@@ -353,10 +407,15 @@ class Validator {
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator._(s, inEvaluatedItemsContext: _isInEvaluatedItemContext());
+    var v = Validator._(s,
+        inEvaluatedItemsContext: _isInEvaluatedItemContext(),
+        inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext());
     var isValid = v.validate(instance);
     if (isValid) {
       _setMaxEvaluatedItemCount(v._getEvaluatedItemCount());
+
+      v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
+      v.unevaluatedProperties.forEach((e) => _addUnevaluatedProp(e));
     }
     return isValid;
   }
@@ -584,7 +643,13 @@ class Validator {
           _validate(schema.additionalPropertiesSchema, newInstance);
         } else if (propMustValidate) {
           _err('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
+        } else if (schema.additionalPropertiesBool == null) {
+          _addUnevaluatedProp(newInstance);
+        } else if (schema.additionalPropertiesBool == true) {
+          _addEvaluatedProp(newInstance);
         }
+      } else {
+        _addEvaluatedProp(newInstance);
       }
     });
   }
@@ -594,6 +659,8 @@ class Validator {
       if (instance.data.containsKey(k)) {
         if (!dependencies.every((prop) => instance.data.containsKey(prop))) {
           _err('prop $k => $dependencies required', instance.path, schema.path + '/dependencies');
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -602,8 +669,10 @@ class Validator {
   void _schemaDependenciesValidation(JsonSchema schema, Instance instance) {
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
-        if (!Validator(otherSchema).validate(instance)) {
+        if (!_validateAndCaptureEvaluations(otherSchema, instance)) {
           _err('prop $k violated schema dependency', instance.path, otherSchema.path);
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -636,6 +705,14 @@ class Validator {
     if (schema.propertyDependencies != null) _propertyDependenciesValidation(schema, instance);
 
     if (schema.schemaDependencies != null) _schemaDependenciesValidation(schema, instance);
+
+    if (schema.unevaluatedProperties != null && this.unevaluatedProperties.isNotEmpty) {
+      if (schema.unevaluatedProperties.schemaBool == true) {
+        _setAllPropertiesAsValidated();
+      } else {
+        this.unevaluatedProperties.forEach((element) => _validate(schema.unevaluatedProperties, element));
+      }
+    }
   }
 
   void _validate(JsonSchema schema, dynamic instance) {
@@ -660,6 +737,9 @@ class Validator {
 
     if (schema.unevaluatedItems != null) {
       _pushEvaluatedItemsContext();
+    }
+    if (schema.unevaluatedProperties != null) {
+      _pushEvaluatedPropertiesContext();
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
@@ -690,6 +770,9 @@ class Validator {
     if (schema.unevaluatedItems != null) {
       _popEvaluatedItemsContext();
     }
+    if (schema.unevaluatedProperties != null) {
+      _popEvaluatedPropertiesContext();
+    }
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
@@ -697,7 +780,7 @@ class Validator {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
-      if (schema.ifSchema.validate(instance)) {
+      if (_validateAndCaptureEvaluations(schema.ifSchema, instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
         if (!_validateAndCaptureEvaluations(schema.thenSchema, instance)) {
@@ -726,11 +809,9 @@ class Validator {
   }
 
   _popEvaluatedItemsContext() {
-    if (_evaluatedItemsContext.isNotEmpty) {
       var last = _evaluatedItemsContext.removeLast();
       _setMaxEvaluatedItemCount(last);
     }
-  }
 
   bool _isInEvaluatedItemContext() {
     return _evaluatedItemsContext.isNotEmpty;
@@ -750,6 +831,45 @@ class Validator {
 
   int _getEvaluatedItemCount() {
     return _evaluatedItemsContext.lastOrNull;
+  }
+
+  //////
+  // Helper functions to deal with unevaluatedProperties.
+  //////
+
+  _pushEvaluatedPropertiesContext() {
+    _evaluatedPropertiesContext.add(EvaluatedPropertiesContext());
+  }
+
+  _popEvaluatedPropertiesContext() {
+    var last = _evaluatedPropertiesContext.removeLast();
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      _evaluatedPropertiesContext.last.merge(last);
+    }
+  }
+
+  bool _isInEvaluatedPropertiesContext() {
+    return _evaluatedPropertiesContext.isNotEmpty;
+  }
+
+  _addUnevaluatedProp(Instance i) {
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      var context = _evaluatedPropertiesContext.last;
+      context.addUnevaluatedProp(i);
+    }
+  }
+
+  _addEvaluatedProp(Instance i) {
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      var context = _evaluatedPropertiesContext.last;
+      context.addEvaluatedProp(i);
+    }
+  }
+
+  _setAllPropertiesAsValidated() {
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      _evaluatedPropertiesContext.last.setAllEvaluated();
+    }
   }
 
   void _err(String msg, String instancePath, String schemaPath) {

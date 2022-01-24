@@ -863,6 +863,8 @@ class JsonSchema {
 
   Map<String, JsonSchema> _schemaDependencies = {};
 
+  JsonSchema _unevaluatedProperties;
+
   /// The maximum number of properties allowed.
   int _maxProperties;
 
@@ -1016,7 +1018,7 @@ class JsonSchema {
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
       'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
-      'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
@@ -1419,6 +1421,8 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.20
   JsonSchema get additionalPropertiesSchema => _additionalPropertiesSchema;
+
+  JsonSchema get unevaluatedProperties => _unevaluatedProperties;
 
   /// [JsonSchema] definition that at least one item must match to be valid.
   ///
@@ -1955,6 +1959,10 @@ class JsonSchema {
     } else {
       throw FormatExceptions.error('additionalProperties must be a bool or valid schema object: $value');
     }
+  }
+
+  _setUnevaluatedProperties(dynamic value) {
+    _createOrRetrieveSchema('$_path/unevaluatedProperties', value, (rhs) => _unevaluatedProperties = rhs);
   }
 
   /// Validate, calculate and set the value of the 'dependencies' JSON Schema keyword.

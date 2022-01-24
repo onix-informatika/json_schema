@@ -285,7 +285,6 @@ final List<String> commonSkippedTests = []
 
 final List<String> draft2019SkippedTestFiles = [
   // WIP
-  "unevaluatedProperties.json",
   "vocabulary.json",
 
   // As of Draft 2019, format validation becomes an opt-in option.
