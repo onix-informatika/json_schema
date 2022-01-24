@@ -179,7 +179,7 @@ void main() {
     SchemaVersion.draft2019_09,
     allDraft2019,
     draft2019SkippedTestFiles,
-    draft2019SkippedTests,
+    commonSkippedTests,
   );
   runAllTestsForDraftX(
     SchemaVersion.draft2019_09,
@@ -252,7 +252,7 @@ void main() {
     SchemaVersion.draft2019_09,
     allDraft2019,
     draft2019SkippedTestFiles,
-    draft2019SkippedTests,
+    commonSkippedTests,
     isSync: true,
     refProvider: syncRefProvider,
   );
@@ -329,7 +329,7 @@ void main() {
     SchemaVersion.draft2019_09,
     allDraft2019,
     draft2019SkippedTestFiles,
-    draft2019SkippedTests,
+    commonSkippedTests,
     refProvider: asyncRefProvider,
   );
   runAllTestsForDraftX(

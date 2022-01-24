@@ -720,26 +720,30 @@ class Validator {
       instance = Instance(instance);
     }
 
-    /// If the [JsonSchema] being validated is a ref, pull the ref
-    /// from the [refMap] instead.
-    while (schema.ref != null || schema.recursiveRef != null) {
-      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
-      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
-        schema = nextSchema.furthestRecursiveAnchorParent();
-      } else if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
-          schema.schemaMap.length > 1 &&
-          nextSchema.schemaBool == null) {
-        schema.mixinForRef(nextSchema);
-      } else {
-        schema = nextSchema;
-      }
-    }
-
     if (schema.unevaluatedItems != null) {
       _pushEvaluatedItemsContext();
     }
     if (schema.unevaluatedProperties != null) {
       _pushEvaluatedPropertiesContext();
+    }
+
+    /// If the [JsonSchema] being validated is a ref, pull the ref
+    /// from the [refMap] instead.
+    if (schema.ref != null || schema.recursiveRef != null) {
+      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
+      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
+        nextSchema = nextSchema.furthestRecursiveAnchorParent() ?? nextSchema;
+        _validate(nextSchema, instance);
+      } else if (nextSchema != schema) {
+        nextSchema.pushDynamicParent(schema);
+        _validate(nextSchema, instance);
+        nextSchema.popDynamicParent();
+        if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+          return;
+        }
+      } else {
+        schema = nextSchema;
+      }
     }
 
     /// If the [JsonSchema] is a bool, always return this value.

@@ -668,6 +668,8 @@ class JsonSchema {
   /// The parent [JsonSchema] for this [JsonSchema].
   JsonSchema _parent;
 
+  List<JsonSchema> _dynamicParents = [];
+
   /// JSON of the [JsonSchema] as a [Map]. Only this value or [_schemaBool] should be set, not both.
   Map<String, dynamic> _schemaMap = {};
 
@@ -1063,6 +1065,8 @@ class JsonSchema {
 
   /// The parent [JsonSchema] for this [JsonSchema].
   JsonSchema get parent => _parent;
+
+  JsonSchema get dynamicParent => _dynamicParents.lastOrNull ?? _parent;
 
   /// Get the anchestry of the current schema, up to the root [JsonSchema].
   List<JsonSchema> get _parents {
@@ -2052,27 +2056,27 @@ class JsonSchema {
     }
   }
 
-  /// Mixin another JsonSchema into this one. All references must be resolved before calling.
-  mixinForRef(JsonSchema ref) {
-    this._schemaMap.remove(r'$ref');
-    this._ref = null;
-    // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
-    this._schemaMap.deepMerge(ref._schemaMap);
-
-    this._validateAndSetAllProperties();
-  }
-
   /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
   /// or null of there is no recursiveAnchor found.
   JsonSchema furthestRecursiveAnchorParent() {
     JsonSchema lastFound = this.recursiveAnchor ? this : null;
-    var possibleAnchor = this._parent;
+    var possibleAnchor = this.dynamicParent;
     while (possibleAnchor != null) {
       if (possibleAnchor.recursiveAnchor) {
         lastFound = possibleAnchor;
       }
-      possibleAnchor = possibleAnchor._parent;
+      possibleAnchor = possibleAnchor.dynamicParent;
     }
     return lastFound;
+  }
+
+  void pushDynamicParent(JsonSchema value) {
+    if (value != this) {
+      _dynamicParents.add(value);
+    }
+  }
+
+  void popDynamicParent() {
+    _dynamicParents.removeLast();
   }
 }
