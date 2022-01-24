@@ -878,7 +878,7 @@ class JsonSchema {
   /// List if properties that are required for the [JsonSchema] instance to be valid.
   List<String> _requiredProperties;
 
-  /// Unevaluated things.....
+  /// [JsonSchema] for dealing with items in a list that have not been evaluated by other schemas.
   JsonSchema _unevaluatedItems;
 
   // --------------------------------------------------------------------------
