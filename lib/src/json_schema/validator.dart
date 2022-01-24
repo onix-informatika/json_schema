@@ -349,6 +349,7 @@ class Validator {
   void _validateAllOf(JsonSchema schema, Instance instance) {
     final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
+      // TODO consider passing back validation errors from sub-validations
       warnOrErr('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
@@ -356,6 +357,7 @@ class Validator {
   void _validateAnyOf(JsonSchema schema, Instance instance) {
     final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
     if (!schema.anyOf.any((s) => Validator(s).validate(instance))) {
+      // TODO consider passing back validation errors from sub-validations
       warnOrErr(
           '${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
     }
@@ -365,6 +367,7 @@ class Validator {
     try {
       schema.oneOf.singleWhere((s) => Validator(s).validate(instance));
     } on StateError catch (notOneOf) {
+      // TODO consider passing back validation errors from sub-validations
       _errFuncForVocabulary(SupportedVocabularies.APPLICATOR)(
           '${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
     }
