@@ -2032,7 +2032,7 @@ class JsonSchema {
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
 
   _setUnevaluatedItems(dynamic value) {
-    if (value is Map || value is bool && schemaVersion >= SchemaVersion.draft6) {
+    if (value is Map || (value is bool && schemaVersion >= SchemaVersion.draft6)) {
       _createOrRetrieveSchema('$_path/unevaluatedItems', value, (rhs) => _unevaluatedItems = rhs);
     } else {
       throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
