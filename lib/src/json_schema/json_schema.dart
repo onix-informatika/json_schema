@@ -1005,6 +1005,14 @@ class JsonSchema {
   static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV7)
+    // "Note that the standard meta-schema still reserves definitions for backwards compatibility"
+    // https://json-schema.org/draft/2019-09/release-notes.html#core-vocabulary
+    // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.5
+    // Unfortunately the spec does not explicitly say to ignore these old keywords,
+    // nor do the spec tests offer an answer. However, the sane thing to do seems to be to ignore them,
+    // otherwise we get into undocumented territory.
+    ..remove(r'$definitions')
+    ..remove(r'$dependencies')
     ..addAll({
       // Note: see https://json-schema.org/draft/2019-09/release-notes.html
 
