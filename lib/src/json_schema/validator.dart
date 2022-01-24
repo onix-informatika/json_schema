@@ -83,6 +83,12 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
+  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
+    if (inEvaluatedItemsContext) {
+      _createUnevaluatedItemsContext();
+    }
+  }
+
   List<String> get errors => _errors.map((e) => e.toString()).toList();
 
   List<String> get warnings => _warnings.map((e) => e.toString()).toList();
@@ -96,8 +102,7 @@ class Validator {
   bool _treatWarningsAsErrors;
 
   // Keep track of the number of evaluated items in a list.
-  int get evaluatedItems => _evaluatedItems;
-  int _evaluatedItems = 0;
+  List<int> _evaluatedItemsContext = [];
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
@@ -260,7 +265,7 @@ class Validator {
         _validate(singleSchema, itemInstance);
       });
       // All the items in this list have been evaluated.
-      _evaluatedItems = actual;
+      _setEvaluatedItemCount(actual);
     } else {
       final items = schema.itemsList;
 
@@ -268,7 +273,7 @@ class Validator {
         final expected = items.length;
         final end = min(expected, actual);
         // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
-        _evaluatedItems = max(this.evaluatedItems, end);
+        _setMaxEvaluatedTimeCount(end);
         for (int i = 0; i < end; i++) {
           assert(items[i] != null);
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
@@ -284,7 +289,7 @@ class Validator {
             _err('additionalItems false', instance.path, schema.path + '/additionalItems');
           } else {
             // All the items in this list have been evaluated.
-            _evaluatedItems = actual;
+            _setEvaluatedItemCount(actual);
           }
         }
       }
@@ -330,26 +335,26 @@ class Validator {
     final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
       if (schema.unevaluatedItems.schemaBool != null) {
-        if (schema.unevaluatedItems.schemaBool == false && actual > this.evaluatedItems) {
+        if (schema.unevaluatedItems.schemaBool == false && actual > this._getEvaluatedItemCount()) {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
         }
       } else {
-        for (int i = this.evaluatedItems; i < actual; i++) {
+        for (int i = this._getEvaluatedItemCount(); i < actual; i++) {
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
           _validate(schema.unevaluatedItems, itemInstance);
         }
       }
       // If we passed these test, then all the items have been evaluated.
-      _evaluatedItems = actual;
+      _setEvaluatedItemCount(actual);
     }
   }
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator(s);
+    var v = Validator._(s, inEvaluatedItemsContext: _isInUnevaluatedItemContext());
     var isValid = v.validate(instance);
     if (isValid) {
-      _evaluatedItems = max(this.evaluatedItems, v.evaluatedItems);
+      _setMaxEvaluatedTimeCount(v._getEvaluatedItemCount());
     }
     return isValid;
   }
@@ -622,8 +627,6 @@ class Validator {
         }
       });
     }
-    // Reset the evaluations for this uncle schema.
-    _evaluatedItems = 0;
     _objectPropertyValidation(schema, instance);
 
     if (schema.propertyDependencies != null) _propertyDependenciesValidation(schema, instance);
@@ -634,6 +637,10 @@ class Validator {
   void _validate(JsonSchema schema, dynamic instance) {
     if (instance is! Instance) {
       instance = Instance(instance);
+    }
+
+    if (schema.unevaluatedItems != null) {
+      _createUnevaluatedItemsContext();
     }
 
     /// If the [JsonSchema] being validated is a ref, pull the ref
@@ -675,6 +682,10 @@ class Validator {
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
+
+    if (schema.unevaluatedItems != null) {
+      _dropUnevaluatedItemsContext();
+    }
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
@@ -701,6 +712,40 @@ class Validator {
       return true;
     }
     return false;
+  }
+
+  //////
+  // Helper functions to deal with unevaluatedItems.
+  //////
+  _createUnevaluatedItemsContext() {
+    _evaluatedItemsContext.add(0);
+  }
+
+  _dropUnevaluatedItemsContext() {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      var last = _evaluatedItemsContext.removeLast();
+      _setMaxEvaluatedTimeCount(last);
+    }
+  }
+
+  bool _isInUnevaluatedItemContext() {
+    return _evaluatedItemsContext.isNotEmpty;
+  }
+
+  _setEvaluatedItemCount(int count) {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = count;
+    }
+  }
+
+  _setMaxEvaluatedTimeCount(int count) {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = max(_evaluatedItemsContext.last, count);
+    }
+  }
+
+  int _getEvaluatedItemCount() {
+    return _evaluatedItemsContext.lastOrNull;
   }
 
   void _err(String msg, String instancePath, String schemaPath) {
