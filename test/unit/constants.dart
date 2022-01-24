@@ -284,29 +284,36 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedUUIDTests);
 
 final List<String> draft2019SkippedTestFiles = [
+  // WIP
+  "unevaluatedItems.json",
+  "unevaluatedProperties.json",
+  "vocabulary.json",
+
+  // Optional
+  "ecmascript-regex.json",
+
+  // As of Draft 2019, format validation becomes an opt-in option.
+  // We *do* run the optional format test files below, but they appear
+  // on this skip list because they are skipped when we are running not configured
+  // to validate formats. Instead we run them in a separate test configuration.
   "date.json",
   "date-time.json",
-  "defs.json",
   "duration.json",
-  "ecmascript-regex.json",
   "email.json",
+  "hostname.json",
   "idn-hostname.json",
-  "iri.json",
-  "iri-reference.json",
   "ipv4.json",
   "ipv6.json",
-  "hostname.json",
+  "iri-reference.json",
+  "iri.json",
   "json-pointer.json",
   "regex.json",
   "relative-json-pointer.json",
   "time.json",
-  "unevaluatedItems.json",
-  "unevaluatedProperties.json",
-  "uri.json",
   "uri-reference.json",
   "uri-template.json",
+  "uri.json",
   "uuid.json",
-  "vocabulary.json",
 ]..addAll(commonSkippedTestFiles);
 
 final List<String> draft2019SkippedTests = [
