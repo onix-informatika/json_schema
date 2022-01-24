@@ -85,7 +85,7 @@ class Validator {
 
   Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
     if (inEvaluatedItemsContext) {
-      _pushUnevaluatedItemsContext();
+      _pushEvaluatedItemsContext();
     }
   }
 
@@ -353,7 +353,7 @@ class Validator {
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator._(s, inEvaluatedItemsContext: _isInUnevaluatedItemContext());
+    var v = Validator._(s, inEvaluatedItemsContext: _isInEvaluatedItemContext());
     var isValid = v.validate(instance);
     if (isValid) {
       _setMaxEvaluatedItemCount(v._getEvaluatedItemCount());
@@ -643,10 +643,6 @@ class Validator {
       instance = Instance(instance);
     }
 
-    if (schema.unevaluatedItems != null) {
-      _pushUnevaluatedItemsContext();
-    }
-
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
     while (schema.ref != null || schema.recursiveRef != null) {
@@ -660,6 +656,10 @@ class Validator {
       } else {
         schema = nextSchema;
       }
+    }
+
+    if (schema.unevaluatedItems != null) {
+      _pushEvaluatedItemsContext();
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
@@ -688,7 +688,7 @@ class Validator {
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
 
     if (schema.unevaluatedItems != null) {
-      _popUnevaluatedItemsContext();
+      _popEvaluatedItemsContext();
     }
   }
 
@@ -719,20 +719,20 @@ class Validator {
   }
 
   //////
-  // Helper functions to deal with unevaluatedItems.
+  // Helper functions to deal with evaluatedItems.
   //////
-  _pushUnevaluatedItemsContext() {
+  _pushEvaluatedItemsContext() {
     _evaluatedItemsContext.add(0);
   }
 
-  _popUnevaluatedItemsContext() {
+  _popEvaluatedItemsContext() {
     if (_evaluatedItemsContext.isNotEmpty) {
       var last = _evaluatedItemsContext.removeLast();
       _setMaxEvaluatedItemCount(last);
     }
   }
 
-  bool _isInUnevaluatedItemContext() {
+  bool _isInEvaluatedItemContext() {
     return _evaluatedItemsContext.isNotEmpty;
   }
 
