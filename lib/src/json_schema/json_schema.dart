@@ -1000,6 +1000,8 @@ class JsonSchema {
   static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV7)
+    ..remove(r'$definitions')
+    ..remove(r'$dependencies')
     ..addAll({
       // Note: see https://json-schema.org/draft/2019-09/release-notes.html
 
