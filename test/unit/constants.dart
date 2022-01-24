@@ -289,9 +289,6 @@ final List<String> draft2019SkippedTestFiles = [
   "unevaluatedProperties.json",
   "vocabulary.json",
 
-  // Optional
-  "ecmascript-regex.json",
-
   // As of Draft 2019, format validation becomes an opt-in option.
   // We *do* run the optional format test files below, but they appear
   // on this skip list because they are skipped when we are running not configured
