@@ -669,17 +669,15 @@ class JsonSchemaDefinitions {
         "https://json-schema.org/draft/2019-09/vocab/content": true
     },
     "$recursiveAnchor": true,
-
+    "allOf": [
+      {"$ref": "#/$defs/vocab-applicator"},
+      {"$ref": "#/$defs/vocab-content"},
+      {"$ref": "#/$defs/vocab-core"},
+      {"$ref": "#/$defs/vocab-format"},
+      {"$ref": "#/$defs/vocab-metadata"},
+      {"$ref": "#/$defs/vocab-validation"}
+    ],
     "title": "Core and Validation specifications meta-schema",
-    "allOf": [''' +
-      '''${Draft2019Subschemas.applicator},
-         ${Draft2019Subschemas.content},
-         ${Draft2019Subschemas.core},
-         ${Draft2019Subschemas.format},
-         ${Draft2019Subschemas.metadata},
-         ${Draft2019Subschemas.validation}
-    ],''' +
-      r'''
     "type": ["object", "boolean"],
     "properties": {
         "definitions": {
@@ -698,6 +696,15 @@ class JsonSchemaDefinitions {
                 ]
             }
         }
+    },
+    "$defs": {''' +
+      '''
+      "vocab-applicator": ${Draft2019Subschemas.applicator},
+      "vocab-content": ${Draft2019Subschemas.content},
+      "vocab-core": ${Draft2019Subschemas.core},
+      "vocab-format": ${Draft2019Subschemas.format},
+      "vocab-metadata": ${Draft2019Subschemas.metadata},
+      "vocab-validation": ${Draft2019Subschemas.validation}
     }
 }
   ''';
