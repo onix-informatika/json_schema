@@ -133,6 +133,7 @@ class Validator {
     }
 
     _reportMultipleErrors = reportMultipleErrors;
+    _errors = [];
     // Initialize and validate the vocabulary to be used for validation
     _vocabulary = getVocabulary(_rootSchema);
     if (!_reportMultipleErrors) {
