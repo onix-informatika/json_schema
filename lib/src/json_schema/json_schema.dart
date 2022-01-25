@@ -281,6 +281,8 @@ class JsonSchema {
       accessMap = _accessMapV6;
     } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
       accessMap = _accessMapV2019_09;
+    } else if (_root.schemaVersion == SchemaVersion.draft2020_12) {
+      accessMap = _accessMapV2020_12;
     } else {
       accessMap = _accessMapV7;
     }
@@ -1043,8 +1045,20 @@ class JsonSchema {
   static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
     ..addAll(_baseAccessMap)
     ..addAll(_accessMapV2019_09)
+    ..remove(r'$recursiveRef')
+    ..remove(r'$recursiveAnchor')
     ..addAll({
       // Note: see https://json-schema.org/draft/2020-12/release-notes.html
+
+      // Added or changed in draft2020_12
+      r'prefixItems': (JsonSchema s, dynamic v) => s._setItems(v), // TODO: implement
+      r'items': (JsonSchema s, dynamic v) => s._setAdditionalItems(v), // TODO: Change implementation
+
+      r'$dynamicRef': (JsonSchema s, dynamic v) => null, //TODO: implement
+      r'$dynamicAnchor': (JsonSchema s, dynamic v) => null, //TODO: implement
+
+      r'contains': (JsonSchema s, dynamic v) => null, // TODO: Change implementation
+      r'unevaluatedItems': (JsonSchema s, dynamic v) => null // TODO: Change implementation
     });
 
   /// Get a nested [JsonSchema] from a path.

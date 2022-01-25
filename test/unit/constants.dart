@@ -45,7 +45,7 @@ final List<String> skippedOptionalTestFiles = const [
 
 /// These tests are skipped because they do not yet pass.
 /// We strive to keep the length of this list at zero,
-/// but sometimes new tests are introducd that don't pass,
+/// but sometimes new tests are introduced that don't pass,
 /// and we'd rather be up-to-date than have all tests pass.
 final List<String> skippedNonWorkingTestFiles = const [
   // Not yet passing:
@@ -320,3 +320,41 @@ final List<String> draft2019SkippedTests = [
 ]..addAll(commonSkippedTests);
 
 final List<String> draft2019FormatSkippedTestFiles = [];
+
+final List<String> draft2020SkippedTestFiles = [
+  "additionalItems.json",
+  "contains.json",
+  "defs.json",
+  "dynamicRef.json",
+  "ecmascript-regex.json",
+  "format-assertion.json",
+  "items.json",
+  "maxContains.json",
+  "minContains.json",
+  "ref.json",
+  "refRemote.json",
+  "uniqueItems.json",
+  "unevaluatedItems.json",
+  "unevaluatedProperties.json",
+  "vocabulary.json",
+
+  // As of Draft 2019, format validation becomes an opt-in option.
+  "date.json",
+  "date-time.json",
+  "duration.json",
+  "email.json",
+  "hostname.json",
+  "idn-hostname.json",
+  "ipv4.json",
+  "ipv6.json",
+  "iri-reference.json",
+  "iri.json",
+  "json-pointer.json",
+  "regex.json",
+  "relative-json-pointer.json",
+  "time.json",
+  "uri-reference.json",
+  "uri-template.json",
+  "uri.json",
+  "uuid.json",
+]..addAll(commonSkippedTestFiles);
