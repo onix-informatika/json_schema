@@ -67,11 +67,7 @@ class Instance {
 class ValidationResults {
   ValidationResults(List<ValidationError> errors) {
     this.errors = List.of(errors ?? []);
-    this.isValid = errors == null || errors.isEmpty;
   }
-
-  /// Whether the [Instance] was valid against its [JsonSchema]
-  bool isValid;
 
   /// Correctness issues discovered by validation.
   List<ValidationError> errors;
@@ -80,6 +76,9 @@ class ValidationResults {
   String toString() {
     return isValid ? 'VALID' : 'INVALID, Errors: ${errors}';
   }
+
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool get isValid => errors.isEmpty;
 }
 
 class ValidationError {
