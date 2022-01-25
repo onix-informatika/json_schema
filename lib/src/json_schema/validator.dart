@@ -732,7 +732,7 @@ class Validator {
     }
   }
 
-  bool _isInEvaluatedItemContext() {
+  bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
     return _evaluatedItemsContext.isNotEmpty;
   }
 
