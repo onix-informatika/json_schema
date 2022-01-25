@@ -166,7 +166,7 @@ class Validator {
           }
         }
       });
-      return Set.of(vocab?.keys ?? []).intersection(SupportedVocabularies.ALL);
+      return Set.of(vocab?.keys ?? Set<Uri>()).intersection(SupportedVocabularies.ALL);
     }
   }
 

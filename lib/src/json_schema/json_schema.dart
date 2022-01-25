@@ -362,8 +362,10 @@ class JsonSchema {
             localSchema = _refMap[baseUriString];
           } else if (baseUriString != null && SchemaVersion.fromString(baseUriString) != null) {
             // If the referenced URI is or within versioned schema spec.
-            localSchema = JsonSchema.create(getStaticSchema(baseUriString));
-            _addSchemaToRefMap(baseUriString, localSchema);
+            final staticSchema = getStaticSchema(baseUriString);
+            if (staticSchema != null) {
+              _addSchemaToRefMap(baseUriString, JsonSchema.create(staticSchema));
+            }
           } else {
             // The remote ref needs to be resolved if the above checks failed.
             resolvedSuccessfully = false;
@@ -1353,7 +1355,7 @@ class JsonSchema {
   /// The vocabularies defined by this [JsonSchema].
   ///
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
-  Map<Uri, bool> get vocabulary => _vocabulary ?? Map<Uri, bool>();
+  Map<Uri, bool> get vocabulary => _vocabulary;
 
   /// The vocabularies defined by the metaschema of this [JsonSchema].
   ///
