@@ -746,7 +746,7 @@ class Validator {
     }
   }
 
-  int  get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
 
   void _err(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');
