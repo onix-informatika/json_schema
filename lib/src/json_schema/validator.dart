@@ -748,7 +748,7 @@ class Validator {
     }
   }
 
-  int _getEvaluatedItemCount() {
+  int  get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
     return _evaluatedItemsContext.lastOrNull;
   }
 
