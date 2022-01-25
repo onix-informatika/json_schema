@@ -65,16 +65,20 @@ class Instance {
 
 /// The result of validating data against a schema
 class ValidationResults {
-  ValidationResults(errors) {
-    this.errors = List.of(errors);
+  ValidationResults(List<ValidationError> errors) {
+    this.errors = List.of(errors ?? []);
+    this.isValid = errors == null || errors.isEmpty;
   }
 
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool isValid;
+
   /// Correctness issues discovered by validation.
-  List<ValidationError> errors = [];
+  List<ValidationError> errors;
 
   @override
   String toString() {
-    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}';
+    return isValid ? 'VALID' : 'INVALID, Errors: ${errors}';
   }
 }
 
@@ -108,7 +112,7 @@ class Validator {
 
   /// Validate the [instance] against the this validator's schema
   ValidationResults validateWithResults(dynamic instance,
-      {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
+      {bool reportMultipleErrors = true, bool parseJson = false, bool validateFormats}) {
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
       if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
@@ -319,14 +323,14 @@ class Validator {
     }
 
     if (schema.contains != null) {
-      if (!instance.data.any((item) => Validator(schema.contains).validateWithResults(item).errors.isEmpty)) {
+      if (!instance.data.any((item) => Validator(schema.contains).validateWithResults(item).isValid)) {
         _err('contains violated: $instance', instance.path, schema.path);
       }
     }
   }
 
   void _validateAllOf(JsonSchema schema, Instance instance) {
-    if (!schema.allOf.every((s) => Validator(s).validateWithResults(instance).errors.isEmpty)) {
+    if (!schema.allOf.every((s) => Validator(s).validateWithResults(instance).isValid)) {
       _err('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
@@ -348,7 +352,7 @@ class Validator {
   }
 
   void _validateNot(JsonSchema schema, Instance instance) {
-    if (Validator(schema.notSchema).validateWithResults(instance).errors.isEmpty) {
+    if (Validator(schema.notSchema).validateWithResults(instance).isValid) {
       // TODO: deal with .notSchema
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
@@ -616,7 +620,7 @@ class Validator {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
-      if (schema.ifSchema.validateWithResults(instance).errors.isEmpty) {
+      if (schema.ifSchema.validateWithResults(instance).isValid) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
         if (!Validator(schema.thenSchema).validate(instance)) {

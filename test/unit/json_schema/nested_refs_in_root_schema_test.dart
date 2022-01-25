@@ -12,8 +12,8 @@ main() {
         "required": ["foo", "bar"]
       });
 
-      final isValid = barSchema.validateWithResults({"foo": 2, "bar": "test"}).errors.isEmpty;
-      final isInvalid = barSchema.validateWithResults({"foo": 2, "bar": 4}).errors.isEmpty;
+      final isValid = barSchema.validateWithResults({"foo": 2, "bar": "test"}).isValid;
+      final isInvalid = barSchema.validateWithResults({"foo": 2, "bar": 4}).isValid;
 
       expect(isValid, isTrue);
       expect(isInvalid, isFalse);
@@ -24,8 +24,8 @@ main() {
         "items": {"\$ref": "http://localhost:1234/integer.json"}
       });
 
-      final isValid = schema.validateWithResults([1, 2, 3, 4]).errors.isEmpty;
-      final isInvalid = schema.validateWithResults([1, 2, 3, '4']).errors.isEmpty;
+      final isValid = schema.validateWithResults([1, 2, 3, 4]).isValid;
+      final isInvalid = schema.validateWithResults([1, 2, 3, '4']).isValid;
 
       expect(isValid, isTrue);
       expect(isInvalid, isFalse);
@@ -43,8 +43,8 @@ main() {
         }
       });
 
-      final isValid = schema.validateWithResults([3.4]).errors.isEmpty;
-      final isInvalid = schema.validateWithResults(['test']).errors.isEmpty;
+      final isValid = schema.validateWithResults([3.4]).isValid;
+      final isInvalid = schema.validateWithResults(['test']).isValid;
 
       expect(isValid, isTrue);
       expect(isInvalid, isFalse);

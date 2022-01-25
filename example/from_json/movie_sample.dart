@@ -78,12 +78,7 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final ValidationResults result = validator.validateWithResults(movies, reportMultipleErrors: true);
-
-    if (result.errors.isNotEmpty) {
-      print('Errors: ${result.errors}');
-    } else {
-      print('$movies:\nvalidates!');
-    }
+    final ValidationResults results = validator.validateWithResults(movies, reportMultipleErrors: true);
+    print('$movies:\n$results');
   });
 }

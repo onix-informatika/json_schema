@@ -10,7 +10,7 @@ main() {
     });
 
     final isValidFormatsOn =
-        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).errors.isEmpty;
+        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
 
     expect(isValidFormatsOn, isFalse);
 
@@ -22,7 +22,7 @@ main() {
     expect(isValidFormatsOff, isTrue);
 
     final errorsFormatsOn =
-        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).errors.isEmpty;
+        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
 
     expect(errorsFormatsOn, isFalse);
 
