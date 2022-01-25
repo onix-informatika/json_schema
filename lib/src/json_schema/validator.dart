@@ -729,20 +729,30 @@ class Validator {
 
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
-    if (schema.ref != null || schema.recursiveRef != null) {
-      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
-      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
+    if (schema.ref != null) {
+      var nextSchema = schema.resolvePath(schema.ref);
+      nextSchema.pushDynamicParent(schema);
+      _validate(nextSchema, instance);
+      nextSchema.popDynamicParent();
+      if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+        return;
+      }
+    }
+
+    /// If the [JsonSchema] being validated is a recursiveRef, pull the ref
+    /// from the [refMap] instead.
+    if (schema.recursiveRef != null) {
+      var nextSchema = schema.resolvePath(schema.recursiveRef);
+      if (nextSchema.recursiveAnchor == true) {
         nextSchema = nextSchema.furthestRecursiveAnchorParent() ?? nextSchema;
         _validate(nextSchema, instance);
-      } else if (nextSchema != schema) {
+      } else {
         nextSchema.pushDynamicParent(schema);
         _validate(nextSchema, instance);
         nextSchema.popDynamicParent();
         if (schema.schemaVersion < SchemaVersion.draft2019_09) {
           return;
         }
-      } else {
-        schema = nextSchema;
       }
     }
 
