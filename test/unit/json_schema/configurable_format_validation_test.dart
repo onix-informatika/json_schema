@@ -22,8 +22,10 @@ main() {
 
     expect(errorsFormatsOn, isNotEmpty);
 
-    final errorsFormatsOff =
-        schema.validateWithErrors({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false);
+    final errorsFormatsOff = schema
+        .validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false)
+        .errors
+        .isEmpty;
 
     expect(errorsFormatsOff, isEmpty);
   });

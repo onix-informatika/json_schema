@@ -38,6 +38,7 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/validator.dart';
 
 main() {
   //////////////////////////////////////////////////////////////////////
@@ -77,9 +78,10 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final bool validates = validator.validate(movies);
-    if (!validates) {
-      print('Errors: ${validator.errors}');
+    final ValidationResults result = validator.validateWithResults(movies, reportMultipleErrors: true);
+
+    if (result.errors.isNotEmpty) {
+      print('Errors: ${result.errors}');
     } else {
       print('$movies:\nvalidates!');
     }
