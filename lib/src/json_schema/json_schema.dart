@@ -362,7 +362,7 @@ class JsonSchema {
             localSchema = _refMap[baseUriString];
           } else if (baseUriString != null && SchemaVersion.fromString(baseUriString) != null) {
             // If the referenced URI is or within versioned schema spec.
-            localSchema = JsonSchema.create(getStaticSchemaDefinitionById(baseUriString));
+            localSchema = JsonSchema.create(StaticSchemas.get(baseUriString));
             _addSchemaToRefMap(baseUriString, localSchema);
           } else {
             // The remote ref needs to be resolved if the above checks failed.
@@ -591,9 +591,8 @@ class JsonSchema {
     // 1. Statically-known schema definition (skips ref provider)
     // 2. Base URI (example: localhost:1234/integer.json)
     // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = getStaticSchemaDefinitionById(ref.toString()) ??
-        _refProvider.provide(baseUri.toString()) ??
-        _refProvider.provide('${baseUri}#');
+    final dynamic schemaDefinition =
+        StaticSchemas.getByURI(ref) ?? _refProvider.provide(baseUri.toString()) ?? _refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
   }
@@ -612,7 +611,7 @@ class JsonSchema {
     // 1. Statically-known schema definition (skips ref provider)
     // 2. Base URI (example: localhost:1234/integer.json)
     // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition = getStaticSchemaDefinitionById(ref.toString()) ??
+    final dynamic schemaDefinition = StaticSchemas.getByURI(ref) ??
         await refProvider.provide(baseUri.toString()) ??
         await refProvider.provide('${baseUri}#');
 
@@ -1358,7 +1357,7 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
   Map<Uri, bool> metaschemaVocabulary() {
     return this._refMap[_schema?.toString()]?.vocabulary ??
-        JsonSchema._fromRootMap(getStaticSchemaDefinitionById(schemaVersion.toString()), _schemaVersion).vocabulary;
+        JsonSchema._fromRootMap(StaticSchemas.get(schemaVersion.toString()), _schemaVersion).vocabulary;
   }
 
   // --------------------------------------------------------------------------

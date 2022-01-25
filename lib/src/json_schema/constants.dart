@@ -158,32 +158,38 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   }
 }
 
-Map getStaticSchemaDefinitionById(String ref) {
-  final mapping = {
-    SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
-    SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
-    SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
-    SchemaVersion.draft2019_09.toString(): JsonSchemaDefinitions.draft2019_09,
-    "https://json-schema.org/draft/2019-09/meta/validation": Draft2019Subschemas.validation,
-    "https://json-schema.org/draft/2019-09/vocab/validation": Draft2019Subschemas.validation,
-    "https://json-schema.org/draft/2019-09/meta/format": Draft2019Subschemas.format,
-    "https://json-schema.org/draft/2019-09/vocab/format": Draft2019Subschemas.format,
-    "https://json-schema.org/draft/2019-09/meta/core": Draft2019Subschemas.core,
-    "https://json-schema.org/draft/2019-09/vocab/core": Draft2019Subschemas.core,
-    "https://json-schema.org/draft/2019-09/meta/metadata": Draft2019Subschemas.metadata,
-    "https://json-schema.org/draft/2019-09/vocab/metadata": Draft2019Subschemas.metadata,
-    "https://json-schema.org/draft/2019-09/meta/applicator": Draft2019Subschemas.applicator,
-    "https://json-schema.org/draft/2019-09/vocab/applicator": Draft2019Subschemas.applicator,
-    "https://json-schema.org/draft/2019-09/meta/content": Draft2019Subschemas.content,
-    "https://json-schema.org/draft/2019-09/vocab/content": Draft2019Subschemas.content,
+class StaticSchemas {
+  static final _mapping = {
+    Uri.parse(SchemaVersion.draft4.toString()).removeFragment(): JsonSchemaDefinitions.draft4,
+    Uri.parse(SchemaVersion.draft6.toString()).removeFragment(): JsonSchemaDefinitions.draft6,
+    Uri.parse(SchemaVersion.draft7.toString()).removeFragment(): JsonSchemaDefinitions.draft7,
+    Uri.parse(SchemaVersion.draft2019_09.toString()).removeFragment(): JsonSchemaDefinitions.draft2019_09,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/validation"): Draft2019Subschemas.validation,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation"): Draft2019Subschemas.validation,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/format"): Draft2019Subschemas.format,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/format"): Draft2019Subschemas.format,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/core"): Draft2019Subschemas.core,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/core"): Draft2019Subschemas.core,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/metadata"): Draft2019Subschemas.metadata,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/metadata"): Draft2019Subschemas.metadata,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/applicator"): Draft2019Subschemas.applicator,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator"): Draft2019Subschemas.applicator,
+    Uri.parse("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
+    Uri.parse("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
   };
 
-  final mapped = mapping[ref];
-  return mapped != null ? json.decode(mapped) : null;
+  static Map get(String ref) {
+    return getByURI(Uri.parse(ref));
+  }
+
+  static Map getByURI(Uri ref) {
+    final mapped = _mapping[ref.removeFragment()];
+    return mapped != null ? json.decode(mapped) : null;
+  }
 }
 
 class JsonSchemaDefinitions {
-  static String draft4 = r'''
+  static final String draft4 = r'''
     {
     "id": "http://json-schema.org/draft-04/schema#",
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -335,7 +341,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft6 = r'''
+  static final String draft6 = r'''
     {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://json-schema.org/draft-06/schema#",
@@ -492,7 +498,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft7 = r'''{
+  static final String draft7 = r'''{
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "http://json-schema.org/draft-07/schema#",
     "title": "Core schema meta-schema",
@@ -666,7 +672,7 @@ class JsonSchemaDefinitions {
 }
   ''';
 
-  static String draft2019_09 = r'''{
+  static final String draft2019_09 = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/schema",
     "$vocabulary": {
@@ -720,7 +726,7 @@ class JsonSchemaDefinitions {
 }
 
 class Draft2019Subschemas {
-  static String format = r'''{
+  static final String format = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/format",
     "$vocabulary": {
@@ -735,7 +741,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String core = r'''{
+  static final String core = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/core",
     "$vocabulary": {
@@ -793,7 +799,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String applicator = r'''{
+  static final String applicator = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/applicator",
     "$vocabulary": {
@@ -850,7 +856,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String validation = r'''{
+  static final String validation = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/validation",
     "$vocabulary": {
@@ -949,7 +955,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String metadata = r'''{
+  static final String metadata = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/meta-data",
     "$vocabulary": {
@@ -987,7 +993,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String content = r'''{
+  static final String content = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/content",
     "$vocabulary": {
