@@ -69,39 +69,6 @@ class Instance {
   int get hashCode => this.path.hashCode;
 }
 
-/// A helper class to keep track of properties that have been evaluated or not evaluated.
-class EvaluatedPropertiesContext {
-  EvaluatedPropertiesContext();
-
-  Set<Instance> _unevaluatedProperties = Set<Instance>();
-  Set<Instance> _evaluatedProperties = Set<Instance>();
-
-  Set<Instance> get unevaluatedProperties => _unevaluatedProperties;
-
-  Set<Instance> get evaluatedProperties => _evaluatedProperties;
-
-  addUnevaluatedProp(Instance i) {
-    if (!_evaluatedProperties.contains(i)) {
-      _unevaluatedProperties.add(i);
-    }
-  }
-
-  addEvaluatedProp(Instance i) {
-    _unevaluatedProperties.remove(i);
-    _evaluatedProperties.add(i);
-  }
-
-  merge(EvaluatedPropertiesContext other) {
-    other._evaluatedProperties.forEach(this.addEvaluatedProp);
-    other._unevaluatedProperties.forEach(this.addUnevaluatedProp);
-  }
-
-  setAllEvaluated() {
-    _evaluatedProperties.addAll(_unevaluatedProperties);
-    _unevaluatedProperties.clear();
-  }
-}
-
 class ValidationError {
   ValidationError._(this.instancePath, this.schemaPath, this.message);
 
@@ -152,13 +119,10 @@ class Validator {
 
   /// Keep track of the evaluate properties contexts in a list, treating the list as a stack.
   /// The context is an [EvaluatedPropertiesContext], containing sets of evaluated and unevaluated properties.
-  List<EvaluatedPropertiesContext> _evaluatedPropertiesContext = [];
+  List<Set<Instance>> _evaluatedPropertiesContext = [];
 
   get evaluatedProperties =>
-      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last.evaluatedProperties : Set<Instance>();
-
-  get unevaluatedProperties =>
-      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last.unevaluatedProperties : Set<Instance>();
+      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
@@ -409,13 +373,13 @@ class Validator {
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
     var v = Validator._(s,
         inEvaluatedItemsContext: _isInEvaluatedItemContext(),
-        inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext());
+        inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext);
     var isValid = v.validate(instance);
     if (isValid) {
       _setMaxEvaluatedItemCount(v._getEvaluatedItemCount());
 
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
-      v.unevaluatedProperties.forEach((e) => _addUnevaluatedProp(e));
+      // v.unevaluatedProperties.forEach((e) => _addUnevaluatedProp(e));
     }
     return isValid;
   }
@@ -643,8 +607,6 @@ class Validator {
           _validate(schema.additionalPropertiesSchema, newInstance);
         } else if (propMustValidate) {
           _err('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
-        } else if (schema.additionalPropertiesBool == null) {
-          _addUnevaluatedProp(newInstance);
         } else if (schema.additionalPropertiesBool == true) {
           _addEvaluatedProp(newInstance);
         }
@@ -706,11 +668,19 @@ class Validator {
 
     if (schema.schemaDependencies != null) _schemaDependenciesValidation(schema, instance);
 
-    if (schema.unevaluatedProperties != null && this.unevaluatedProperties.isNotEmpty) {
+    if (schema.unevaluatedProperties != null) {
       if (schema.unevaluatedProperties.schemaBool == true) {
-        _setAllPropertiesAsValidated();
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          _addEvaluatedProp(i);
+        });
       } else {
-        this.unevaluatedProperties.forEach((element) => _validate(schema.unevaluatedProperties, element));
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          if (!this.evaluatedProperties.contains(i)) {
+            _validate(schema.unevaluatedProperties, i);
+          }
+        });
       }
     }
   }
@@ -809,9 +779,9 @@ class Validator {
   }
 
   _popEvaluatedItemsContext() {
-      var last = _evaluatedItemsContext.removeLast();
-      _setMaxEvaluatedItemCount(last);
-    }
+    var last = _evaluatedItemsContext.removeLast();
+    _setMaxEvaluatedItemCount(last);
+  }
 
   bool _isInEvaluatedItemContext() {
     return _evaluatedItemsContext.isNotEmpty;
@@ -838,37 +808,22 @@ class Validator {
   //////
 
   _pushEvaluatedPropertiesContext() {
-    _evaluatedPropertiesContext.add(EvaluatedPropertiesContext());
+    _evaluatedPropertiesContext.add(Set<Instance>());
   }
 
   _popEvaluatedPropertiesContext() {
     var last = _evaluatedPropertiesContext.removeLast();
     if (_evaluatedPropertiesContext.isNotEmpty) {
-      _evaluatedPropertiesContext.last.merge(last);
+      _evaluatedPropertiesContext.last.addAll(last);
     }
   }
 
-  bool _isInEvaluatedPropertiesContext() {
-    return _evaluatedPropertiesContext.isNotEmpty;
-  }
-
-  _addUnevaluatedProp(Instance i) {
-    if (_evaluatedPropertiesContext.isNotEmpty) {
-      var context = _evaluatedPropertiesContext.last;
-      context.addUnevaluatedProp(i);
-    }
-  }
+  bool get _isInEvaluatedPropertiesContext => _evaluatedPropertiesContext.isNotEmpty;
 
   _addEvaluatedProp(Instance i) {
     if (_evaluatedPropertiesContext.isNotEmpty) {
       var context = _evaluatedPropertiesContext.last;
-      context.addEvaluatedProp(i);
-    }
-  }
-
-  _setAllPropertiesAsValidated() {
-    if (_evaluatedPropertiesContext.isNotEmpty) {
-      _evaluatedPropertiesContext.last.setAllEvaluated();
+      context.add(i);
     }
   }
 
