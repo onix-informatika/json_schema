@@ -178,7 +178,7 @@ final _staticSchemaMapping = {
 };
 
 Uri parseStandardizedUri(String s) => standardizeUri(Uri.parse(s));
-Uri standardizeUri(Uri uri) => uri?.replace(scheme: "https", fragment: null);
+Uri standardizeUri(Uri uri) => uri?.replace(scheme: uri.scheme == "http" ? "https" : uri.scheme, fragment: null);
 
 Map getStaticSchema(String ref) {
   return getStaticSchemaByURI(parseStandardizedUri(ref));
