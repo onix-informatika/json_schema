@@ -160,7 +160,7 @@ class Validator {
       vocab?.forEach((uri, isRequired) {
         if (!SupportedVocabularies.ALL.contains(uri)) {
           if (isRequired) {
-            throw ArgumentError("unsupported vocabulary required for validation", "$uri");
+            throw ArgumentError('unsupported vocabulary required for validation', '$uri');
           } else {
             _warn('unsupported optional vocabulary in use: $uri', '', r'$schema');
           }
