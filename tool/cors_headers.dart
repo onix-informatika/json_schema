@@ -26,14 +26,7 @@ const _defaultHeadersList = [
   'user-agent',
 ];
 
-const _defaultMethodsList = [
-  'DELETE',
-  'GET',
-  'OPTIONS',
-  'PATCH',
-  'POST',
-  'PUT'
-];
+const _defaultMethodsList = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT'];
 
 Map<String, String> _defaultHeaders = {
   ACCESS_CONTROL_EXPOSE_HEADERS: '',
@@ -43,15 +36,13 @@ Map<String, String> _defaultHeaders = {
   ACCESS_CONTROL_MAX_AGE: '86400',
 };
 
-final _defaultHeadersAll =
-    _defaultHeaders.map((key, value) => MapEntry(key, [value]));
+final _defaultHeadersAll = _defaultHeaders.map((key, value) => MapEntry(key, [value]));
 
 typedef OriginChecker = bool Function(String origin);
 
 bool originAllowAll(String origin) => true;
 
-OriginChecker originOneOf(List<String> origins) =>
-    (origin) => origins.contains(origin);
+OriginChecker originOneOf(List<String> origins) => (origin) => origins.contains(origin);
 Middleware corsHeaders({
   Map<String, String> headers,
   OriginChecker originChecker = originAllowAll,
