@@ -183,6 +183,7 @@ class StaticSchemas {
   }
 
   static Map getByURI(Uri ref) {
+    if (ref.fragment != "") return null;
     final mapped = _mapping[ref.removeFragment()];
     return mapped != null ? json.decode(mapped) : null;
   }
