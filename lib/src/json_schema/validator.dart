@@ -391,11 +391,11 @@ class Validator {
     final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
       if (schema.unevaluatedItems.schemaBool != null) {
-        if (schema.unevaluatedItems.schemaBool == false && actual > this._getEvaluatedItemCount()) {
+        if (schema.unevaluatedItems.schemaBool == false && actual > this._evaluatedItemCount) {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
         }
       } else {
-        for (int i = this._getEvaluatedItemCount(); i < actual; i++) {
+        for (int i = this._evaluatedItemCount; i < actual; i++) {
           final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
           _validate(schema.unevaluatedItems, itemInstance);
         }
@@ -408,11 +408,11 @@ class Validator {
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
     var v = Validator._(s,
-        inEvaluatedItemsContext: _isInEvaluatedItemContext(),
+        inEvaluatedItemsContext: _isInEvaluatedItemContext,
         inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext());
     var isValid = v.validate(instance);
     if (isValid) {
-      _setMaxEvaluatedItemCount(v._getEvaluatedItemCount());
+      _setMaxEvaluatedItemCount(v._evaluatedItemCount);
 
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
       v.unevaluatedProperties.forEach((e) => _addUnevaluatedProp(e));
@@ -817,9 +817,7 @@ class Validator {
       _setMaxEvaluatedItemCount(last);
     }
 
-  bool _isInEvaluatedItemContext() {
-    return _evaluatedItemsContext.isNotEmpty;
-  }
+  bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
 
   _setEvaluatedItemCount(int count) {
     if (_evaluatedItemsContext.isNotEmpty) {
@@ -833,9 +831,7 @@ class Validator {
     }
   }
 
-  int _getEvaluatedItemCount() {
-    return _evaluatedItemsContext.lastOrNull;
-  }
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
 
   //////
   // Helper functions to deal with unevaluatedProperties.
