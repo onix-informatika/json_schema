@@ -159,31 +159,34 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 }
 
 final _staticSchemaMapping = {
-  Uri.parse(SchemaVersion.draft4.toString()).removeFragment(): JsonSchemaDefinitions.draft4,
-  Uri.parse(SchemaVersion.draft6.toString()).removeFragment(): JsonSchemaDefinitions.draft6,
-  Uri.parse(SchemaVersion.draft7.toString()).removeFragment(): JsonSchemaDefinitions.draft7,
-  Uri.parse(SchemaVersion.draft2019_09.toString()).removeFragment(): JsonSchemaDefinitions.draft2019_09,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/validation"): Draft2019Subschemas.validation,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation"): Draft2019Subschemas.validation,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/format"): Draft2019Subschemas.format,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/format"): Draft2019Subschemas.format,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/core"): Draft2019Subschemas.core,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/core"): Draft2019Subschemas.core,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/metadata"): Draft2019Subschemas.metadata,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/metadata"): Draft2019Subschemas.metadata,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/applicator"): Draft2019Subschemas.applicator,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator"): Draft2019Subschemas.applicator,
-  Uri.parse("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
-  Uri.parse("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
+  parseStandardizedUri(SchemaVersion.draft4.toString()): JsonSchemaDefinitions.draft4,
+  parseStandardizedUri(SchemaVersion.draft6.toString()): JsonSchemaDefinitions.draft6,
+  parseStandardizedUri(SchemaVersion.draft7.toString()): JsonSchemaDefinitions.draft7,
+  parseStandardizedUri(SchemaVersion.draft2019_09.toString()): JsonSchemaDefinitions.draft2019_09,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
 };
 
+Uri parseStandardizedUri(String s) => standardizeUri(Uri.parse(s));
+Uri standardizeUri(Uri uri) => uri?.replace(scheme: "https", fragment: null);
+
 Map getStaticSchema(String ref) {
-  return getStaticSchemaByURI(Uri.parse(ref));
+  return getStaticSchemaByURI(parseStandardizedUri(ref));
 }
 
 Map getStaticSchemaByURI(Uri ref) {
   if (ref.fragment != "") return null;
-  final mapped = _staticSchemaMapping[ref.removeFragment()];
+  final mapped = _staticSchemaMapping[standardizeUri(ref)];
   return mapped != null ? json.decode(mapped) : null;
 }
 
