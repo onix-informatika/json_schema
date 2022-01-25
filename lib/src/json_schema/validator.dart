@@ -85,6 +85,12 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
+  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
+    if (inEvaluatedItemsContext) {
+      _pushEvaluatedItemsContext();
+    }
+  }
+
   List<String> get errors => _errors.map((e) => e.toString()).toList();
 
   List<String> get warnings => _warnings.map((e) => e.toString()).toList();
@@ -99,6 +105,11 @@ class Validator {
 
   /// The set of vocabularies (from the schema's metaschema) to be used for validation
   Set<Uri> _vocabulary;
+
+  /// Keep track of the number of evaluated items contexts in a list, treating the list as a stack.
+  /// The context is an [int], representing the number of successful evaluations for the list in the
+  /// given context.
+  List<int> _evaluatedItemsContext = [];
 
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
@@ -279,31 +290,40 @@ class Validator {
   void _itemsValidation(JsonSchema schema, Instance instance) {
     final int actual = instance.data.length;
 
-    final singleSchema = schema.items;
-    if (singleSchema != null) {
-      instance.data.asMap().forEach((index, item) {
-        final itemInstance = Instance(item, path: '${instance.path}/$index');
-        _validate(singleSchema, itemInstance);
-      });
-    } else {
-      final items = schema.itemsList;
+    if (_vocabulary.contains(SupportedVocabularies.APPLICATOR)) {
+      final singleSchema = schema.items;
+      if (singleSchema != null) {
+        instance.data.asMap().forEach((index, item) {
+          final itemInstance = Instance(item, path: '${instance.path}/$index');
+          _validate(singleSchema, itemInstance);
+        });
+        // All the items in this list have been evaluated.
+        _setEvaluatedItemCount(actual);
+      } else {
+        final items = schema.itemsList;
 
-      if (items != null && _vocabulary.contains(SupportedVocabularies.APPLICATOR)) {
-        final expected = items.length;
-        final end = min(expected, actual);
-        for (int i = 0; i < end; i++) {
-          assert(items[i] != null);
-          final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-          _validate(items[i], itemInstance);
-        }
-        if (schema.additionalItemsSchema != null) {
-          for (int i = end; i < actual; i++) {
+        if (items != null) {
+          final expected = items.length;
+          final end = min(expected, actual);
+          // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
+          _setMaxEvaluatedItemCount(end);
+          for (int i = 0; i < end; i++) {
+            assert(items[i] != null);
             final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-            _validate(schema.additionalItemsSchema, itemInstance);
+            _validate(items[i], itemInstance);
           }
-        } else if (schema.additionalItemsBool != null) {
-          if (!schema.additionalItemsBool && actual > end) {
-            _err('additionalItems false', instance.path, schema.path + '/additionalItems');
+          if (schema.additionalItemsSchema != null) {
+            for (int i = end; i < actual; i++) {
+              final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+              _validate(schema.additionalItemsSchema, itemInstance);
+            }
+          } else if (schema.additionalItemsBool != null) {
+            if (!schema.additionalItemsBool && actual > end) {
+              _err('additionalItems false', instance.path, schema.path + '/additionalItems');
+            } else {
+              // All the items in this list have been evaluated.
+              _setEvaluatedItemCount(actual);
+            }
           }
         }
       }
@@ -346,30 +366,60 @@ class Validator {
     }
   }
 
-  void _validateAllOf(JsonSchema schema, Instance instance) {
+  _validateUnevaluatedItems(JsonSchema schema, Instance instance) {
     final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
-    if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
-      // TODO consider passing back validation errors from sub-validations
-      warnOrErr('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
+    final actual = instance.data.length;
+    if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
+      if (schema.unevaluatedItems.schemaBool != null) {
+        if (schema.unevaluatedItems.schemaBool == false && actual > this._evaluatedItemCount) {
+          warnOrErr('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
+        }
+      } else if (_vocabulary.contains(SupportedVocabularies.APPLICATOR)) {
+        for (int i = this._evaluatedItemCount; i < actual; i++) {
+          final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+          _validate(schema.unevaluatedItems, itemInstance);
+        }
+      }
+      // If we passed these test, then all the items have been evaluated.
+      _setEvaluatedItemCount(actual);
+    }
+  }
+
+  /// Helper function to capture the number of evaluatedItems and update the local count.
+  bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
+    var v = Validator._(s, inEvaluatedItemsContext: _isInEvaluatedItemContext);
+    var isValid = v.validate(instance);
+    if (isValid) {
+      _setMaxEvaluatedItemCount(v._evaluatedItemCount);
+    }
+    return isValid;
+  }
+
+  _validateAllOf(JsonSchema schema, Instance instance) {
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!schema.allOf.every((s) => _validateAndCaptureEvaluations(s, instance))) {
+      _err('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
-    if (!schema.anyOf.any((s) => Validator(s).validate(instance))) {
-      // TODO consider passing back validation errors from sub-validations
-      warnOrErr(
-          '${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
+    // to properly account for evaluated properties and items.
+    var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance)).toList();
+    if (!results.any((s) => s)) {
+      // TODO: deal with /anyOf
+      _err('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
     }
   }
 
   void _validateOneOf(JsonSchema schema, Instance instance) {
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
     try {
-      schema.oneOf.singleWhere((s) => Validator(s).validate(instance));
+      schema.oneOf.map((s) => _validateAndCaptureEvaluations(s, instance)).singleWhere((s) => s);
     } on StateError catch (notOneOf) {
       // TODO consider passing back validation errors from sub-validations
-      _errFuncForVocabulary(SupportedVocabularies.APPLICATOR)(
-          '${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
+      _err('${schema.path}/oneOf: violated ${notOneOf.message}', instance.path, schema.path + '/oneOf');
     }
   }
 
@@ -624,7 +674,6 @@ class Validator {
         }
       });
     }
-
     _objectPropertyValidation(schema, instance);
 
     if (schema.propertyDependencies != null) _propertyDependenciesValidation(schema, instance);
@@ -652,6 +701,10 @@ class Validator {
       }
     }
 
+    if (schema.unevaluatedItems != null) {
+      _pushEvaluatedItemsContext();
+    }
+
     /// If the [JsonSchema] is a bool, always return this value.
     if (schema.schemaBool != null) {
       if (schema.schemaBool == false) {
@@ -672,30 +725,34 @@ class Validator {
     if (schema.anyOf.isNotEmpty) _validateAnyOf(schema, instance);
     if (schema.oneOf.isNotEmpty) _validateOneOf(schema, instance);
     if (schema.notSchema != null) _validateNot(schema, instance);
+    if (instance.data is List) _validateUnevaluatedItems(schema, instance);
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
+
+    if (schema.unevaluatedItems != null) {
+      _popEvaluatedItemsContext();
+    }
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return true;
     if (schema.ifSchema != null) {
-      final warnOrErr = _errFuncForVocabulary(SupportedVocabularies.APPLICATOR);
-
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
       if (schema.ifSchema.validate(instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
-        if (!Validator(schema.thenSchema).validate(instance)) {
-          warnOrErr('${schema.path}/then: then violated ($instance, ${schema.thenSchema})', instance.path,
+        if (!_validateAndCaptureEvaluations(schema.thenSchema, instance)) {
+          _err('${schema.path}/then: then violated ($instance, ${schema.thenSchema})', instance.path,
               schema.path + '/then');
         }
       } else {
         // Bail out early if no "else" is specified.
         if (schema.elseSchema == null) return true;
-        if (!Validator(schema.elseSchema).validate(instance)) {
-          warnOrErr('${schema.path}/else: else violated ($instance, ${schema.elseSchema})', instance.path,
+        if (!_validateAndCaptureEvaluations(schema.elseSchema, instance)) {
+          _err('${schema.path}/else: else violated ($instance, ${schema.elseSchema})', instance.path,
               schema.path + '/else');
         }
       }
@@ -704,6 +761,36 @@ class Validator {
     }
     return false;
   }
+
+  //////
+  // Helper functions to deal with evaluatedItems.
+  //////
+  _pushEvaluatedItemsContext() {
+    _evaluatedItemsContext.add(0);
+  }
+
+  _popEvaluatedItemsContext() {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      var last = _evaluatedItemsContext.removeLast();
+      _setMaxEvaluatedItemCount(last);
+    }
+  }
+
+  bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
+
+  _setEvaluatedItemCount(int count) {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = count;
+    }
+  }
+
+  _setMaxEvaluatedItemCount(int count) {
+    if (_evaluatedItemsContext.isNotEmpty) {
+      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = max(_evaluatedItemsContext.last, count);
+    }
+  }
+
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
 
   void _err(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');

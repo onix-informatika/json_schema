@@ -285,7 +285,6 @@ final List<String> commonSkippedTests = []
 
 final List<String> draft2019SkippedTestFiles = [
   // WIP
-  "unevaluatedItems.json",
   "unevaluatedProperties.json",
 
   // As of Draft 2019, format validation becomes an opt-in option.
@@ -314,7 +313,9 @@ final List<String> draft2019SkippedTestFiles = [
 
 final List<String> draft2019SkippedTests = [
   // Requires unevaluatedProperties support
-  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties'
+  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties',
+  'unevaluatedItems with \$ref : with no unevaluated items',
+  'unevaluatedItems with \$ref : with unevaluated items',
 ]..addAll(commonSkippedTests);
 
 final List<String> draft2019FormatSkippedTestFiles = [];

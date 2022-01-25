@@ -883,6 +883,9 @@ class JsonSchema {
   /// List if properties that are required for the [JsonSchema] instance to be valid.
   List<String> _requiredProperties;
 
+  /// [JsonSchema] for dealing with items in a list that have not been evaluated by other schemas.
+  JsonSchema _unevaluatedItems;
+
   // --------------------------------------------------------------------------
   // Implementation Specific Fields
   // --------------------------------------------------------------------------
@@ -1024,7 +1027,7 @@ class JsonSchema {
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
-      'unevaluatedItems': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
       'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
 
       // Added or changed in draft2019_09: Applicator Vocabulary
@@ -1488,6 +1491,11 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.21
   Map<String, JsonSchema> get schemaDependencies => _schemaDependencies;
+
+  /// [JsonSchema] of unevaluated items
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.3
+  JsonSchema get unevaluatedItems => _unevaluatedItems;
 
   // --------------------------------------------------------------------------
   // Convenience Methods
@@ -2065,6 +2073,14 @@ class JsonSchema {
   /// Validate, calculate and set the value of the 'required' JSON Schema keyword.
   _setRequiredV6(dynamic value) =>
       _requiredProperties = (TypeValidators.list('required', value))?.map((value) => value as String)?.toList();
+
+  _setUnevaluatedItems(dynamic value) {
+    if (value is Map || (value is bool && schemaVersion >= SchemaVersion.draft6)) {
+      _createOrRetrieveSchema('$_path/unevaluatedItems', value, (rhs) => _unevaluatedItems = rhs);
+    } else {
+      throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
+    }
+  }
 
   /// Mixin another JsonSchema into this one. All references must be resolved before calling.
   mixinForRef(JsonSchema ref) {
