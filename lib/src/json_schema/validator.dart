@@ -133,6 +133,16 @@ class Validator {
   /// in a given context.
   List<Set<Instance>> _evaluatedPropertiesContext = [];
 
+  /// Lexical and dynamic scopes align until a reference keyword is encountered.
+  /// While following the reference keyword moves processing from one lexical scope into a different one,
+  /// from the perspective of dynamic scope, following reference is no different from descending into a
+  /// subschema present as a value. A keyword on the far side of that reference that resolves information
+  /// through the dynamic scope will consider the originating side of the reference to be their dynamic parent,
+  /// rather than examining the local lexically enclosing parent.
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.7.1
+  ///
+  /// This Map keeps track of schemas when a reference is resolved.
   Map<JsonSchema, JsonSchema> _dynamicParents = Map();
 
   get evaluatedProperties =>
