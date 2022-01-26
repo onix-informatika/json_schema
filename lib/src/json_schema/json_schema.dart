@@ -2101,19 +2101,6 @@ class JsonSchema {
     }
   }
 
-  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
-  /// or null of there is no recursiveAnchor found.
-  JsonSchema furthestRecursiveAnchorParent() {
-    JsonSchema lastFound = this.recursiveAnchor ? this : null;
-    var possibleAnchor = this.dynamicParent;
-    while (possibleAnchor != null) {
-      if (possibleAnchor.recursiveAnchor) {
-        lastFound = possibleAnchor;
-      }
-      possibleAnchor = possibleAnchor.dynamicParent;
-    }
-    return lastFound;
-  }
 
   void pushDynamicParent(JsonSchema value) {
     if (value != this) {

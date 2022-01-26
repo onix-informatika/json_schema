@@ -730,6 +730,20 @@ class Validator {
     }
   }
 
+  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
+  /// or null of there is no recursiveAnchor found.
+  JsonSchema _findAnchorParent(JsonSchema schema) {
+    JsonSchema lastFound = schema.recursiveAnchor ? schema : null;
+    var possibleAnchor = schema.dynamicParent;
+    while (possibleAnchor != null) {
+      if (possibleAnchor.recursiveAnchor) {
+        lastFound = possibleAnchor;
+      }
+      possibleAnchor = possibleAnchor.dynamicParent;
+    }
+    return lastFound;
+  }
+
   void _validate(JsonSchema schema, dynamic instance) {
     if (instance is! Instance) {
       instance = Instance(instance);
@@ -759,7 +773,7 @@ class Validator {
     if (schema.recursiveRef != null) {
       var nextSchema = schema.resolvePath(schema.recursiveRef);
       if (nextSchema.recursiveAnchor == true) {
-        nextSchema = nextSchema.furthestRecursiveAnchorParent() ?? nextSchema;
+        nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
         _validate(nextSchema, instance);
       } else {
         nextSchema.pushDynamicParent(schema);
