@@ -1144,61 +1144,53 @@ class Draft2020Subschemas {
 }''';
 
   static String applicator = r'''{
-    "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "$id": "https://json-schema.org/draft/2019-09/meta/applicator",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/applicator",
     "$vocabulary": {
-        "https://json-schema.org/draft/2019-09/vocab/applicator": true
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true
     },
-    "$recursiveAnchor": true,
+    "$dynamicAnchor": "meta",
 
     "title": "Applicator vocabulary meta-schema",
     "type": ["object", "boolean"],
     "properties": {
-        "additionalItems": { "$recursiveRef": "#" },
-        "unevaluatedItems": { "$recursiveRef": "#" },
-        "items": {
-            "anyOf": [
-                { "$recursiveRef": "#" },
-                { "$ref": "#/$defs/schemaArray" }
-            ]
-        },
-        "contains": { "$recursiveRef": "#" },
-        "additionalProperties": { "$recursiveRef": "#" },
-        "unevaluatedProperties": { "$recursiveRef": "#" },
+        "prefixItems": { "$ref": "#/$defs/schemaArray" },
+        "items": { "$dynamicRef": "#meta" },
+        "contains": { "$dynamicRef": "#meta" },
+        "additionalProperties": { "$dynamicRef": "#meta" },
         "properties": {
             "type": "object",
-            "additionalProperties": { "$recursiveRef": "#" },
+            "additionalProperties": { "$dynamicRef": "#meta" },
             "default": {}
         },
         "patternProperties": {
             "type": "object",
-            "additionalProperties": { "$recursiveRef": "#" },
+            "additionalProperties": { "$dynamicRef": "#meta" },
             "propertyNames": { "format": "regex" },
             "default": {}
         },
         "dependentSchemas": {
             "type": "object",
-            "additionalProperties": {
-                "$recursiveRef": "#"
-            }
+            "additionalProperties": { "$dynamicRef": "#meta" },
+            "default": {}
         },
-        "propertyNames": { "$recursiveRef": "#" },
-        "if": { "$recursiveRef": "#" },
-        "then": { "$recursiveRef": "#" },
-        "else": { "$recursiveRef": "#" },
+        "propertyNames": { "$dynamicRef": "#meta" },
+        "if": { "$dynamicRef": "#meta" },
+        "then": { "$dynamicRef": "#meta" },
+        "else": { "$dynamicRef": "#meta" },
         "allOf": { "$ref": "#/$defs/schemaArray" },
         "anyOf": { "$ref": "#/$defs/schemaArray" },
         "oneOf": { "$ref": "#/$defs/schemaArray" },
-        "not": { "$recursiveRef": "#" }
+        "not": { "$dynamicRef": "#meta" }
     },
     "$defs": {
         "schemaArray": {
             "type": "array",
             "minItems": 1,
-            "items": { "$recursiveRef": "#" }
+            "items": { "$dynamicRef": "#meta" }
         }
     }
-} ''';
+}''';
 
   static String validation = r'''{
     "$schema": "https://json-schema.org/draft/2020-12/schema",

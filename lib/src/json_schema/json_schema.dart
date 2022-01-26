@@ -828,6 +828,8 @@ class JsonSchema {
   /// List of [JsonSchema] used to validate items of this schema.
   List<JsonSchema> _itemsList;
 
+  List<JsonSchema> _prefixItems;
+
   /// Whether additional items are allowed.
   bool _additionalItemsBool;
 
@@ -1060,14 +1062,14 @@ class JsonSchema {
       // Note: see https://json-schema.org/draft/2020-12/release-notes.html
 
       // Added or changed in draft2020_12
-      r'prefixItems': (JsonSchema s, dynamic v) => s._setItems(v), // TODO: implement
-      r'items': (JsonSchema s, dynamic v) => s._setAdditionalItems(v), // TODO: Change implementation
+      r'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v), // TODO: implement
+      r'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v), // TODO: Change implementation
 
       r'$dynamicRef': (JsonSchema s, dynamic v) => null, //TODO: implement
       r'$dynamicAnchor': (JsonSchema s, dynamic v) => null, //TODO: implement
 
-      r'contains': (JsonSchema s, dynamic v) => null, // TODO: Change implementation
-      r'unevaluatedItems': (JsonSchema s, dynamic v) => null // TODO: Change implementation
+      // r'contains': (JsonSchema s, dynamic v) => null, // TODO: Change implementation
+      // r'unevaluatedItems': (JsonSchema s, dynamic v) => null // TODO: Change implementation
     });
 
   /// Get a nested [JsonSchema] from a path.
@@ -1395,6 +1397,8 @@ class JsonSchema {
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.9
   List<JsonSchema> get itemsList => _itemsList;
+
+  List<JsonSchema> get prefixItems => _prefixItems;
 
   /// Whether additional items are allowed.
   ///
@@ -1973,6 +1977,19 @@ class JsonSchema {
     }
   }
 
+  // Prefix Items has the same semantics as the old Items when Items is a list.
+  _setPrefixItems(dynamic value) {
+    if (value is List) {
+      int index = 0;
+      _prefixItems = []..length = value.length;
+      for (int i = 0; i < value.length; i++) {
+        _createOrRetrieveSchema('$_path/prefixItems/${index++}', value[i], (rhs) => _prefixItems[i] = rhs);
+      }
+    } else {
+      throw FormatExceptions.error('prefixItems must be a list: $value');
+    }
+  }
+
   /// Validate, calculate and set the value of the 'additionalItems' JSON Schema keyword.
   _setAdditionalItems(dynamic value) {
     if (value is bool) {
@@ -1981,6 +1998,15 @@ class JsonSchema {
       _createOrRetrieveSchema('$_path/additionalItems', value, (rhs) => _additionalItemsSchema = rhs);
     } else {
       throw FormatExceptions.error('additionalItems must be boolean or object: $value');
+    }
+  }
+
+  /// Items in draft 2020 has the same semantics as additionalItems in previous drafts
+  _setItemsDraft2020(dynamic value) {
+    if (value is Map || value is bool) {
+      _createOrRetrieveSchema('$_path/items', value, (rhs) => _items = rhs);
+    } else {
+      throw FormatExceptions.error('items must be boolean or object: $value');
     }
   }
 

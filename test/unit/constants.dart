@@ -311,21 +311,13 @@ final List<String> draft2019SkippedTestFiles = [
 final List<String> draft2019FormatSkippedTestFiles = [];
 
 final List<String> draft2020SkippedTestFiles = [
-  "additionalItems.json",
-  "contains.json",
   "defs.json",
   "dynamicRef.json",
+  "ref.json",
+
+  // Optional
   "ecmascript-regex.json",
   "format-assertion.json",
-  "items.json",
-  "maxContains.json",
-  "minContains.json",
-  "ref.json",
-  "refRemote.json",
-  "uniqueItems.json",
-  "unevaluatedItems.json",
-  "unevaluatedProperties.json",
-  "vocabulary.json",
 
   // As of Draft 2019, format validation becomes an opt-in option.
   "date.json",

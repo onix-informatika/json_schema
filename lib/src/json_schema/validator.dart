@@ -94,11 +94,11 @@ class Validator {
   /// A private constructor for recursive validations.
   /// [inEvaluatedItemsContext] and [inEvaluatedPropertiesContext] are used to pass in the parents context state.
   Validator._(this._rootSchema,
-      {bool inEvaluatedItemsContext = false,
+      {List<bool> inEvaluatedItemsContext,
       bool inEvaluatedPropertiesContext = false,
       Map<JsonSchema, JsonSchema> initialDynamicParents}) {
-    if (inEvaluatedItemsContext) {
-      _pushEvaluatedItemsContext();
+    if (inEvaluatedItemsContext != null) {
+      _pushEvaluatedItemsContext(inEvaluatedItemsContext.length);
     }
     if (inEvaluatedPropertiesContext) {
       _pushEvaluatedPropertiesContext();
@@ -124,9 +124,9 @@ class Validator {
   Set<Uri> _vocabulary;
 
   /// Keep track of the number of evaluated items contexts in a list, treating the list as a stack.
-  /// The context is an [int], representing the number of successful evaluations for the list in the
+  /// The context is an [List] of [bool], representing the number of successful evaluations for the list in the
   /// given context.
-  List<int> _evaluatedItemsContext = [];
+  List<List<bool>> _evaluatedItemsContext = [];
 
   /// Keep track of the evaluated properties contexts in a list, treating the list as a stack.
   /// The context is a [Set] of [Instance], keeping track of the instances that have been evaluated
@@ -159,12 +159,6 @@ class Validator {
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
-
-    // Reset this values. There could be dirty data in them if this
-    // Validator is reused and returns a failure on a previous run.
-    _evaluatedItemsContext = [];
-    _evaluatedPropertiesContext = [];
-    _dynamicParents = Map();
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -338,43 +332,68 @@ class Validator {
     }
   }
 
+  void _itemsValidation2020(JsonSchema schema, Instance instance) {
+    final int actual = instance.data.length;
+    final int end = min(schema.prefixItems?.length ?? 0, actual);
+    if (schema.prefixItems != null) {
+      var items = schema.prefixItems;
+      for (int i = 0; i < end; i++) {
+        assert(items[i] != null);
+        final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+        _validate(items[i], itemInstance);
+        _setItemAsEvaluated(i);
+      }
+    }
+
+    if (schema.items != null) {
+      for (int i = end; i < actual; i++) {
+        final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+        _validate(schema.items, itemInstance);
+        _setItemAsEvaluated(i);
+      }
+    }
+  }
+
   void _itemsValidation(JsonSchema schema, Instance instance) {
     final int actual = instance.data.length;
 
     if (_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) ||
         _vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) {
-      final singleSchema = schema.items;
-      if (singleSchema != null) {
-        instance.data.asMap().forEach((index, item) {
-          final itemInstance = Instance(item, path: '${instance.path}/$index');
-          _validate(singleSchema, itemInstance);
-        });
-        // All the items in this list have been evaluated.
-        _setEvaluatedItemCount(actual);
+      if (schema.schemaVersion >= SchemaVersion.draft2020_12) {
+        _itemsValidation2020(schema, instance);
       } else {
-        final items = schema.itemsList;
+        final singleSchema = schema.items;
+        if (singleSchema != null) {
+          instance.data.asMap().forEach((index, item) {
+            final itemInstance = Instance(item, path: '${instance.path}/$index');
+            _validate(singleSchema, itemInstance);
+            _setItemAsEvaluated(index);
+          });
+        } else {
+          final items = schema.itemsList;
 
-        if (items != null) {
-          final expected = items.length;
-          final end = min(expected, actual);
-          // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
-          _setMaxEvaluatedItemCount(end);
-          for (int i = 0; i < end; i++) {
-            assert(items[i] != null);
-            final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-            _validate(items[i], itemInstance);
-          }
-          if (schema.additionalItemsSchema != null) {
-            for (int i = end; i < actual; i++) {
+          if (items != null) {
+            final expected = items.length;
+            final end = min(expected, actual);
+            // All the items have been evaluated somewhere else, or they will be evaluated upto the end count.
+            for (int i = 0; i < end; i++) {
+              assert(items[i] != null);
               final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-              _validate(schema.additionalItemsSchema, itemInstance);
+              _validate(items[i], itemInstance);
+              _setItemAsEvaluated(i);
             }
-          } else if (schema.additionalItemsBool != null) {
-            if (!schema.additionalItemsBool && actual > end) {
-              _err('additionalItems false', instance.path, schema.path + '/additionalItems');
-            } else {
-              // All the items in this list have been evaluated.
-              _setEvaluatedItemCount(actual);
+            if (schema.additionalItemsSchema != null) {
+              for (int i = end; i < actual; i++) {
+                final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+                _validate(schema.additionalItemsSchema, itemInstance);
+              }
+            } else if (schema.additionalItemsBool != null) {
+              if (!schema.additionalItemsBool && actual > end) {
+                _err('additionalItems false', instance.path, schema.path + '/additionalItems');
+              } else {
+                // All the items in this list have been evaluated.
+                _setAllItemsAsEvaluated();
+              }
             }
           }
         }
@@ -407,14 +426,23 @@ class Validator {
     if (schema.contains != null) {
       final maxContains = schema.maxContains;
       final minContains = schema.minContains;
-      final containsItems = instance.data.where((item) => Validator(schema.contains).validate(item)).toList();
+
+      var containsItems = [];
+      for (var i = 0; i < instance.data.length; i++) {
+        var item = instance.data[i];
+        var res = _validateAndCaptureEvaluations(schema.contains, Instance(item));
+        if (res) {
+          _setItemAsEvaluated(i);
+          containsItems.add(item);
+        }
+      }
       if (minContains is int && containsItems.length < minContains) {
         _err('minContains violated: $instance', instance.path, schema.path);
       }
       if (maxContains is int && containsItems.length > maxContains) {
         _err('maxContains violated: $instance', instance.path, schema.path);
       }
-      if (containsItems.length == 0 && !(minContains is int && minContains == 0)) {
+      if (containsItems.isEmpty && !(minContains is int && minContains == 0)) {
         _err('contains violated: $instance', instance.path, schema.path);
       }
     }
@@ -430,13 +458,16 @@ class Validator {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
         }
       } else {
-        for (int i = this._evaluatedItemCount; i < actual; i++) {
-          final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
-          _validate(schema.unevaluatedItems, itemInstance);
+        var evaluatedItemsList = this._evaluatedItemsContext.last;
+        for (int i = 0; i < evaluatedItemsList.length; i++) {
+          if (evaluatedItemsList[i] == false) {
+            final itemInstance = Instance(instance.data[i], path: '${instance.path}/$i');
+            _validate(schema.unevaluatedItems, itemInstance);
+          }
         }
       }
       // If we passed these test, then all the items have been evaluated.
-      _setEvaluatedItemCount(actual);
+      _setAllItemsAsEvaluated();
     }
   }
 
@@ -444,13 +475,14 @@ class Validator {
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
     var v = Validator._(
       s,
-      inEvaluatedItemsContext: _isInEvaluatedItemContext,
+      inEvaluatedItemsContext: _evaluatedItemsContext.lastOrNull,
       inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext,
       initialDynamicParents: _dynamicParents,
     );
     var isValid = v.validate(instance);
     if (isValid) {
-      _setMaxEvaluatedItemCount(v._evaluatedItemCount);
+      // _setMaxEvaluatedItemCount(v._evaluatedItemCount);
+      _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
     }
     return isValid;
@@ -799,7 +831,8 @@ class Validator {
     }
 
     if (schema.unevaluatedItems != null) {
-      _pushEvaluatedItemsContext();
+      var length = instance.data is List ? instance.data.length : 0;
+      _pushEvaluatedItemsContext(length);
     }
     if (schema.unevaluatedProperties != null) {
       _pushEvaluatedPropertiesContext();
@@ -872,8 +905,6 @@ class Validator {
     if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
         !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return true;
     if (schema.ifSchema != null) {
-      // Bail out early if no 'then' or 'else' schemas exist.
-      if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
       if (_validateAndCaptureEvaluations(schema.ifSchema, instance)) {
         // Bail out early if no "then" is specified.
@@ -899,30 +930,40 @@ class Validator {
   //////
   // Helper functions to deal with evaluatedItems.
   //////
-  _pushEvaluatedItemsContext() {
-    _evaluatedItemsContext.add(0);
+  _pushEvaluatedItemsContext(int length) {
+    _evaluatedItemsContext.add(List.filled(length, false));
   }
 
   _popEvaluatedItemsContext() {
     var last = _evaluatedItemsContext.removeLast();
-    _setMaxEvaluatedItemCount(last);
+    _mergeEvaluatedItems(last);
   }
 
   bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
 
-  _setEvaluatedItemCount(int count) {
-    if (_evaluatedItemsContext.isNotEmpty) {
-      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = count;
+  _setItemAsEvaluated(int position) {
+    if (_isInEvaluatedItemContext) {
+      _evaluatedItemsContext.last[position] = true;
     }
   }
 
-  _setMaxEvaluatedItemCount(int count) {
-    if (_evaluatedItemsContext.isNotEmpty) {
-      _evaluatedItemsContext[_evaluatedItemsContext.length - 1] = max(_evaluatedItemsContext.last, count);
+  _setAllItemsAsEvaluated() {
+    if (_isInEvaluatedItemContext) {
+      for (var i = 0; i < _evaluatedItemsContext.last.length; i++) {
+        _evaluatedItemsContext.last[i] = true;
+      }
     }
   }
 
-  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
+  _mergeEvaluatedItems(List<bool> evaluatedItems) {
+    evaluatedItems?.forEachIndexed((index, element) {
+      if (element) {
+        _setItemAsEvaluated(index);
+      }
+    });
+  }
+
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.toList()?.length;
 
   //////
   // Helper functions to deal with unevaluatedProperties.
