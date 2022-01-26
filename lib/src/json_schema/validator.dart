@@ -63,6 +63,12 @@ class Instance {
 
   @override
   toString() => data.toString();
+
+  @override
+  bool operator ==(Object other) => other is Instance && this.path == other.path;
+
+  @override
+  int get hashCode => this.path.hashCode;
 }
 
 class ValidationError {
@@ -85,9 +91,20 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
-  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
+  /// A private constructor for recursive validations.
+  /// [inEvaluatedItemsContext] and [inEvaluatedPropertiesContext] are used to pass in the parents context state.
+  Validator._(this._rootSchema,
+      {bool inEvaluatedItemsContext = false,
+      bool inEvaluatedPropertiesContext = false,
+      Map<JsonSchema, JsonSchema> initialDynamicParents}) {
     if (inEvaluatedItemsContext) {
       _pushEvaluatedItemsContext();
+    }
+    if (inEvaluatedPropertiesContext) {
+      _pushEvaluatedPropertiesContext();
+    }
+    if (initialDynamicParents != null) {
+      _dynamicParents.addAll(initialDynamicParents);
     }
   }
 
@@ -111,6 +128,26 @@ class Validator {
   /// given context.
   List<int> _evaluatedItemsContext = [];
 
+  /// Keep track of the evaluated properties contexts in a list, treating the list as a stack.
+  /// The context is a [Set] of [Instance], keeping track of the instances that have been evaluated
+  /// in a given context.
+  List<Set<Instance>> _evaluatedPropertiesContext = [];
+
+  /// Lexical and dynamic scopes align until a reference keyword is encountered.
+  /// While following the reference keyword moves processing from one lexical scope into a different one,
+  /// from the perspective of dynamic scope, following reference is no different from descending into a
+  /// subschema present as a value. A keyword on the far side of that reference that resolves information
+  /// through the dynamic scope will consider the originating side of the reference to be their dynamic parent,
+  /// rather than examining the local lexically enclosing parent.
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.7.1
+  ///
+  /// This Map keeps track of schemas when a reference is resolved.
+  Map<JsonSchema, JsonSchema> _dynamicParents = Map();
+
+  get evaluatedProperties =>
+      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
+
   /// Validate the [instance] against the this validator's schema
   bool validate(dynamic instance,
       {bool reportMultipleErrors = false,
@@ -122,6 +159,12 @@ class Validator {
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
+
+    // Reset this values. There could be dirty data in them if this
+    // Validator is reused and returns a failure on a previous run.
+    _evaluatedItemsContext = [];
+    _evaluatedPropertiesContext = [];
+    _dynamicParents = Map();
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -399,10 +442,16 @@ class Validator {
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator._(s, inEvaluatedItemsContext: _isInEvaluatedItemContext);
+    var v = Validator._(
+      s,
+      inEvaluatedItemsContext: _isInEvaluatedItemContext,
+      inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext,
+      initialDynamicParents: _dynamicParents,
+    );
     var isValid = v.validate(instance);
     if (isValid) {
       _setMaxEvaluatedItemCount(v._evaluatedItemCount);
+      v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
     }
     return isValid;
   }
@@ -642,7 +691,11 @@ class Validator {
           _validate(schema.additionalPropertiesSchema, newInstance);
         } else if (propMustValidate) {
           _err('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
+        } else if (schema.additionalPropertiesBool == true) {
+          _addEvaluatedProp(newInstance);
         }
+      } else {
+        _addEvaluatedProp(newInstance);
       }
     });
   }
@@ -654,6 +707,8 @@ class Validator {
       if (instance.data.containsKey(k)) {
         if (!dependencies.every((prop) => instance.data.containsKey(prop))) {
           _err('prop $k => $dependencies required', instance.path, schema.path + '/dependencies');
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -665,8 +720,10 @@ class Validator {
 
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
-        if (!Validator(otherSchema).validate(instance)) {
+        if (!_validateAndCaptureEvaluations(otherSchema, instance)) {
           _err('prop $k violated schema dependency', instance.path, otherSchema.path);
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -704,6 +761,36 @@ class Validator {
     if (schema.propertyDependencies != null) _propertyDependenciesValidation(schema, instance);
 
     if (schema.schemaDependencies != null) _schemaDependenciesValidation(schema, instance);
+
+    if (schema.unevaluatedProperties != null) {
+      if (schema.unevaluatedProperties.schemaBool == true) {
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          _addEvaluatedProp(i);
+        });
+      } else {
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          if (!this.evaluatedProperties.contains(i)) {
+            _validate(schema.unevaluatedProperties, i);
+          }
+        });
+      }
+    }
+  }
+
+  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
+  /// or null of there is no recursiveAnchor found.
+  JsonSchema _findAnchorParent(JsonSchema schema) {
+    JsonSchema lastFound = schema.recursiveAnchor ? schema : null;
+    var possibleAnchor = _dynamicParents[schema] ?? schema.parent;
+    while (possibleAnchor != null) {
+      if (possibleAnchor.recursiveAnchor) {
+        lastFound = possibleAnchor;
+      }
+      possibleAnchor = _dynamicParents[possibleAnchor] ?? possibleAnchor.parent;
+    }
+    return lastFound;
   }
 
   void _validate(JsonSchema schema, dynamic instance) {
@@ -711,23 +798,41 @@ class Validator {
       instance = Instance(instance);
     }
 
+    if (schema.unevaluatedItems != null) {
+      _pushEvaluatedItemsContext();
+    }
+    if (schema.unevaluatedProperties != null) {
+      _pushEvaluatedPropertiesContext();
+    }
+
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
-    while (schema.ref != null || schema.recursiveRef != null) {
-      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
-      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
-        schema = nextSchema.furthestRecursiveAnchorParent();
-      } else if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
-          schema.schemaMap.length > 1 &&
-          nextSchema.schemaBool == null) {
-        schema.mixinForRef(nextSchema);
-      } else {
-        schema = nextSchema;
+    if (schema.ref != null) {
+      var nextSchema = schema.resolvePath(schema.ref);
+      _setDynamicParent(nextSchema, schema);
+      _validate(nextSchema, instance);
+      _removeDynamicParent(nextSchema);
+      if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+        return;
       }
     }
 
-    if (schema.unevaluatedItems != null) {
-      _pushEvaluatedItemsContext();
+    /// If the [JsonSchema] being validated is a recursiveRef, pull the ref
+    /// from the [refMap] instead.
+    if (schema.recursiveRef != null) {
+      var nextSchema = schema.resolvePath(schema.recursiveRef);
+      if (nextSchema.recursiveAnchor == true) {
+        nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
+        _validate(nextSchema, instance);
+      } else {
+        // nextSchema.pushDynamicParent(schema);
+        _setDynamicParent(nextSchema, schema);
+        _validate(nextSchema, instance);
+        _removeDynamicParent(nextSchema);
+        if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+          return;
+        }
+      }
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
@@ -758,6 +863,9 @@ class Validator {
     if (schema.unevaluatedItems != null) {
       _popEvaluatedItemsContext();
     }
+    if (schema.unevaluatedProperties != null) {
+      _popEvaluatedPropertiesContext();
+    }
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
@@ -767,7 +875,7 @@ class Validator {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
-      if (schema.ifSchema.validate(instance)) {
+      if (_validateAndCaptureEvaluations(schema.ifSchema, instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
         if (!_validateAndCaptureEvaluations(schema.thenSchema, instance)) {
@@ -796,10 +904,8 @@ class Validator {
   }
 
   _popEvaluatedItemsContext() {
-    if (_evaluatedItemsContext.isNotEmpty) {
-      var last = _evaluatedItemsContext.removeLast();
-      _setMaxEvaluatedItemCount(last);
-    }
+    var last = _evaluatedItemsContext.removeLast();
+    _setMaxEvaluatedItemCount(last);
   }
 
   bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
@@ -817,6 +923,38 @@ class Validator {
   }
 
   int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
+
+  //////
+  // Helper functions to deal with unevaluatedProperties.
+  //////
+
+  _pushEvaluatedPropertiesContext() {
+    _evaluatedPropertiesContext.add(Set<Instance>());
+  }
+
+  _popEvaluatedPropertiesContext() {
+    var last = _evaluatedPropertiesContext.removeLast();
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      _evaluatedPropertiesContext.last.addAll(last);
+    }
+  }
+
+  bool get _isInEvaluatedPropertiesContext => _evaluatedPropertiesContext.isNotEmpty;
+
+  _addEvaluatedProp(Instance i) {
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      var context = _evaluatedPropertiesContext.last;
+      context.add(i);
+    }
+  }
+
+  _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
+    _dynamicParents[child] = dynamicParent;
+  }
+
+  _removeDynamicParent(JsonSchema child) {
+    _dynamicParents.remove(child);
+  }
 
   void _err(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');

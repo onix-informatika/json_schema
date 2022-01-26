@@ -284,9 +284,6 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedUUIDTests);
 
 final List<String> draft2019SkippedTestFiles = [
-  // WIP
-  "unevaluatedProperties.json",
-
   // As of Draft 2019, format validation becomes an opt-in option.
   // We *do* run the optional format test files below, but they appear
   // on this skip list because they are skipped when we are running not configured
@@ -310,13 +307,6 @@ final List<String> draft2019SkippedTestFiles = [
   "uri.json",
   "uuid.json",
 ]..addAll(commonSkippedTestFiles);
-
-final List<String> draft2019SkippedTests = [
-  // Requires unevaluatedProperties support
-  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties',
-  'unevaluatedItems with \$ref : with no unevaluated items',
-  'unevaluatedItems with \$ref : with unevaluated items',
-]..addAll(commonSkippedTests);
 
 final List<String> draft2019FormatSkippedTestFiles = [];
 
