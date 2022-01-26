@@ -2010,7 +2010,7 @@ class JsonSchema {
     }
   }
 
-  /// Validate,calculate and set the value of the 'unevaluatedProperties' JSON Schema keyword.
+  /// Validate, calculate and set the value of the 'unevaluatedProperties' JSON Schema keyword.
   _setUnevaluatedProperties(dynamic value) {
     _createOrRetrieveSchema('$_path/unevaluatedProperties', value, (rhs) => _unevaluatedProperties = rhs);
   }
