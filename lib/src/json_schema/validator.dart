@@ -150,6 +150,12 @@ class Validator {
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
     _treatWarningsAsErrors = treatWarningsAsErrors;
 
+    // Reset this values. There could be dirty data in them if this
+    // Validator is reused and returns a failure on a previous run.
+    _evaluatedItemsContext = [];
+    _evaluatedPropertiesContext = [];
+    _dynamicParents = Map();
+
     dynamic data = instance;
     if (parseJson && instance is String) {
       try {
