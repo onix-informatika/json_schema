@@ -43,7 +43,6 @@ import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_cl
 typedef SyncJsonProvider = Map<String, dynamic> Function(String ref);
 typedef AsyncJsonProvider = Future<Map<String, dynamic>> Function(String ref);
 
-
 class RefProvider<T> {
   RefProvider(this.provide, this.isSync);
 
