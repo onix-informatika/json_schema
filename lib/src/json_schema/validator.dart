@@ -155,11 +155,12 @@ class Validator {
   Set<Uri> getVocabulary(JsonSchema s) {
     if (s.schemaVersion < SchemaVersion.draft2019_09) {
       // For simplicity's sake, we just use all supported vocabularies for drafts older than 2019.
-      return SupportedVocabularies.ALL;
+      return SupportedVocabularies.ALL_2019;
     } else {
+      final schemaVersion = s.schemaVersion;
       final vocab = s.metaschemaVocabulary();
       vocab?.forEach((uri, isRequired) {
-        if (!SupportedVocabularies.ALL.contains(uri)) {
+        if (!SupportedVocabularies.allFor(schemaVersion).contains(uri)) {
           if (isRequired) {
             throw ArgumentError('unsupported vocabulary required for validation', '$uri');
           } else {
@@ -167,7 +168,7 @@ class Validator {
           }
         }
       });
-      return Set.of(vocab?.keys ?? Set<Uri>()).intersection(SupportedVocabularies.ALL);
+      return Set.of(vocab?.keys ?? Set<Uri>()).intersection(SupportedVocabularies.allFor(schemaVersion));
     }
   }
 
@@ -192,7 +193,8 @@ class Validator {
   }
 
   void _numberValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) return;
     final num n = instance.data;
     final maximum = schema.maximum;
     final minimum = schema.minimum;
@@ -238,7 +240,10 @@ class Validator {
 
   void _typeValidation(JsonSchema schema, dynamic instance) {
     final typeList = schema.typeList;
-    if (_vocabulary.contains(SupportedVocabularies.VALIDATION) && typeList != null && typeList.isNotEmpty) {
+    if ((_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) ||
+            _vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) &&
+        typeList != null &&
+        typeList.isNotEmpty) {
       if (!typeList.any((type) => _typeMatch(type, schema, instance.data))) {
         _err('type: wanted ${typeList} got $instance', instance.path, schema.path);
       }
@@ -246,7 +251,8 @@ class Validator {
   }
 
   void _constValidation(JsonSchema schema, dynamic instance) {
-    if (_vocabulary.contains(SupportedVocabularies.VALIDATION) &&
+    if ((_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) ||
+            _vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) &&
         schema.hasConst &&
         !DeepCollectionEquality().equals(instance.data, schema.constValue)) {
       _err('const violated ${instance}', instance.path, schema.path);
@@ -255,7 +261,9 @@ class Validator {
 
   void _enumValidation(JsonSchema schema, dynamic instance) {
     final enumValues = schema.enumValues;
-    if (_vocabulary.contains(SupportedVocabularies.VALIDATION) && enumValues.isNotEmpty) {
+    if ((_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) ||
+            _vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) &&
+        enumValues.isNotEmpty) {
       try {
         enumValues.singleWhere((v) => DeepCollectionEquality().equals(instance.data, v));
       } on StateError {
@@ -271,7 +279,8 @@ class Validator {
   }
 
   void _stringValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) return;
     final actual = instance.data.runes.length;
     final minLength = schema.minLength;
     final maxLength = schema.maxLength;
@@ -289,7 +298,8 @@ class Validator {
   void _itemsValidation(JsonSchema schema, Instance instance) {
     final int actual = instance.data.length;
 
-    if (_vocabulary.contains(SupportedVocabularies.APPLICATOR)) {
+    if (_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) ||
+        _vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) {
       final singleSchema = schema.items;
       if (singleSchema != null) {
         instance.data.asMap().forEach((index, item) {
@@ -328,7 +338,8 @@ class Validator {
       }
     }
 
-    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) return;
 
     final maxItems = schema.maxItems;
     final minItems = schema.minItems;
@@ -367,7 +378,8 @@ class Validator {
   }
 
   _validateUnevaluatedItems(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
       if (schema.unevaluatedItems.schemaBool != null) {
@@ -396,14 +408,16 @@ class Validator {
   }
 
   _validateAllOf(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     if (!schema.allOf.every((s) => _validateAndCaptureEvaluations(s, instance))) {
       _err('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
     // to properly account for evaluated properties and items.
     var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance)).toList();
@@ -414,7 +428,8 @@ class Validator {
   }
 
   void _validateOneOf(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     try {
       schema.oneOf.map((s) => _validateAndCaptureEvaluations(s, instance)).singleWhere((s) => s);
     } on StateError catch (notOneOf) {
@@ -424,14 +439,17 @@ class Validator {
   }
 
   void _validateNot(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     if (Validator(schema.notSchema).validate(instance)) {
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
   }
 
   void _validateFormat(JsonSchema schema, Instance instance) {
-    if (!_validateFormats || !_vocabulary.contains(SupportedVocabularies.FORMAT)) return;
+    if (!_validateFormats ||
+        (!_vocabulary.contains(SupportedVocabularies.FORMAT_2019) &&
+            !_vocabulary.contains(SupportedVocabularies.FORMAT_ANNOTATION_2020))) return;
 
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
@@ -591,7 +609,8 @@ class Validator {
   }
 
   void _objectPropertyValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     final propMustValidate = schema.additionalPropertiesBool != null && !schema.additionalPropertiesBool;
 
     instance.data.forEach((k, v) {
@@ -629,7 +648,8 @@ class Validator {
   }
 
   void _propertyDependenciesValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
     schema.propertyDependencies.forEach((k, dependencies) {
       if (instance.data.containsKey(k)) {
         if (!dependencies.every((prop) => instance.data.containsKey(prop))) {
@@ -640,7 +660,8 @@ class Validator {
   }
 
   void _schemaDependenciesValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
 
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
@@ -652,7 +673,8 @@ class Validator {
   }
 
   void _objectValidation(JsonSchema schema, Instance instance) {
-    if (_vocabulary.contains(SupportedVocabularies.VALIDATION)) {
+    if (_vocabulary.contains(SupportedVocabularies.VALIDATION_2019) ||
+        _vocabulary.contains(SupportedVocabularies.VALIDATION_2020)) {
       // Min / Max Props
       final numProps = instance.data.length;
       final minProps = schema.minProperties;
@@ -739,7 +761,8 @@ class Validator {
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
-    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return true;
+    if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
+        !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return true;
     if (schema.ifSchema != null) {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;

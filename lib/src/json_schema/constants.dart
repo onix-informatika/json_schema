@@ -1404,18 +1404,47 @@ class Draft2020Subschemas {
 }
 
 class SupportedVocabularies {
-  static final CORE = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
-  static final APPLICATOR = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
-  static final VALIDATION = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
-  static final METADATA = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
-  static final FORMAT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
-  static final CONTENT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
-  static final ALL = {
-    CORE,
-    APPLICATOR,
-    VALIDATION,
-    METADATA,
-    FORMAT,
-    CONTENT,
+  static final CORE_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
+  static final APPLICATOR_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
+  static final VALIDATION_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
+  static final METADATA_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
+  static final FORMAT_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
+  static final CONTENT_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
+
+  static final CORE_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/core");
+  static final APPLICATOR_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/applicator");
+  static final UNEVALUATED_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/unevaluated");
+  static final VALIDATION_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/validation");
+  static final METADATA_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/meta-data");
+  static final FORMAT_ANNOTATION_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/format-annotation");
+  static final CONTENT_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/content");
+
+  static final ALL_2019 = {
+    CORE_2019,
+    APPLICATOR_2019,
+    VALIDATION_2019,
+    METADATA_2019,
+    FORMAT_2019,
+    CONTENT_2019,
   };
+
+  static final ALL_2020 = {
+    CORE_2020,
+    APPLICATOR_2020,
+    UNEVALUATED_2020,
+    VALIDATION_2020,
+    METADATA_2020,
+    FORMAT_ANNOTATION_2020,
+    CONTENT_2020,
+  };
+
+  static Set<Uri> allFor(SchemaVersion version) {
+    if (version <= SchemaVersion.draft2019_09) {
+      return ALL_2019;
+    } else if (version == SchemaVersion.draft2020_12) {
+      return ALL_2020;
+    } else {
+      return Set.identity();
+    }
+  }
 }
