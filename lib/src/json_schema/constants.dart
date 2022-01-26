@@ -163,24 +163,42 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   }
 }
 
-Map getJsonSchemaDefinitionByRef(String ref) {
-  final mapping = {
-    SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
-    SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
-    SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
-    SchemaVersion.draft2019_09.toString(): JsonSchemaDefinitions.draft2019_09,
-    SchemaVersion.draft2020_12.toString(): JsonSchemaDefinitions.draft2020_12,
-  };
+final _staticSchemaMapping = {
+  parseStandardizedUri(SchemaVersion.draft4.toString()): JsonSchemaDefinitions.draft4,
+  parseStandardizedUri(SchemaVersion.draft6.toString()): JsonSchemaDefinitions.draft6,
+  parseStandardizedUri(SchemaVersion.draft7.toString()): JsonSchemaDefinitions.draft7,
+  parseStandardizedUri(SchemaVersion.draft2019_09.toString()): JsonSchemaDefinitions.draft2019_09,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
+  parseStandardizedUri(SchemaVersion.draft2020_12.toString()): JsonSchemaDefinitions.draft2020_12,
+};
 
-  if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
-    return json.decode(mapping[ref]);
-  }
+Uri parseStandardizedUri(String s) => standardizeUri(Uri.parse(s));
 
-  return null;
+Uri standardizeUri(Uri uri) => uri?.replace(scheme: uri.scheme == "http" ? "https" : uri.scheme, fragment: null);
+
+Map getStaticSchema(String ref) {
+  return getStaticSchemaByURI(parseStandardizedUri(ref));
+}
+
+Map getStaticSchemaByURI(Uri ref) {
+  if (ref.fragment != "") return null;
+  final mapped = _staticSchemaMapping[standardizeUri(ref)];
+  return mapped != null ? json.decode(mapped) : null;
 }
 
 class JsonSchemaDefinitions {
-  static String draft4 = r'''
+  static final String draft4 = r'''
     {
     "id": "http://json-schema.org/draft-04/schema#",
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -332,7 +350,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft6 = r'''
+  static final String draft6 = r'''
     {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://json-schema.org/draft-06/schema#",
@@ -489,7 +507,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft7 = r'''{
+  static final String draft7 = r'''{
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "http://json-schema.org/draft-07/schema#",
     "title": "Core schema meta-schema",
@@ -663,7 +681,7 @@ class JsonSchemaDefinitions {
 }
   ''';
 
-  static String draft2019_09 = r'''{
+  static final String draft2019_09 = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/schema",
     "$vocabulary": {
@@ -776,7 +794,7 @@ class JsonSchemaDefinitions {
       '''
       "vocab-core": ${Draft2020Subschemas.core},
       "vocab-applicator": ${Draft2020Subschemas.applicator},
-      "vocab-unevaluated: ${Draft2020Subschemas.unevaluated}, 
+      "vocab-unevaluated": ${Draft2020Subschemas.unevaluated}, 
       "vocab-validation": ${Draft2020Subschemas.validation},
       "vocab-meta-data": ${Draft2020Subschemas.metadata},
       "vocab-format-annotation": ${Draft2020Subschemas.format_annotation},
@@ -786,7 +804,7 @@ class JsonSchemaDefinitions {
 }
 
 class Draft2019Subschemas {
-  static String format = r'''{
+  static final String format = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/format",
     "$vocabulary": {
@@ -801,7 +819,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String core = r'''{
+  static final String core = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/core",
     "$vocabulary": {
@@ -859,7 +877,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String applicator = r'''{
+  static final String applicator = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/applicator",
     "$vocabulary": {
@@ -916,7 +934,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String validation = r'''{
+  static final String validation = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/validation",
     "$vocabulary": {
@@ -1015,7 +1033,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String metadata = r'''{
+  static final String metadata = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/meta-data",
     "$vocabulary": {
@@ -1053,7 +1071,7 @@ class Draft2019Subschemas {
     }
 }''';
 
-  static String content = r'''{
+  static final String content = r'''{
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "https://json-schema.org/draft/2019-09/meta/content",
     "$vocabulary": {
@@ -1383,4 +1401,21 @@ class Draft2020Subschemas {
         }
     }
 }''';
+}
+
+class SupportedVocabularies {
+  static final CORE = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
+  static final APPLICATOR = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
+  static final VALIDATION = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
+  static final METADATA = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
+  static final FORMAT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
+  static final CONTENT = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
+  static final ALL = {
+    CORE,
+    APPLICATOR,
+    VALIDATION,
+    METADATA,
+    FORMAT,
+    CONTENT,
+  };
 }
