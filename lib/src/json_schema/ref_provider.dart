@@ -36,57 +36,20 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_client.dart'
     if (dart.library.html) 'package:json_schema/src/json_schema/schema_url_client/html_schema_url_client.dart'
     if (dart.library.io) 'package:json_schema/src/json_schema/schema_url_client/io_schema_url_client.dart';
 
-typedef SyncSchemaProvider = JsonSchema Function(String ref);
 typedef SyncJsonProvider = Map<String, dynamic> Function(String ref);
 typedef AsyncJsonProvider = Future<Map<String, dynamic>> Function(String ref);
-typedef AsyncSchemaProvider = Future<JsonSchema> Function(String ref);
 
-enum RefProviderType {
-  @Deprecated('Use RefProviderType.json instead, renamed with deprecation of JsonSchema RefProviders.')
-  schema,
-  json,
-}
 
 class RefProvider<T> {
-  RefProvider(this.provide, this.type, this.isSync);
-
-  @Deprecated('Use RefProvider.sync instead, it can resolve nested schema references more effectively.')
-  static RefProvider syncSchema(SyncSchemaProvider provider) {
-    return RefProvider<SyncSchemaProvider>(
-      provider,
-      RefProviderType.schema,
-      true,
-    );
-  }
-
-  @Deprecated('Use RefProvider.async instead, it can resolve nested schema references more effectively.')
-  static RefProvider asyncSchema(AsyncSchemaProvider provider) {
-    return RefProvider<AsyncSchemaProvider>(
-      provider,
-      RefProviderType.schema,
-      false,
-    );
-  }
-
-  @Deprecated('Use RefProvider.sync instead, renamed with deprecation of JsonSchema RefProviders.')
-  static RefProvider syncJson(SyncJsonProvider provider) {
-    return RefProvider.sync(provider);
-  }
-
-  @Deprecated('Use RefProvider.sync instead, renamed with deprecation of JsonSchema RefProviders.')
-  static RefProvider asyncJson(AsyncJsonProvider provider) {
-    return RefProvider.async(provider);
-  }
+  RefProvider(this.provide, this.isSync);
 
   static RefProvider async(AsyncJsonProvider provider) {
     return RefProvider<AsyncJsonProvider>(
       provider,
-      RefProviderType.json,
       false,
     );
   }
@@ -94,13 +57,11 @@ class RefProvider<T> {
   static RefProvider sync(SyncJsonProvider provider) {
     return RefProvider<SyncJsonProvider>(
       provider,
-      RefProviderType.json,
       true,
     );
   }
 
   final bool isSync;
-  final RefProviderType type;
   final T provide;
 }
 
