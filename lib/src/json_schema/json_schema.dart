@@ -669,8 +669,6 @@ class JsonSchema {
   /// The parent [JsonSchema] for this [JsonSchema].
   JsonSchema _parent;
 
-  List<JsonSchema> _dynamicParents = [];
-
   /// JSON of the [JsonSchema] as a [Map]. Only this value or [_schemaBool] should be set, not both.
   Map<String, dynamic> _schemaMap = {};
 
@@ -1079,8 +1077,6 @@ class JsonSchema {
 
   /// The parent [JsonSchema] for this [JsonSchema].
   JsonSchema get parent => _parent;
-
-  JsonSchema get dynamicParent => _dynamicParents.lastOrNull ?? _parent;
 
   /// Get the anchestry of the current schema, up to the root [JsonSchema].
   List<JsonSchema> get _parents {
@@ -2099,16 +2095,5 @@ class JsonSchema {
     } else {
       throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
     }
-  }
-
-
-  void pushDynamicParent(JsonSchema value) {
-    if (value != this) {
-      _dynamicParents.add(value);
-    }
-  }
-
-  void popDynamicParent() {
-    _dynamicParents.removeLast();
   }
 }
