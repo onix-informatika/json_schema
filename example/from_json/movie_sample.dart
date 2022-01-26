@@ -38,7 +38,6 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/validator.dart';
 
 main() {
   //////////////////////////////////////////////////////////////////////
@@ -78,7 +77,7 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final ValidationResults results = validator.validateWithResults(movies, reportMultipleErrors: true);
+    final results = validator.validateWithResults(movies, reportMultipleErrors: true);
     print('$movies:\n$results');
   });
 }
