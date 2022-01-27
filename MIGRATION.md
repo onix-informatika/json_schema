@@ -18,7 +18,7 @@ We have removed any need to configure the library for a specific environment, an
   - `resetGlobalTransportPlatform`
 - These changes can all be made on 3.x before migration.
 
-We have simplified RefProviders. There are now less options, and the remaining options are easier to use. Migration to these should only cause code removal:
+We have simplified RefProviders. There are now fewer options, and the remaining options are easier to use. Migration to these should only cause code removal:
 - Replace all calls to:
   -  `RefProvider.syncSchema` with `RefProvider.sync`
   -  `RefProvider.syncJson` with `RefProvider.sync`
@@ -35,11 +35,11 @@ We have simplified factory names to be shorter.
 
 We have created one canonical method to get validation results.
 - Replace all calls to:
-  - `JsonSchema.validate` or `Validator.validate` with `validateWithResults(...).isValid` (default is now to return multiple errors instead of a single, configure to your liking.)
-  - `JsonSchema.validateWithErrors` with `JsonSchema.validateWithResults(...).errors`
-  - `Validator.errors` with `Validator.validateWithResults(...).errors`
-  - `Validator.errorObjects` with `Validator.validateWithResults(...).errors`
-- Migrate to `validateWithResults` in 3.x, then replace with breaking change to `validate` in 4.x.
+  - `JsonSchema.validate` or `Validator.validate` with `validateWithResults(...).isValid` (3.2.0) and then `validate(...).isValid` (4.0) Default is now to return multiple errors instead of a single, configure to your liking.)
+  - `JsonSchema.validateWithErrors` with `JsonSchema.validateWithResults(...).errors` (3.2.0) and then `JsonSchema.validate(...).errors` (4.0.0)
+  - `Validator.errors` with `Validator.validateWithResults(...).errors` (3.2.0) and then `Validator.validate(...).errors` (4.0.0)
+  - `Validator.errorObjects` with `Validator.validateWithResults(...).errors` (3.2.0) and then `Validator.validate(...).errors` (4.0.0)
+- Migrate to `validateWithResults` in 3.2.0, then replace with breaking change to `validate` (returns the same payload as `validateWithResults`) in 4.x.
 
 # json_schema v2.x to v3 Migration Guide
 

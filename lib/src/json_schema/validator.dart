@@ -150,7 +150,7 @@ class Validator {
         validateFormats: validateFormats,
       );
 
-  /// Validate the [instance] against the this validator's schema
+  /// Validate the [instance] against the `Validator`'s `JsonSchema`
   ValidationResults validate(
     dynamic instance, {
     bool reportMultipleErrors = false,
