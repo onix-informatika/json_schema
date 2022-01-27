@@ -1,3 +1,46 @@
+# json_schema v3.x to v4 Migration Guide
+
+json_schema 4.0 continues our journey to support additional new versions of the JSON Schema specification (Draft 2019-09 and Draft 2020-12)! In addition to the new draft support, we have better support for certain formats, as well as improved spec test compliance. 
+
+There are several breaking removals, but there are replacements in 3.x that allow you to migrate safely (with the exception of `schemadot` and `refMap`, which have been deprecated for two majors). In order to account for these you should:
+
+Stop using `schemadot`. As all the `schemadot` code has been deprecated for 2 major versions, and has remained unmaintained during that time, we have removed it. 
+
+Stop using `JsonSchema.refMap`. It has been deprecated for two major versions and can change behaviorally between major versions. You should be able to use `JsonSchema.resolveRef` for these needs.
+
+We have removed any need to configure the library for a specific environment, and all environment config now happens automatically. Therefore, you should:
+- Replace all calls to:
+   - `createSchemaFromUrlBrowser` with `JsonSchema.createFromUrl`
+   - `createSchemaFromUrlVm` with `JsonSchema.createFromUrl`
+- Remove all calls to:
+  - `configureJsonSchemaForBrowser`
+  - `configureJsonSchemaForVm`
+  - `resetGlobalTransportPlatform`
+- These changes can all be made on 3.x before migration.
+
+We have simplified RefProviders. There are now less options, and the remaining options are easier to use. Migration to these should only cause code removal:
+- Replace all calls to:
+  -  `RefProvider.syncSchema` with `RefProvider.sync`
+  -  `RefProvider.syncJson` with `RefProvider.sync`
+  -  `RefProvider.asyncSchema` with `RefProvider.async`
+  -  `RefProvider.asyncJson` with `RefProvider.async`
+- These changes can all be made on 3.x before migration.
+
+We have simplified factory names to be shorter.
+- Replace all calls to:
+  - `JsonSchema.createSchema` with `JsonSchema.create`
+  - `JsonSchema.createSchemaAsync` with `JsonSchema.createAsync`
+  - `JsonSchema.createSchemaFromUrl` with `JsonSchema.createFromUrl`
+- These changes can all be made on 3.x before migration.
+
+We have created one canonical method to get validation results.
+- Replace all calls to:
+  - `JsonSchema.validate` or `Validator.validate` with `validateWithResults(...).isValid` (default is now to return multiple errors instead of a single, configure to your liking.)
+  - `JsonSchema.validateWithErrors` with `JsonSchema.validateWithResults(...).errors`
+  - `Validator.errors` with `Validator.validateWithResults(...).errors`
+  - `Validator.errorObjects` with `Validator.validateWithResults(...).errors`
+- Migrate to `validateWithResults` in 3.x, then replace with breaking change to `validate` in 4.x.
+
 # json_schema v2.x to v3 Migration Guide
 
 json_schema 3.0 is now here due to an issue that was found in 2.0 that caused remote refs to not get resolved correctly. This forced us to sort through the ref resolution logic in schema construction and change a few underlying assumptions.
