@@ -99,8 +99,7 @@ main() {
             }
           ]
         })
-        .errors
-        .isEmpty;
+        .isValid;
 
     final isInvalid = schema
         .validateWithResults({
@@ -120,8 +119,7 @@ main() {
             }
           ]
         })
-        .errors
-        .isEmpty;
+        .isValid;
 
     expect(isValid, isTrue);
     expect(isInvalid, isFalse);

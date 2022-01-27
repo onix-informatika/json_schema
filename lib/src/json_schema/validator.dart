@@ -154,8 +154,7 @@ class Validator {
   bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
     return validateWithResults(instance,
             reportMultipleErrors: reportMultipleErrors, parseJson: parseJson, validateFormats: validateFormats)
-        .errors
-        .isEmpty;
+        .isValid;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
@@ -540,7 +539,7 @@ class Validator {
   void _schemaDependenciesValidation(JsonSchema schema, Instance instance) {
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
-        if (Validator(otherSchema).validateWithResults(instance).errors.isNotEmpty) {
+        if (!Validator(otherSchema).validateWithResults(instance).isValid) {
           _err('prop $k violated schema dependency', instance.path, otherSchema.path);
         }
       }
