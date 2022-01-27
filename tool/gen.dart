@@ -10,7 +10,7 @@ final String additionalRemotesDirectory = 'test/additional_remotes';
 final String additionalRemotesOutputFile = 'test/unit/additional_remotes.dart';
 
 final String testsDirectory = 'test/JSON-Schema-Test-Suite/tests';
-final String customTestsDirectory = 'test/custom_tests/valid_schemas';
+final String customTestsDirectory = 'test/custom/valid_schemas';
 final String testsOutputFile = 'test/unit/specification_tests.dart';
 
 /// Generate Dart code containing a Map of JSON files,
