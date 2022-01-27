@@ -798,9 +798,9 @@ class Validator {
     /// from the [refMap] instead.
     if (schema.ref != null) {
       var nextSchema = schema.resolvePath(schema.ref);
-      _setDynamicParent(nextSchema, schema);
+      final prevParent = _setDynamicParent(nextSchema, schema);
       _validate(nextSchema, instance);
-      _removeDynamicParent(nextSchema);
+      _setDynamicParent(nextSchema, prevParent);
       if (schema.schemaVersion < SchemaVersion.draft2019_09) {
         return;
       }
@@ -814,10 +814,9 @@ class Validator {
         nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
         _validate(nextSchema, instance);
       } else {
-        // nextSchema.pushDynamicParent(schema);
-        _setDynamicParent(nextSchema, schema);
+        final prevParent = _setDynamicParent(nextSchema, schema);
         _validate(nextSchema, instance);
-        _removeDynamicParent(nextSchema);
+        _setDynamicParent(nextSchema, prevParent);
         if (schema.schemaVersion < SchemaVersion.draft2019_09) {
           return;
         }
@@ -936,8 +935,14 @@ class Validator {
     }
   }
 
-  _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
-    _dynamicParents[child] = dynamicParent;
+  JsonSchema _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
+    final oldParent = _dynamicParents.remove(child);
+    if (dynamicParent != null) {
+      _dynamicParents[child] = dynamicParent;
+    } else {
+      _dynamicParents.remove(child);
+    }
+    return oldParent;
   }
 
   _removeDynamicParent(JsonSchema child) {
