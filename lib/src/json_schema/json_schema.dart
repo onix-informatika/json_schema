@@ -1549,11 +1549,15 @@ class JsonSchema {
   /// Whether the [JsonSchema] is required on its parent.
   bool get requiredOnParent => _parent?.propertyRequired(propertyName) ?? false;
 
+  @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
+  ValidationResults validateWithResults(dynamic instance, {bool parseJson = false, bool validateFormats}) =>
+      Validator(this)
+          .validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
+
   /// Validate [instance] against this schema, returning the result
   /// with information about any validation errors or warnings that occurred.
-  ValidationResults validateWithResults(dynamic instance, {bool parseJson = false, bool validateFormats}) =>
-      Validator(this).validateWithResults(instance,
-          reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
+  ValidationResults validate(dynamic instance, {bool parseJson = false, bool validateFormats}) => Validator(this)
+      .validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
 
   // --------------------------------------------------------------------------
   // JSON Schema Internal Operations

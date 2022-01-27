@@ -77,7 +77,7 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final results = validator.validateWithResults(movies, reportMultipleErrors: true);
+    final results = validator.validate(movies, reportMultipleErrors: true);
     print('$movies:\n$results');
   });
 }

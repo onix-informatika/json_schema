@@ -111,13 +111,13 @@ void main() {
                     schemaVersion: schemaVersion,
                     refProvider: refProvider,
                   );
-                  validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                  validationResults = schema.validate(instance, validateFormats: validateFormats);
                   expect(validationResults.isValid, expectedResult);
                 } else {
                   final checkResultAsync = expectAsync2(checkResult);
                   JsonSchema.createAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
                       .then((schema) {
-                    validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                    validationResults = schema.validate(instance, validateFormats: validateFormats);
                     checkResultAsync(validationResults.errors, expectedResult);
                   });
                 }

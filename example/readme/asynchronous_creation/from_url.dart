@@ -51,9 +51,9 @@ main() async {
   final decimals = 3.14;
   final str = 'hi';
 
-  print('$n => ${schema.validateWithResults(n)}'); // valid
-  print('$decimals => ${schema.validateWithResults(decimals)}'); // invalid
-  print('$str => ${schema.validateWithResults(str)}'); // invalid
+  print('$n => ${schema.validate(n)}'); // valid
+  print('$decimals => ${schema.validate(decimals)}'); // invalid
+  print('$str => ${schema.validate(str)}'); // invalid
 
   // Exit the process cleanly (VM Only).
   exit(0);

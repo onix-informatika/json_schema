@@ -49,11 +49,11 @@ main() {
   JsonSchema.createFromUrl(url).then((JsonSchema schema) {
     final validSchema = {'type': 'integer'};
     print('''Does schema validate valid schema $validSchema?
-  ${schema.validateWithResults(validSchema)}''');
+  ${schema.validate(validSchema)}''');
 
     final invalidSchema = {'type': 'nibble'};
     print('''Does schema validate invalid schema $invalidSchema?
-  ${schema.validateWithResults(invalidSchema)}''');
+  ${schema.validate(invalidSchema)}''');
   });
 
   //////////////////////////////////////////////////////////////////////
@@ -87,6 +87,6 @@ main() {
 }''');
 
     print('''Does grades schema validate $grades
-  ${schema.validateWithResults(grades)}''');
+  ${schema.validate(grades)}''');
   });
 }
