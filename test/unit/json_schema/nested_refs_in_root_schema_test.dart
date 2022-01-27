@@ -99,8 +99,7 @@ main() {
             }
           ]
         })
-        .errors
-        .isEmpty;
+        .isValid;
 
     final isInvalid = schema
         .validateWithResults({
