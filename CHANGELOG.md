@@ -1,3 +1,9 @@
+## 3.1.0
+
+* Remove the need for separate browser and VM imports
+* Deprecate non-json RefProviders
+* More specific missing-required property errors
+
 ## 3.0.0
 
 * Removed support for Dart 1

@@ -1583,31 +1583,11 @@ class JsonSchema {
   /// Whether the [JsonSchema] is required on its parent.
   bool get requiredOnParent => _parent?.propertyRequired(propertyName) ?? false;
 
-  /// Validate [instance] against this schema, returning a boolean indicating whether
-  /// validation succeeded or failed.
-  bool validate(dynamic instance,
-          {bool reportMultipleErrors = false,
-          bool parseJson = false,
-          bool validateFormats,
-          bool treatWarningsAsErrors = false}) =>
-      Validator(this).validate(instance,
-          reportMultipleErrors: reportMultipleErrors,
-          parseJson: parseJson,
-          validateFormats: validateFormats,
-          treatWarningsAsErrors: treatWarningsAsErrors);
-
-  /// Validate [instance] against this schema, returning a list of [ValidationError]
-  /// objects with information about any validation errors that occurred.
-  List<ValidationError> validateWithErrors(dynamic instance,
-      {bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors = false}) {
-    final validator = Validator(this);
-    validator.validate(instance,
-        reportMultipleErrors: true,
-        parseJson: parseJson,
-        validateFormats: validateFormats,
-        treatWarningsAsErrors: treatWarningsAsErrors);
-    return treatWarningsAsErrors ? validator.errorObjects + validator.warningObjects : validator.errorObjects;
-  }
+  /// Validate [instance] against this schema, returning the result
+  /// with information about any validation errors or warnings that occurred.
+  ValidationResults validateWithResults(dynamic instance, {bool parseJson = false, bool validateFormats}) =>
+      Validator(this).validateWithResults(instance,
+          reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
 
   // --------------------------------------------------------------------------
   // JSON Schema Internal Operations
