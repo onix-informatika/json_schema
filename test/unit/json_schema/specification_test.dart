@@ -38,6 +38,7 @@
 
 import 'dart:convert';
 import 'package:json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/validator.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
@@ -101,7 +102,7 @@ void main() {
 
               test(testName, () {
                 final instance = validationTest['data'];
-                List<ValidationError> validationResults;
+                ValidationResults validationResults;
                 final bool expectedResult = validationTest['valid'];
 
                 if (isSync) {
@@ -110,14 +111,14 @@ void main() {
                     schemaVersion: schemaVersion,
                     refProvider: refProvider,
                   );
-                  validationResults = schema.validateWithErrors(instance, validateFormats: validateFormats);
-                  expect(validationResults.isEmpty, expectedResult);
+                  validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                  expect(validationResults.isValid, expectedResult);
                 } else {
                   final checkResultAsync = expectAsync2(checkResult);
                   JsonSchema.createAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
                       .then((schema) {
-                    validationResults = schema.validateWithErrors(instance, validateFormats: validateFormats);
-                    checkResultAsync(validationResults, expectedResult);
+                    validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                    checkResultAsync(validationResults.errors, expectedResult);
                   });
                 }
               });
