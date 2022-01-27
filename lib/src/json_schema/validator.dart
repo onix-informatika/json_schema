@@ -156,8 +156,7 @@ class Validator {
   bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
     return validateWithResults(instance,
             reportMultipleErrors: reportMultipleErrors, parseJson: parseJson, validateFormats: validateFormats)
-        .errors
-        .isEmpty;
+        .isValid;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
