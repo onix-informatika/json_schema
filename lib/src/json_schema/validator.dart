@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/format_exceptions.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -159,9 +158,23 @@ class Validator {
   get evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
 
-  /// Validate the [instance] against the this validator's schema
+  @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
   ValidationResults validateWithResults(dynamic instance,
-      {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
+          {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) =>
+      validate(
+        instance,
+        reportMultipleErrors: reportMultipleErrors,
+        parseJson: parseJson,
+        validateFormats: validateFormats,
+      );
+
+  /// Validate the [instance] against the `Validator`'s `JsonSchema`
+  ValidationResults validate(
+    dynamic instance, {
+    bool reportMultipleErrors = false,
+    bool parseJson = false,
+    bool validateFormats,
+  }) {
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
@@ -397,8 +410,7 @@ class Validator {
     if (schema.contains != null) {
       final maxContains = schema.maxContains;
       final minContains = schema.minContains;
-      final containsItems =
-          instance.data.where((item) => Validator(schema.contains).validateWithResults(item).isValid).toList();
+      final containsItems = instance.data.where((item) => Validator(schema.contains).validate(item).isValid).toList();
       if (minContains is int && containsItems.length < minContains) {
         _err('minContains violated: $instance', instance.path, schema.path);
       }
@@ -432,14 +444,10 @@ class Validator {
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator._(
-      s,
-      inEvaluatedItemsContext: _isInEvaluatedItemContext,
-      inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext,
-      initialDynamicParents: _dynamicParents,
-    );
-
-    var isValid = v.validateWithResults(instance).isValid;
+    var v = Validator._(s,
+        inEvaluatedItemsContext: _isInEvaluatedItemContext,
+        inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext);
+    var isValid = v.validate(instance).isValid;
     if (isValid) {
       _setMaxEvaluatedItemCount(v._evaluatedItemCount);
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
@@ -477,7 +485,7 @@ class Validator {
 
   void _validateNot(JsonSchema schema, Instance instance) {
     if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
-    if (Validator(schema.notSchema).validateWithResults(instance).isValid) {
+    if (Validator(schema.notSchema).validate(instance).isValid) {
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
   }

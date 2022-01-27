@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,9 +57,9 @@ main() async {
   final decimalsArray = [3.14, 1.2, 5.8];
   final strArray = ['hello', 'world'];
 
-  print('$numbersArray => ${schema.validateWithResults(numbersArray)}'); // valid
-  print('$decimalsArray => ${schema.validateWithResults(decimalsArray)}'); // invalid
-  print('$strArray => ${schema.validateWithResults(strArray)}'); // invalid
+  print('$numbersArray => ${schema.validate(numbersArray)}'); // valid
+  print('$decimalsArray => ${schema.validate(decimalsArray)}'); // invalid
+  print('$strArray => ${schema.validate(strArray)}'); // invalid
 
   // Exit the process cleanly (VM Only).
   exit(0);

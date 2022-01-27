@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ main() {
   // Construct the schema from the schema map or JSON string.
   final schema = JsonSchema.create(mustBeIntegerSchemaMap);
 
-  print('$n => ${schema.validateWithResults(n)}'); // valid
-  print('$decimals => ${schema.validateWithResults(decimals)}'); // invalid
-  print('$str => ${schema.validateWithResults(str)}'); // invalid
+  print('$n => ${schema.validate(n)}'); // valid
+  print('$decimals => ${schema.validate(decimals)}'); // invalid
+  print('$str => ${schema.validate(str)}'); // invalid
 }
