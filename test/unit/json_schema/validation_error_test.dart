@@ -427,7 +427,7 @@ void main() {
     test('Unknown format', () {
       final schema = createObjectSchema({'format': 'fake-format'});
 
-      final isValid = schema.validate({'someKey': '3'});
+      final isValid = schema.validateWithResults({'someKey': '3'}).isValid;
 
       expect(isValid, isTrue);
     });

@@ -9,22 +9,28 @@ main() {
       }
     });
 
-    final isValidFormatsOn = schema.validate({'someKey': 'http://example.com/dictionary/{term:1}/{term'});
+    final isValidFormatsOn =
+        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
 
     expect(isValidFormatsOn, isFalse);
 
-    final isValidFormatsOff =
-        schema.validate({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false);
+    final isValidFormatsOff = schema
+        .validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false)
+        .errors
+        .isEmpty;
 
     expect(isValidFormatsOff, isTrue);
 
-    final errorsFormatsOn = schema.validateWithErrors({'someKey': 'http://example.com/dictionary/{term:1}/{term'});
+    final errorsFormatsOn =
+        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
 
-    expect(errorsFormatsOn, isNotEmpty);
+    expect(errorsFormatsOn, isFalse);
 
-    final errorsFormatsOff =
-        schema.validateWithErrors({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false);
+    final errorsFormatsOff = schema
+        .validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false)
+        .errors
+        .isEmpty;
 
-    expect(errorsFormatsOff, isEmpty);
+    expect(errorsFormatsOff, isTrue);
   });
 }

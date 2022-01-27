@@ -63,6 +63,22 @@ class Instance {
   toString() => data.toString();
 }
 
+/// The result of validating data against a schema
+class ValidationResults {
+  ValidationResults(List<ValidationError> errors) : errors = List.of(errors ?? []);
+
+  /// Correctness issues discovered by validation.
+  final List<ValidationError> errors;
+
+  @override
+  String toString() {
+    return isValid ? 'VALID' : 'INVALID, Errors: ${errors}';
+  }
+
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool get isValid => errors.isEmpty;
+}
+
 class ValidationError {
   ValidationError._(this.instancePath, this.schemaPath, this.message);
 
@@ -83,14 +99,17 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
+  @Deprecated('Use validateWithResults and ValidationResults.errors.map((e) => e.toString()).toList() instead')
   List<String> get errors => _errors.map((e) => e.toString()).toList();
 
+  @Deprecated('Use validateWithResults and ValidationResults.errors instead')
   List<ValidationError> get errorObjects => _errors;
 
   bool _validateFormats;
 
   /// Validate the [instance] against the this validator's schema
-  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
+  ValidationResults validateWithResults(dynamic instance,
+      {bool reportMultipleErrors = true, bool parseJson = false, bool validateFormats}) {
     if (validateFormats == null) {
       // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
       if ([SchemaVersion.draft4, SchemaVersion.draft6, SchemaVersion.draft7].contains(_rootSchema.schemaVersion)) {
@@ -117,17 +136,25 @@ class Validator {
     if (!_reportMultipleErrors) {
       try {
         _validate(_rootSchema, data);
-        return true;
+        return ValidationResults(_errors);
       } on FormatException {
-        return false;
+        return ValidationResults(_errors);
       } catch (e) {
         _logger.shout('Unexpected Exception: $e');
-        return false;
+        return null;
       }
     }
 
     _validate(_rootSchema, data);
-    return _errors.isEmpty;
+    return ValidationResults(_errors);
+  }
+
+  /// Validate the [instance] against the this validator's schema
+  @Deprecated('Use validateWithResults instead')
+  bool validate(dynamic instance, {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
+    return validateWithResults(instance,
+            reportMultipleErrors: reportMultipleErrors, parseJson: parseJson, validateFormats: validateFormats)
+        .isValid;
   }
 
   static bool _typeMatch(SchemaType type, JsonSchema schema, dynamic instance) {
@@ -292,14 +319,14 @@ class Validator {
     }
 
     if (schema.contains != null) {
-      if (!instance.data.any((item) => Validator(schema.contains).validate(item))) {
+      if (!instance.data.any((item) => Validator(schema.contains).validateWithResults(item).isValid)) {
         _err('contains violated: $instance', instance.path, schema.path);
       }
     }
   }
 
   void _validateAllOf(JsonSchema schema, Instance instance) {
-    if (!schema.allOf.every((s) => Validator(s).validate(instance))) {
+    if (!schema.allOf.every((s) => Validator(s).validateWithResults(instance).isValid)) {
       _err('${schema.path}: allOf violated ${instance}', instance.path, schema.path + '/allOf');
     }
   }
@@ -321,7 +348,7 @@ class Validator {
   }
 
   void _validateNot(JsonSchema schema, Instance instance) {
-    if (Validator(schema.notSchema).validate(instance)) {
+    if (Validator(schema.notSchema).validateWithResults(instance).isValid) {
       // TODO: deal with .notSchema
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
@@ -512,7 +539,7 @@ class Validator {
   void _schemaDependenciesValidation(JsonSchema schema, Instance instance) {
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
-        if (!Validator(otherSchema).validate(instance)) {
+        if (!Validator(otherSchema).validateWithResults(instance).isValid) {
           _err('prop $k violated schema dependency', instance.path, otherSchema.path);
         }
       }
@@ -589,7 +616,7 @@ class Validator {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
-      if (schema.ifSchema.validate(instance)) {
+      if (schema.ifSchema.validateWithResults(instance).isValid) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
         if (!Validator(schema.thenSchema).validate(instance)) {
