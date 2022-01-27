@@ -10,6 +10,7 @@ final String additionalRemotesDirectory = 'test/additional_remotes';
 final String additionalRemotesOutputFile = 'test/unit/additional_remotes.dart';
 
 final String testsDirectory = 'test/JSON-Schema-Test-Suite/tests';
+final String customTestsDirectory = 'test/custom/valid_schemas';
 final String testsOutputFile = 'test/unit/specification_tests.dart';
 
 /// Generate Dart code containing a Map of JSON files,
@@ -17,7 +18,7 @@ final String testsOutputFile = 'test/unit/specification_tests.dart';
 /// test/JSON-Schema-Test-Suite/remotes and test/additional_remotes directory.
 /// These can be used to avoid using a real HTTP server in tests and mock responses instead.
 bool generateFileMapFromDirectory(
-  String directory,
+  List<String> directories,
   String outputFile, {
   String host = '',
   String variableName = 'files',
@@ -25,8 +26,10 @@ bool generateFileMapFromDirectory(
   List<String> skipFiles = const [],
 }) {
   Map<String, String> schemaFiles = {};
-  for (var file in _jsonFiles(directory)) {
-    schemaFiles[file.path.replaceFirst(directory, host)] = file.readAsStringSync();
+  for (var directory in directories) {
+    for (var file in _jsonFiles(directory)) {
+      schemaFiles[file.path.replaceFirst(directory, host)] = file.readAsStringSync();
+    }
   }
 
   final generatedFile = File(outputFile);
@@ -79,7 +82,7 @@ void main([List<String> args]) {
 
   if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'specification_remotes') {
     final bool didChange = generateFileMapFromDirectory(
-      remotesDirectory,
+      [remotesDirectory],
       remotesOutputFile,
       host: 'http://localhost:1234',
       variableName: 'specificationRemotes',
@@ -94,7 +97,7 @@ void main([List<String> args]) {
 
   if (argsMutableCopy.isEmpty || argsMutableCopy[0] == 'additional_remotes') {
     final bool didChange = generateFileMapFromDirectory(
-      additionalRemotesDirectory,
+      [additionalRemotesDirectory],
       additionalRemotesOutputFile,
       host: 'http://localhost:4321',
       variableName: 'additionalRemotes',
@@ -109,7 +112,7 @@ void main([List<String> args]) {
 
   if (argsMutableCopy.isEmpty || args[0] == 'tests') {
     final bool didChange = generateFileMapFromDirectory(
-      testsDirectory,
+      [testsDirectory, customTestsDirectory],
       testsOutputFile,
       host: '',
       variableName: 'specificationTests',

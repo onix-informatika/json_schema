@@ -78700,5 +78700,28 @@ Map<String, String> specificationTests = {
         ]
     }
 ]
+""",
+  "/draft2019-09/example.json": r"""[
+  {
+    "description": "Simple test that passes",
+    "schema": {
+      "properties": {
+        "foo": {"type":  "string"}
+      }
+    },
+    "tests": [
+      {
+        "description": "passes",
+        "data": {"foo": "string"},
+        "valid": true
+      },
+      {
+        "description": "fails",
+        "data": {"foo": 42},
+        "valid": false
+      }
+    ]
+  }
+]
 """
 };

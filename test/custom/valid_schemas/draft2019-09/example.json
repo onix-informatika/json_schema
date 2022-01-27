@@ -1,0 +1,22 @@
+[
+  {
+    "description": "Simple test that passes",
+    "schema": {
+      "properties": {
+        "foo": {"type":  "string"}
+      }
+    },
+    "tests": [
+      {
+        "description": "passes",
+        "data": {"foo": "string"},
+        "valid": true
+      },
+      {
+        "description": "fails",
+        "data": {"foo": 42},
+        "valid": false
+      }
+    ]
+  }
+]
