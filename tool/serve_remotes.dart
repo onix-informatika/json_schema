@@ -1,7 +1,8 @@
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
-import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:shelf_static/shelf_static.dart';
+
+import 'cors_headers.dart';
 
 main() {
   // Serve remotes for ref tests.
