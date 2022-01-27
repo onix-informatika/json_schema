@@ -14,3 +14,5 @@ build/
 coverage
 pubspec.lock
 
+.tool-versions
+asdf-dart.uUid

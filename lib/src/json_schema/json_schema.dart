@@ -848,6 +848,9 @@ class JsonSchema {
 
   Map<String, JsonSchema> _schemaDependencies = {};
 
+  /// [JsonSchema] that unevaluated properties must conform to.
+  JsonSchema _unevaluatedProperties;
+
   /// The maximum number of properties allowed.
   int _maxProperties;
 
@@ -1008,7 +1011,7 @@ class JsonSchema {
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
       'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
-      'unevaluatedProperties': (JsonSchema s, dynamic v) => null, // TODO: implement
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
 
       // Added or changed in draft2019_09: Applicator Vocabulary
       'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
@@ -1425,6 +1428,11 @@ class JsonSchema {
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.20
   JsonSchema get additionalPropertiesSchema => _additionalPropertiesSchema;
 
+  /// [JsonSchema] that unevaluated properties must conform to.
+  ///
+  /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.2.4
+  JsonSchema get unevaluatedProperties => _unevaluatedProperties;
+
   /// [JsonSchema] definition that at least one item must match to be valid.
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.14
@@ -1541,31 +1549,11 @@ class JsonSchema {
   /// Whether the [JsonSchema] is required on its parent.
   bool get requiredOnParent => _parent?.propertyRequired(propertyName) ?? false;
 
-  /// Validate [instance] against this schema, returning a boolean indicating whether
-  /// validation succeeded or failed.
-  bool validate(dynamic instance,
-          {bool reportMultipleErrors = false,
-          bool parseJson = false,
-          bool validateFormats,
-          bool treatWarningsAsErrors = false}) =>
-      Validator(this).validate(instance,
-          reportMultipleErrors: reportMultipleErrors,
-          parseJson: parseJson,
-          validateFormats: validateFormats,
-          treatWarningsAsErrors: treatWarningsAsErrors);
-
-  /// Validate [instance] against this schema, returning a list of [ValidationError]
-  /// objects with information about any validation errors that occurred.
-  List<ValidationError> validateWithErrors(dynamic instance,
-      {bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors = false}) {
-    final validator = Validator(this);
-    validator.validate(instance,
-        reportMultipleErrors: true,
-        parseJson: parseJson,
-        validateFormats: validateFormats,
-        treatWarningsAsErrors: treatWarningsAsErrors);
-    return treatWarningsAsErrors ? validator.errorObjects + validator.warningObjects : validator.errorObjects;
-  }
+  /// Validate [instance] against this schema, returning the result
+  /// with information about any validation errors or warnings that occurred.
+  ValidationResults validateWithResults(dynamic instance, {bool parseJson = false, bool validateFormats}) =>
+      Validator(this).validateWithResults(instance,
+          reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
 
   // --------------------------------------------------------------------------
   // JSON Schema Internal Operations
@@ -1966,6 +1954,11 @@ class JsonSchema {
     } else {
       throw FormatExceptions.error('additionalProperties must be a bool or valid schema object: $value');
     }
+  }
+
+  /// Validate, calculate and set the value of the 'unevaluatedProperties' JSON Schema keyword.
+  _setUnevaluatedProperties(dynamic value) {
+    _createOrRetrieveSchema('$_path/unevaluatedProperties', value, (rhs) => _unevaluatedProperties = rhs);
   }
 
   /// Validate, calculate and set the value of the 'dependencies' JSON Schema keyword.

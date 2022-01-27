@@ -63,6 +63,33 @@ class Instance {
 
   @override
   toString() => data.toString();
+
+  @override
+  bool operator ==(Object other) => other is Instance && this.path == other.path;
+
+  @override
+  int get hashCode => this.path.hashCode;
+}
+
+/// The result of validating data against a schema
+class ValidationResults {
+  ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
+      : errors = List.of(errors ?? []),
+        warnings = List.of(errors ?? []);
+
+  /// Correctness issues discovered by validation.
+  final List<ValidationError> errors;
+
+  /// Possible issues discovered by validation.
+  final List<ValidationError> warnings;
+
+  @override
+  String toString() {
+    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}${warnings.isEmpty ? ', Warnings: ${warnings}' : ''}';
+  }
+
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool get isValid => errors.isEmpty;
 }
 
 class ValidationError {
@@ -85,23 +112,18 @@ class ValidationError {
 class Validator {
   Validator(this._rootSchema);
 
-  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false}) {
+  /// A private constructor for recursive validations.
+  /// [inEvaluatedItemsContext] and [inEvaluatedPropertiesContext] are used to pass in the parents context state.
+  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false, bool inEvaluatedPropertiesContext = false}) {
     if (inEvaluatedItemsContext) {
       _pushEvaluatedItemsContext();
     }
+    if (inEvaluatedPropertiesContext) {
+      _pushEvaluatedPropertiesContext();
+    }
   }
 
-  List<String> get errors => _errors.map((e) => e.toString()).toList();
-
-  List<String> get warnings => _warnings.map((e) => e.toString()).toList();
-
-  List<ValidationError> get errorObjects => _errors;
-
-  List<ValidationError> get warningObjects => _warnings;
-
   bool _validateFormats;
-
-  bool _treatWarningsAsErrors;
 
   /// The set of vocabularies (from the schema's metaschema) to be used for validation
   Set<Uri> _vocabulary;
@@ -111,17 +133,21 @@ class Validator {
   /// given context.
   List<int> _evaluatedItemsContext = [];
 
+  /// Keep track of the evaluated properties contexts in a list, treating the list as a stack.
+  /// The context is a [Set] of [Instance], keeping track of the instances that have been evaluated
+  /// in a given context.
+  List<Set<Instance>> _evaluatedPropertiesContext = [];
+
+  get evaluatedProperties =>
+      _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
+
   /// Validate the [instance] against the this validator's schema
-  bool validate(dynamic instance,
-      {bool reportMultipleErrors = false,
-      bool parseJson = false,
-      bool validateFormats,
-      bool treatWarningsAsErrors = false}) {
+  ValidationResults validateWithResults(dynamic instance,
+      {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) {
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
-    _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -139,17 +165,17 @@ class Validator {
     if (!_reportMultipleErrors) {
       try {
         _validate(_rootSchema, data);
-        return true;
+        return ValidationResults(_errors, _warnings);
       } on FormatException {
-        return false;
+        return ValidationResults(_errors, _warnings);
       } catch (e) {
         _logger.shout('Unexpected Exception: $e');
-        return false;
+        return null;
       }
     }
 
     _validate(_rootSchema, data);
-    return _errors.isEmpty && (!treatWarningsAsErrors || _warnings.isEmpty);
+    return ValidationResults(_errors, _warnings);
   }
 
   Set<Uri> getVocabulary(JsonSchema s) {
@@ -161,7 +187,7 @@ class Validator {
       vocab?.forEach((uri, isRequired) {
         if (!SupportedVocabularies.ALL.contains(uri)) {
           if (isRequired) {
-            throw ArgumentError('unsupported vocabulary required for validation', '$uri');
+            throw ArgumentError('unsupported vocabulary required for validation: $uri');
           } else {
             _warn('unsupported optional vocabulary in use: $uri', '', r'$schema');
           }
@@ -353,7 +379,8 @@ class Validator {
     if (schema.contains != null) {
       final maxContains = schema.maxContains;
       final minContains = schema.minContains;
-      final containsItems = instance.data.where((item) => Validator(schema.contains).validate(item)).toList();
+      final containsItems =
+          instance.data.where((item) => Validator(schema.contains).validateWithResults(item).isValid).toList();
       if (minContains is int && containsItems.length < minContains) {
         _err('minContains violated: $instance', instance.path, schema.path);
       }
@@ -387,10 +414,14 @@ class Validator {
 
   /// Helper function to capture the number of evaluatedItems and update the local count.
   bool _validateAndCaptureEvaluations(JsonSchema s, Instance instance) {
-    var v = Validator._(s, inEvaluatedItemsContext: _isInEvaluatedItemContext);
-    var isValid = v.validate(instance);
+    var v = Validator._(s,
+        inEvaluatedItemsContext: _isInEvaluatedItemContext,
+        inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext);
+    var isValid = v.validateWithResults(instance).isValid;
     if (isValid) {
       _setMaxEvaluatedItemCount(v._evaluatedItemCount);
+
+      v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
     }
     return isValid;
   }
@@ -425,7 +456,7 @@ class Validator {
 
   void _validateNot(JsonSchema schema, Instance instance) {
     if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR)) return;
-    if (Validator(schema.notSchema).validate(instance)) {
+    if (Validator(schema.notSchema).validateWithResults(instance).isValid) {
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
   }
@@ -623,7 +654,11 @@ class Validator {
           _validate(schema.additionalPropertiesSchema, newInstance);
         } else if (propMustValidate) {
           _err('unallowed additional property $k', instance.path, schema.path + '/additionalProperties');
+        } else if (schema.additionalPropertiesBool == true) {
+          _addEvaluatedProp(newInstance);
         }
+      } else {
+        _addEvaluatedProp(newInstance);
       }
     });
   }
@@ -634,6 +669,8 @@ class Validator {
       if (instance.data.containsKey(k)) {
         if (!dependencies.every((prop) => instance.data.containsKey(prop))) {
           _err('prop $k => $dependencies required', instance.path, schema.path + '/dependencies');
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -644,8 +681,10 @@ class Validator {
 
     schema.schemaDependencies.forEach((k, otherSchema) {
       if (instance.data.containsKey(k)) {
-        if (!Validator(otherSchema).validate(instance)) {
+        if (!_validateAndCaptureEvaluations(otherSchema, instance)) {
           _err('prop $k violated schema dependency', instance.path, otherSchema.path);
+        } else {
+          _addEvaluatedProp(instance);
         }
       }
     });
@@ -682,6 +721,22 @@ class Validator {
     if (schema.propertyDependencies != null) _propertyDependenciesValidation(schema, instance);
 
     if (schema.schemaDependencies != null) _schemaDependenciesValidation(schema, instance);
+
+    if (schema.unevaluatedProperties != null) {
+      if (schema.unevaluatedProperties.schemaBool == true) {
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          _addEvaluatedProp(i);
+        });
+      } else {
+        instance.data.forEach((k, v) {
+          var i = Instance(v, path: '${instance.path}/$k');
+          if (!this.evaluatedProperties.contains(i)) {
+            _validate(schema.unevaluatedProperties, i);
+          }
+        });
+      }
+    }
   }
 
   void _validate(JsonSchema schema, dynamic instance) {
@@ -706,6 +761,9 @@ class Validator {
 
     if (schema.unevaluatedItems != null) {
       _pushEvaluatedItemsContext();
+    }
+    if (schema.unevaluatedProperties != null) {
+      _pushEvaluatedPropertiesContext();
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
@@ -736,6 +794,9 @@ class Validator {
     if (schema.unevaluatedItems != null) {
       _popEvaluatedItemsContext();
     }
+    if (schema.unevaluatedProperties != null) {
+      _popEvaluatedPropertiesContext();
+    }
   }
 
   bool _ifThenElseValidation(JsonSchema schema, Instance instance) {
@@ -744,7 +805,7 @@ class Validator {
       // Bail out early if no 'then' or 'else' schemas exist.
       if (schema.thenSchema == null && schema.elseSchema == null) return true;
 
-      if (schema.ifSchema.validate(instance)) {
+      if (_validateAndCaptureEvaluations(schema.ifSchema, instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
         if (!_validateAndCaptureEvaluations(schema.thenSchema, instance)) {
@@ -773,10 +834,8 @@ class Validator {
   }
 
   _popEvaluatedItemsContext() {
-    if (_evaluatedItemsContext.isNotEmpty) {
-      var last = _evaluatedItemsContext.removeLast();
-      _setMaxEvaluatedItemCount(last);
-    }
+    var last = _evaluatedItemsContext.removeLast();
+    _setMaxEvaluatedItemCount(last);
   }
 
   bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
@@ -795,6 +854,30 @@ class Validator {
 
   int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull;
 
+  //////
+  // Helper functions to deal with unevaluatedProperties.
+  //////
+
+  _pushEvaluatedPropertiesContext() {
+    _evaluatedPropertiesContext.add(Set<Instance>());
+  }
+
+  _popEvaluatedPropertiesContext() {
+    var last = _evaluatedPropertiesContext.removeLast();
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      _evaluatedPropertiesContext.last.addAll(last);
+    }
+  }
+
+  bool get _isInEvaluatedPropertiesContext => _evaluatedPropertiesContext.isNotEmpty;
+
+  _addEvaluatedProp(Instance i) {
+    if (_evaluatedPropertiesContext.isNotEmpty) {
+      var context = _evaluatedPropertiesContext.last;
+      context.add(i);
+    }
+  }
+
   void _err(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');
     _errors.add(ValidationError._(instancePath, schemaPath, msg));
@@ -804,7 +887,6 @@ class Validator {
   void _warn(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');
     _warnings.add(ValidationError._(instancePath, schemaPath, msg));
-    if (!_reportMultipleErrors && _treatWarningsAsErrors) throw FormatException(msg);
   }
 
   JsonSchema _rootSchema;

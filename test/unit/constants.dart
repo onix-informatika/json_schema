@@ -284,9 +284,6 @@ final List<String> commonSkippedTests = []
   ..addAll(skippedUUIDTests);
 
 final List<String> draft2019SkippedTestFiles = [
-  // WIP
-  "unevaluatedProperties.json",
-
   // As of Draft 2019, format validation becomes an opt-in option.
   // We *do* run the optional format test files below, but they appear
   // on this skip list because they are skipped when we are running not configured
