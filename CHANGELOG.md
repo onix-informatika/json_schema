@@ -1,3 +1,13 @@
+## 3.2.0
+
+- Add `Validator.validateWithResults` (This new method gives the most complete and customizable validation results)
+- Add `JsonSchema.validateWithResults`
+- Deprecate `JsonSchema.validate`
+- Deprecate `Validator.validate`
+- Deprecate `JsonSchema.validateWithErrors`
+- Deprecate `Validator.errors`
+- Deprecate `Validator.errorObjects`
+
 ## 3.1.0
 
 * Remove the need for separate browser and VM imports
