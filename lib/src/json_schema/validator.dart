@@ -65,12 +65,10 @@ class Instance {
 
 /// The result of validating data against a schema
 class ValidationResults {
-  ValidationResults(List<ValidationError> errors) {
-    this.errors = List.of(errors ?? []);
-  }
+  ValidationResults(List<ValidationError> errors) : errors = List.of(errors ?? []);
 
   /// Correctness issues discovered by validation.
-  List<ValidationError> errors;
+  final List<ValidationError> errors;
 
   @override
   String toString() {
