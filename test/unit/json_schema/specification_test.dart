@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -111,13 +111,13 @@ void main() {
                     schemaVersion: schemaVersion,
                     refProvider: refProvider,
                   );
-                  validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                  validationResults = schema.validate(instance, validateFormats: validateFormats);
                   expect(validationResults.isValid, expectedResult);
                 } else {
                   final checkResultAsync = expectAsync2(checkResult);
                   JsonSchema.createAsync(schemaData, schemaVersion: schemaVersion, refProvider: refProvider)
                       .then((schema) {
-                    validationResults = schema.validateWithResults(instance, validateFormats: validateFormats);
+                    validationResults = schema.validate(instance, validateFormats: validateFormats);
                     checkResultAsync(validationResults.errors, expectedResult);
                   });
                 }
@@ -134,27 +134,10 @@ void main() {
     return json.decode(specificationRemotes[ref]);
   });
 
-  // ignore: deprecated_member_use_from_same_package
-  final RefProvider deprecatedSyncRefSchemaProvider = RefProvider.syncSchema((String ref) {
-    final schemaDef = syncRefProvider.provide(ref);
-    if (schemaDef != null) {
-      return JsonSchema.create(schemaDef);
-    }
-
-    return null;
-  });
-
   final RefProvider asyncRefProvider = RefProvider.async((String ref) async {
     // Mock a delayed response.
     await Future.delayed(Duration(microseconds: 1));
     return syncRefProvider.provide(ref);
-  });
-
-  // ignore: deprecated_member_use_from_same_package
-  final RefProvider deprecatedAsyncRefSchemaProvider = RefProvider.asyncSchema((String ref) async {
-    // Mock a delayed response.
-    await Future.delayed(Duration(microseconds: 1));
-    return deprecatedSyncRefSchemaProvider.provide(ref);
   });
 
   //Run all tests asynchronously with no ref provider.
@@ -188,32 +171,6 @@ void main() {
     draft2019FormatSkippedTestFiles,
     commonSkippedTests,
     validateFormats: true,
-  );
-
-  // Run all tests synchronously with a sync ref provider.
-  runAllTestsForDraftX(
-    SchemaVersion.draft4,
-    allDraft4,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    isSync: true,
-    refProvider: deprecatedSyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft6,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    isSync: true,
-    refProvider: deprecatedSyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft7,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    isSync: true,
-    refProvider: deprecatedSyncRefSchemaProvider,
   );
 
   // Run all tests synchronously with a sync json provider.
@@ -265,36 +222,6 @@ void main() {
     isSync: true,
     refProvider: syncRefProvider,
     validateFormats: true,
-  );
-
-  // Run all tests asynchronously with an async ref provider.
-  runAllTestsForDraftX(
-    SchemaVersion.draft4,
-    allDraft4,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft6,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft7,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: deprecatedAsyncRefSchemaProvider,
   );
 
   // Run all tests asynchronously with an async json provider.
