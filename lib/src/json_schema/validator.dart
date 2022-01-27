@@ -945,10 +945,6 @@ class Validator {
     return oldParent;
   }
 
-  _removeDynamicParent(JsonSchema child) {
-    _dynamicParents.remove(child);
-  }
-
   void _err(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');
     _errors.add(ValidationError._(instancePath, schemaPath, msg));
