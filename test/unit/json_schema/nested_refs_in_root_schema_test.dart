@@ -120,8 +120,7 @@ main() {
             }
           ]
         })
-        .errors
-        .isEmpty;
+        .isValid;
 
     expect(isValid, isTrue);
     expect(isInvalid, isFalse);
