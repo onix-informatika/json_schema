@@ -47,7 +47,7 @@ import 'package:test/test.dart';
 import 'package:json_schema/json_schema.dart';
 
 void main() {
-  final Directory testSuiteFolder = Directory('./test/invalid_schemas/draft4');
+  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
 
   testSuiteFolder.listSync().forEach((testEntry) {
     final String shortName = path.basename(testEntry.path);
