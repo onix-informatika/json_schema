@@ -77,9 +77,7 @@ class SchemaNode {
   }
 
   String get node {
-    final data = ['"${schema.path}" [']
-      ..add(label.join('\n'))
-      ..add(']');
+    final data = ['"${schema.path}" [']..add(label.join('\n'))..add(']');
     return data.join('\n');
   }
 
