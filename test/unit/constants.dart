@@ -308,11 +308,4 @@ final List<String> draft2019SkippedTestFiles = [
   "uuid.json",
 ]..addAll(commonSkippedTestFiles);
 
-final List<String> draft2019SkippedTests = [
-  // Requires unevaluatedProperties support
-  'ref creates new scope when adjacent to keywords : referenced subschema doesn\'t see annotations from properties',
-  'unevaluatedItems with \$ref : with no unevaluated items',
-  'unevaluatedItems with \$ref : with unevaluated items',
-]..addAll(commonSkippedTests);
-
 final List<String> draft2019FormatSkippedTestFiles = [];

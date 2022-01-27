@@ -2046,33 +2046,4 @@ class JsonSchema {
       throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
     }
   }
-
-  /// Mixin another JsonSchema into this one. All references must be resolved before calling.
-  mixinForRef(JsonSchema ref) {
-    this._schemaMap.remove(r'$ref');
-    this._ref = null;
-
-    // $vocabulary is not inheritable through a $ref
-    // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2.2
-    final toMerge = Map<String, dynamic>.from(ref._schemaMap);
-    toMerge.remove(r'$vocabulary');
-    // The specification might be ambiguous on how to merge references into the current node. This is our best guess.
-    this._schemaMap.deepMerge(toMerge);
-
-    this._validateAndSetAllProperties();
-  }
-
-  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
-  /// or null of there is no recursiveAnchor found.
-  JsonSchema furthestRecursiveAnchorParent() {
-    JsonSchema lastFound = this.recursiveAnchor ? this : null;
-    var possibleAnchor = this._parent;
-    while (possibleAnchor != null) {
-      if (possibleAnchor.recursiveAnchor) {
-        lastFound = possibleAnchor;
-      }
-      possibleAnchor = possibleAnchor._parent;
-    }
-    return lastFound;
-  }
 }

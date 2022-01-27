@@ -113,12 +113,18 @@ class Validator {
 
   /// A private constructor for recursive validations.
   /// [inEvaluatedItemsContext] and [inEvaluatedPropertiesContext] are used to pass in the parents context state.
-  Validator._(this._rootSchema, {bool inEvaluatedItemsContext = false, bool inEvaluatedPropertiesContext = false}) {
+  Validator._(this._rootSchema,
+      {bool inEvaluatedItemsContext = false,
+      bool inEvaluatedPropertiesContext = false,
+      Map<JsonSchema, JsonSchema> initialDynamicParents}) {
     if (inEvaluatedItemsContext) {
       _pushEvaluatedItemsContext();
     }
     if (inEvaluatedPropertiesContext) {
       _pushEvaluatedPropertiesContext();
+    }
+    if (initialDynamicParents != null) {
+      _dynamicParents.addAll(initialDynamicParents);
     }
   }
 
@@ -136,6 +142,18 @@ class Validator {
   /// The context is a [Set] of [Instance], keeping track of the instances that have been evaluated
   /// in a given context.
   List<Set<Instance>> _evaluatedPropertiesContext = [];
+
+  /// Lexical and dynamic scopes align until a reference keyword is encountered.
+  /// While following the reference keyword moves processing from one lexical scope into a different one,
+  /// from the perspective of dynamic scope, following reference is no different from descending into a
+  /// subschema present as a value. A keyword on the far side of that reference that resolves information
+  /// through the dynamic scope will consider the originating side of the reference to be their dynamic parent,
+  /// rather than examining the local lexically enclosing parent.
+  ///
+  /// https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.7.1
+  ///
+  /// This Map keeps track of schemas when a reference is resolved.
+  Map<JsonSchema, JsonSchema> _dynamicParents = Map();
 
   get evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
@@ -432,7 +450,6 @@ class Validator {
     var isValid = v.validate(instance).isValid;
     if (isValid) {
       _setMaxEvaluatedItemCount(v._evaluatedItemCount);
-
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
     }
     return isValid;
@@ -751,24 +768,23 @@ class Validator {
     }
   }
 
+  /// Find the furthest away parent [JsonSchema] the that is a recursive anchor
+  /// or null of there is no recursiveAnchor found.
+  JsonSchema _findAnchorParent(JsonSchema schema) {
+    JsonSchema lastFound = schema.recursiveAnchor ? schema : null;
+    var possibleAnchor = _dynamicParents[schema] ?? schema.parent;
+    while (possibleAnchor != null) {
+      if (possibleAnchor.recursiveAnchor) {
+        lastFound = possibleAnchor;
+      }
+      possibleAnchor = _dynamicParents[possibleAnchor] ?? possibleAnchor.parent;
+    }
+    return lastFound;
+  }
+
   void _validate(JsonSchema schema, dynamic instance) {
     if (instance is! Instance) {
       instance = Instance(instance);
-    }
-
-    /// If the [JsonSchema] being validated is a ref, pull the ref
-    /// from the [refMap] instead.
-    while (schema.ref != null || schema.recursiveRef != null) {
-      var nextSchema = schema.resolvePath(schema.ref ?? schema.recursiveRef);
-      if (schema.recursiveRef != null && nextSchema.recursiveAnchor == true) {
-        schema = nextSchema.furthestRecursiveAnchorParent();
-      } else if (schema.schemaVersion == SchemaVersion.draft2019_09 &&
-          schema.schemaMap.length > 1 &&
-          nextSchema.schemaBool == null) {
-        schema.mixinForRef(nextSchema);
-      } else {
-        schema = nextSchema;
-      }
     }
 
     if (schema.unevaluatedItems != null) {
@@ -776,6 +792,35 @@ class Validator {
     }
     if (schema.unevaluatedProperties != null) {
       _pushEvaluatedPropertiesContext();
+    }
+
+    /// If the [JsonSchema] being validated is a ref, pull the ref
+    /// from the [refMap] instead.
+    if (schema.ref != null) {
+      var nextSchema = schema.resolvePath(schema.ref);
+      final prevParent = _setDynamicParent(nextSchema, schema);
+      _validate(nextSchema, instance);
+      _setDynamicParent(nextSchema, prevParent);
+      if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+        return;
+      }
+    }
+
+    /// If the [JsonSchema] being validated is a recursiveRef, pull the ref
+    /// from the [refMap] instead.
+    if (schema.recursiveRef != null) {
+      var nextSchema = schema.resolvePath(schema.recursiveRef);
+      if (nextSchema.recursiveAnchor == true) {
+        nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
+        _validate(nextSchema, instance);
+      } else {
+        final prevParent = _setDynamicParent(nextSchema, schema);
+        _validate(nextSchema, instance);
+        _setDynamicParent(nextSchema, prevParent);
+        if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+          return;
+        }
+      }
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
@@ -888,6 +933,16 @@ class Validator {
       var context = _evaluatedPropertiesContext.last;
       context.add(i);
     }
+  }
+
+  JsonSchema _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
+    final oldParent = _dynamicParents.remove(child);
+    if (dynamicParent != null) {
+      _dynamicParents[child] = dynamicParent;
+    } else {
+      _dynamicParents.remove(child);
+    }
+    return oldParent;
   }
 
   void _err(String msg, String instancePath, String schemaPath) {
