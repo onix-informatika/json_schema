@@ -907,6 +907,7 @@ class JsonSchema {
     'definitions': (JsonSchema s) => s.definitions,
     'properties': (JsonSchema s) => s.properties,
     'items': (JsonSchema s) => s.items ?? s.itemsList,
+    'prefixItems': (JsonSchema s) => s.prefixItems,
   };
 
   /// Shared keywords across all versions of JSON Schema.
