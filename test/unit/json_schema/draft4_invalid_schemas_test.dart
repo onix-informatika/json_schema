@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ import 'package:test/test.dart';
 import 'package:json_schema/json_schema.dart';
 
 void main() {
-  final Directory testSuiteFolder = Directory('./test/invalid_schemas/draft4');
+  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
 
   testSuiteFolder.listSync().forEach((testEntry) {
     final String shortName = path.basename(testEntry.path);

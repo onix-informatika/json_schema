@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,9 +51,9 @@ main() async {
   final decimals = 3.14;
   final str = 'hi';
 
-  print('$n => ${schema.validate(n)}'); // true
-  print('$decimals => ${schema.validate(decimals)}'); // false
-  print('$str => ${schema.validate(str)}'); // false
+  print('$n => ${schema.validate(n)}'); // valid
+  print('$decimals => ${schema.validate(decimals)}'); // invalid
+  print('$str => ${schema.validate(str)}'); // invalid
 
   // Exit the process cleanly (VM Only).
   exit(0);

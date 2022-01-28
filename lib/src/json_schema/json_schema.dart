@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -140,15 +140,6 @@ class JsonSchema {
         'Data provided to createAsync is not valid: Data must be, or parse to a Map (or bool in draft6 or later). | $data');
   }
 
-  @Deprecated('Use JsonSchema.createAsync instead')
-  static Future<JsonSchema> createSchemaAsync(
-    dynamic schema, {
-    SchemaVersion schemaVersion,
-    Uri fetchedFromUri,
-    RefProvider refProvider,
-  }) =>
-      createAsync(schema, schemaVersion: schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider);
-
   /// Create a schema from JSON [data].
   ///
   /// This method is synchronous, and doesn't support fetching of remote references, properties, and sub-properties of the
@@ -201,15 +192,6 @@ class JsonSchema {
         'Data provided to JsonSchema.create is not valid: Data must be a Map or a String that parses to a Map (or bool in draft6 or later). | $data');
   }
 
-  @Deprecated('Use JsonSchema.create instead')
-  static JsonSchema createSchema(
-    dynamic schema, {
-    SchemaVersion schemaVersion,
-    Uri fetchedFromUri,
-    RefProvider refProvider,
-  }) =>
-      create(schema, schemaVersion: schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider);
-
   /// Create a schema from a URL.
   ///
   /// This method is asyncronous to support automatic fetching of sub-[JsonSchema]s for items,
@@ -217,10 +199,6 @@ class JsonSchema {
   static Future<JsonSchema> createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) {
     return createClient()?.createFromUrl(schemaUrl, schemaVersion: schemaVersion);
   }
-
-  @Deprecated('Use JsonSchema.createFromUrl instead.')
-  static Future<JsonSchema> createSchemaFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) =>
-      createFromUrl(schemaUrl, schemaVersion: schemaVersion);
 
   /// Construct and validate a JsonSchema.
   _initialize({
@@ -1498,18 +1476,6 @@ class JsonSchema {
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.21
   Map<String, List<String>> get propertyDependencies => _propertyDependencies;
 
-  /// Map of sub-properties' and references' [JsonSchema]s by path.
-  ///
-  /// Note: This is useful for drawing dependency graphs, etc, but should not be used for general
-  /// validation or traversal. Use [endPath] to get the absolute [String] path and [resolvePath]
-  /// to get the [JsonSchema] at any path, instead.
-  @Deprecated('''
-    Note: This information is useful for drawing dependency graphs, etc, but should not be used for general
-    validation or traversal. Use [endPath] to get the absolute [String] path and [resolvePath]
-    to get the [JsonSchema] at any path, instead.
-  ''')
-  Map<String, JsonSchema> get refMap => _refMap;
-
   /// Properties that must be inclueded for the [JsonSchema] to be valid.
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.17
@@ -1601,31 +1567,15 @@ class JsonSchema {
   /// Whether the [JsonSchema] is required on its parent.
   bool get requiredOnParent => _parent?.propertyRequired(propertyName) ?? false;
 
-  /// Validate [instance] against this schema, returning a boolean indicating whether
-  /// validation succeeded or failed.
-  bool validate(dynamic instance,
-          {bool reportMultipleErrors = false,
-          bool parseJson = false,
-          bool validateFormats,
-          bool treatWarningsAsErrors = false}) =>
-      Validator(this).validate(instance,
-          reportMultipleErrors: reportMultipleErrors,
-          parseJson: parseJson,
-          validateFormats: validateFormats,
-          treatWarningsAsErrors: treatWarningsAsErrors);
+  @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
+  ValidationResults validateWithResults(dynamic instance, {bool parseJson = false, bool validateFormats}) =>
+      Validator(this)
+          .validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
 
-  /// Validate [instance] against this schema, returning a list of [ValidationError]
-  /// objects with information about any validation errors that occurred.
-  List<ValidationError> validateWithErrors(dynamic instance,
-      {bool parseJson = false, bool validateFormats, bool treatWarningsAsErrors = false}) {
-    final validator = Validator(this);
-    validator.validate(instance,
-        reportMultipleErrors: true,
-        parseJson: parseJson,
-        validateFormats: validateFormats,
-        treatWarningsAsErrors: treatWarningsAsErrors);
-    return treatWarningsAsErrors ? validator.errorObjects + validator.warningObjects : validator.errorObjects;
-  }
+  /// Validate [instance] against this schema, returning the result
+  /// with information about any validation errors or warnings that occurred.
+  ValidationResults validate(dynamic instance, {bool parseJson = false, bool validateFormats}) => Validator(this)
+      .validate(instance, reportMultipleErrors: true, parseJson: parseJson, validateFormats: validateFormats);
 
   // --------------------------------------------------------------------------
   // JSON Schema Internal Operations

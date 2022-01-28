@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,8 +57,8 @@ main() async {
     'longitude': 7836,
   };
 
-  print('$workivaAmes => ${schema.validate(workivaAmes)}'); // true
-  print('$nowhereville => ${schema.validate(nowhereville)}'); // false
+  print('$workivaAmes => ${schema.validate(workivaAmes)}'); // valid
+  print('$nowhereville => ${schema.validate(nowhereville)}'); // invalid
 
   // Exit the process cleanly (VM Only).
   exit(0);

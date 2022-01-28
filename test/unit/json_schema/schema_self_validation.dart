@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ void main() {
         // that the schema satisfies the schema for schemas.
         final url = version;
         JsonSchema.createFromUrl(url).then(expectAsync1((schema) {
-          expect(schema.validate(schema.schemaMap), isTrue);
+          expect(schema.validate(schema.schemaMap).isValid, isTrue);
         }));
       });
     }

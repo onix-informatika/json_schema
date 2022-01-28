@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/format_exceptions.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -69,6 +68,27 @@ class Instance {
 
   @override
   int get hashCode => this.path.hashCode;
+}
+
+/// The result of validating data against a schema
+class ValidationResults {
+  ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
+      : errors = List.of(errors ?? []),
+        warnings = List.of(errors ?? []);
+
+  /// Correctness issues discovered by validation.
+  final List<ValidationError> errors;
+
+  /// Possible issues discovered by validation.
+  final List<ValidationError> warnings;
+
+  @override
+  String toString() {
+    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}${warnings.isEmpty ? ', Warnings: ${warnings}' : ''}';
+  }
+
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool get isValid => errors.isEmpty;
 }
 
 class ValidationError {
@@ -108,17 +128,7 @@ class Validator {
     }
   }
 
-  List<String> get errors => _errors.map((e) => e.toString()).toList();
-
-  List<String> get warnings => _warnings.map((e) => e.toString()).toList();
-
-  List<ValidationError> get errorObjects => _errors;
-
-  List<ValidationError> get warningObjects => _warnings;
-
   bool _validateFormats;
-
-  bool _treatWarningsAsErrors;
 
   /// The set of vocabularies (from the schema's metaschema) to be used for validation
   Set<Uri> _vocabulary;
@@ -148,17 +158,28 @@ class Validator {
   get evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
 
-  /// Validate the [instance] against the this validator's schema
-  bool validate(dynamic instance,
-      {bool reportMultipleErrors = false,
-      bool parseJson = false,
-      bool validateFormats,
-      bool treatWarningsAsErrors = false}) {
+  @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
+  ValidationResults validateWithResults(dynamic instance,
+          {bool reportMultipleErrors = false, bool parseJson = false, bool validateFormats}) =>
+      validate(
+        instance,
+        reportMultipleErrors: reportMultipleErrors,
+        parseJson: parseJson,
+        validateFormats: validateFormats,
+      );
+
+  /// Validate the [instance] against the `Validator`'s `JsonSchema`
+  ValidationResults validate(
+    dynamic instance, {
+    bool reportMultipleErrors = false,
+    bool parseJson = false,
+    bool validateFormats,
+  }) {
     // Reference: https://json-schema.org/draft/2019-09/release-notes.html#format-vocabulary
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
-    _treatWarningsAsErrors = treatWarningsAsErrors;
+    // _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -176,17 +197,17 @@ class Validator {
     if (!_reportMultipleErrors) {
       try {
         _validate(_rootSchema, data);
-        return true;
+        return ValidationResults(_errors, _warnings);
       } on FormatException {
-        return false;
+        return ValidationResults(_errors, _warnings);
       } catch (e) {
         _logger.shout('Unexpected Exception: $e');
-        return false;
+        return null;
       }
     }
 
     _validate(_rootSchema, data);
-    return _errors.isEmpty && (!treatWarningsAsErrors || _warnings.isEmpty);
+    return ValidationResults(_errors, _warnings);
   }
 
   Set<Uri> getVocabulary(JsonSchema s) {
@@ -199,7 +220,7 @@ class Validator {
       vocab?.forEach((uri, isRequired) {
         if (!SupportedVocabularies.allFor(schemaVersion).contains(uri)) {
           if (isRequired) {
-            throw ArgumentError('unsupported vocabulary required for validation', '$uri');
+            throw ArgumentError('unsupported vocabulary required for validation: $uri');
           } else {
             _warn('unsupported optional vocabulary in use: $uri', '', r'$schema');
           }
@@ -479,9 +500,8 @@ class Validator {
       inEvaluatedPropertiesContext: _isInEvaluatedPropertiesContext,
       initialDynamicParents: _dynamicParents,
     );
-    var isValid = v.validate(instance);
+    var isValid = v.validate(instance).isValid;
     if (isValid) {
-      // _setMaxEvaluatedItemCount(v._evaluatedItemCount);
       _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
       v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
     }
@@ -522,7 +542,7 @@ class Validator {
   void _validateNot(JsonSchema schema, Instance instance) {
     if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
         !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return;
-    if (Validator(schema.notSchema).validate(instance)) {
+    if (Validator(schema.notSchema).validate(instance).isValid) {
       _err('${schema.notSchema.path}: not violated', instance.path, schema.notSchema.path);
     }
   }
@@ -842,9 +862,9 @@ class Validator {
     /// from the [refMap] instead.
     if (schema.ref != null) {
       var nextSchema = schema.resolvePath(schema.ref);
-      _setDynamicParent(nextSchema, schema);
+      final prevParent = _setDynamicParent(nextSchema, schema);
       _validate(nextSchema, instance);
-      _removeDynamicParent(nextSchema);
+      _setDynamicParent(nextSchema, prevParent);
       if (schema.schemaVersion < SchemaVersion.draft2019_09) {
         return;
       }
@@ -858,10 +878,9 @@ class Validator {
         nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
         _validate(nextSchema, instance);
       } else {
-        // nextSchema.pushDynamicParent(schema);
-        _setDynamicParent(nextSchema, schema);
+        final prevParent = _setDynamicParent(nextSchema, schema);
         _validate(nextSchema, instance);
-        _removeDynamicParent(nextSchema);
+        _setDynamicParent(nextSchema, prevParent);
         if (schema.schemaVersion < SchemaVersion.draft2019_09) {
           return;
         }
@@ -905,7 +924,6 @@ class Validator {
     if (!_vocabulary.contains(SupportedVocabularies.APPLICATOR_2019) &&
         !_vocabulary.contains(SupportedVocabularies.APPLICATOR_2020)) return true;
     if (schema.ifSchema != null) {
-
       if (_validateAndCaptureEvaluations(schema.ifSchema, instance)) {
         // Bail out early if no "then" is specified.
         if (schema.thenSchema == null) return true;
@@ -989,12 +1007,14 @@ class Validator {
     }
   }
 
-  _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
-    _dynamicParents[child] = dynamicParent;
-  }
-
-  _removeDynamicParent(JsonSchema child) {
-    _dynamicParents.remove(child);
+  JsonSchema _setDynamicParent(JsonSchema child, JsonSchema dynamicParent) {
+    final oldParent = _dynamicParents.remove(child);
+    if (dynamicParent != null) {
+      _dynamicParents[child] = dynamicParent;
+    } else {
+      _dynamicParents.remove(child);
+    }
+    return oldParent;
   }
 
   void _err(String msg, String instancePath, String schemaPath) {
@@ -1006,7 +1026,6 @@ class Validator {
   void _warn(String msg, String instancePath, String schemaPath) {
     schemaPath = schemaPath.replaceFirst('#', '');
     _warnings.add(ValidationError._(instancePath, schemaPath, msg));
-    if (!_reportMultipleErrors && _treatWarningsAsErrors) throw FormatException(msg);
   }
 
   JsonSchema _rootSchema;
