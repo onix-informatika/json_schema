@@ -228,6 +228,8 @@ void main() {
     refProvider: syncRefProvider,
     validateFormats: true,
   );
+  runAllTestsForDraftX(SchemaVersion.draft2020_12, allDraft2020, draft2020SkippedTestFiles, commonSkippedTests,
+      isSync: true, refProvider: syncRefProvider);
 
   // Run all tests asynchronously with an async json provider.
   runAllTestsForDraftX(
@@ -273,4 +275,7 @@ void main() {
     refProvider: asyncRefProvider,
     validateFormats: true,
   );
+
+  runAllTestsForDraftX(SchemaVersion.draft2020_12, allDraft2020, draft2020SkippedTestFiles, commonSkippedTests,
+      refProvider: asyncRefProvider);
 }

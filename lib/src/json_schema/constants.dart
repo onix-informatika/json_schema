@@ -181,6 +181,24 @@ final _staticSchemaMapping = {
   parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
   parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
   parseStandardizedUri(SchemaVersion.draft2020_12.toString()): JsonSchemaDefinitions.draft2020_12,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/validation"): Draft2020Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/validation"): Draft2020Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/format-annotation"):
+      Draft2020Subschemas.format_annotation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/format-annotation"):
+      Draft2020Subschemas.format_annotation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/format-assertion"):
+      Draft2020Subschemas.format_assertion,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/format-assertion"):
+      Draft2020Subschemas.format_assertion,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/core"): Draft2020Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/core"): Draft2020Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/metadata"): Draft2020Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/metadata"): Draft2020Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/applicator"): Draft2020Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/applicator"): Draft2020Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/content"): Draft2020Subschemas.content,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/content"): Draft2020Subschemas.content,
 };
 
 Uri parseStandardizedUri(String s) => standardizeUri(Uri.parse(s));
