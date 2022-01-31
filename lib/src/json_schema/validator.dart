@@ -850,7 +850,7 @@ class Validator {
     if (anchorName == null) {
       return null;
     }
-    JsonSchema lastFound = null;
+    JsonSchema lastFound;
     var parent = schema;
     while (parent != null) {
       var nextCandidate = schema.resolveDynamicAnchor(parent, anchorName);
