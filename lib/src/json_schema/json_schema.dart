@@ -548,6 +548,19 @@ class JsonSchema {
     return baseSchema;
   }
 
+  /// Look for the given anchor at the schema. Returns null if nothing is found.
+  JsonSchema _resolveDynamicAnchor(JsonSchema schema, String anchor) {
+    // IDs in draft2019 and up do not have fragments.
+    var ref = Uri.parse("${schema.id.toString()}#$anchor").toString();
+    if (_refMap.containsKey(ref)) {
+      var anchorPoint = _refMap[ref];
+      if (anchorPoint.dynamicAnchor == anchor) {
+        return anchorPoint;
+      }
+    }
+    return null;
+  }
+
   /// Create a sub-schema inside the root, using either a directly nested schema, or a definition.
   JsonSchema _createSubSchema(dynamic schemaDefinition, String path) {
     if (schemaDefinition is Map) {
@@ -739,6 +752,9 @@ class JsonSchema {
   /// An identifier for a subschema.
   String _anchor;
 
+  /// An identifier for a subschema.
+  String _dynamicAnchor;
+
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   JsonSchema _ifSchema;
 
@@ -777,6 +793,9 @@ class JsonSchema {
 
   /// RecursiveRef to the Uri of the [JsonSchema].
   Uri _recursiveRef;
+
+  /// DynamicRef to the UIR of the [JsonSchema].
+  Uri _dynamicRef;
 
   /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
   JsonSchema _thenSchema;
@@ -1041,18 +1060,19 @@ class JsonSchema {
       // Note: see https://json-schema.org/draft/2020-12/release-notes.html
 
       // Added or changed in draft2020_12
-      r'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v), // TODO: implement
-      r'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v), // TODO: Change implementation
+      r'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v),
+      r'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v),
 
-      r'$dynamicRef': (JsonSchema s, dynamic v) => null, //TODO: implement
-      r'$dynamicAnchor': (JsonSchema s, dynamic v) => null, //TODO: implement
-
-      // r'contains': (JsonSchema s, dynamic v) => null, // TODO: Change implementation
-      // r'unevaluatedItems': (JsonSchema s, dynamic v) => null // TODO: Change implementation
+      r'$dynamicRef': (JsonSchema s, dynamic v) => s._setDynamicRef(v),
+      r'$dynamicAnchor': (JsonSchema s, dynamic v) => s._setDynamicAnchor(v),
     });
 
   /// Get a nested [JsonSchema] from a path.
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
+
+  /// Get a [JsonSchema] from the dynamicParent with the given anchor. Returns null if none exists.
+  JsonSchema resolveDynamicAnchor(JsonSchema dynamicParent, String anchor) =>
+      _resolveDynamicAnchor(dynamicParent, anchor);
 
   @override
   bool operator ==(dynamic other) => other is JsonSchema && DeepCollectionEquality().equals(schemaMap, other.schemaMap);
@@ -1253,6 +1273,9 @@ class JsonSchema {
   /// A name used to reference a [JsonSchema] object.
   String get anchor => _anchor;
 
+  /// A name used to reference a [JsonSchema] object.
+  String get dynamicAnchor => _dynamicAnchor;
+
   /// A [JsonSchema] that conditionally decides if validation should be performed against the 'then' or 'else' schema.
   ///
   /// Spec: https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.6.1
@@ -1325,6 +1348,9 @@ class JsonSchema {
   /// RecursiveRef to the URI of the [JsonSchema].
   Uri get recursiveRef => _recursiveRef;
 
+  /// A DynamicRef to the URI of the [JsonSchema].
+  Uri get dynamicRef => _dynamicRef;
+
   /// Title of the [JsonSchema].
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-7.2
@@ -1368,8 +1394,10 @@ class JsonSchema {
   // --------------------------------------------------------------------------
 
   /// Single [JsonSchema] sub items of this [JsonSchema] must conform to.
+  /// Note: This has subtly changed in draft 2020.
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.9
+  /// Spec: https://json-schema.org/draft/2020-12/json-schema-core.html#rfc.section.10.3.1.2
   JsonSchema get items => _items;
 
   /// Ordered list of [JsonSchema] which the value of the same index must conform to.
@@ -1377,6 +1405,9 @@ class JsonSchema {
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.9
   List<JsonSchema> get itemsList => _itemsList;
 
+  /// Ordered list of [JsonSchema] which the value of the same index must conform to.
+  /// Used is draft2020-12
+  /// https://json-schema.org/draft/2020-12/json-schema-core.html#rfc.section.10.3.1.1
   List<JsonSchema> get prefixItems => _prefixItems;
 
   /// Whether additional items are allowed.
@@ -1638,7 +1669,7 @@ class JsonSchema {
       if (_root.schemaVersion < SchemaVersion.draft2019_09) {
         _schemaAssignments.add(() => assigner(_getSchemaFromPath(ref)));
       } else {
-        // References can be 'dynamic' at validation time for draft 2019.
+        // References can't overwrite the reference node in draft 2019 or later.
         assigner(_createSubSchema(schema, path));
       }
     } else {
@@ -1775,10 +1806,18 @@ class JsonSchema {
   /// Validate, set, and register the value of the '$anchor' JSON Schema keyword.
   _setAnchor(dynamic value) {
     _anchor = TypeValidators.anchorString(r"$anchor", value);
-    final uri = _inheritedUri ?? _uri ?? '';
+    final uri = _uri ?? _inheritedUri ?? '';
     final String refMapString = '$uri#$_anchor';
     _addSchemaToRefMap(refMapString, this);
     return _anchor;
+  }
+
+  _setDynamicAnchor(dynamic value) {
+    _dynamicAnchor = TypeValidators.anchorString(r"$dynamicAnchor", value);
+    final uri = _uri ?? _inheritedUri ?? '';
+    final String refMapString = '$uri#$_dynamicAnchor';
+    _addSchemaToRefMap(refMapString, this);
+    return _dynamicAnchor;
   }
 
   /// Validate, set the value of the '$recursiveAnchor' JSON Schema keyword.
@@ -1868,6 +1907,22 @@ class JsonSchema {
     } else {
       // Add _ref to _localRefs to be validated during schema path resolution.
       _root._localRefs.add(_recursiveRef);
+    }
+  }
+
+  /// Validate, calculate and set the value of the '$dynamicRef' JSON Schema keyword.
+  _setDynamicRef(dynamic value) {
+    _dynamicRef = _translateLocalRefToFullUri(TypeValidators.uri(r'$dynamicRef', value));
+
+    // The ref's base is a relative file path, so it should be treated as a relative file URI
+    final isRelativeFileUri = _inheritedUriBase != null && _inheritedUriBase.scheme.isEmpty;
+    final isLocalRef = _inheritedUri.removeFragment() == _dynamicRef.removeFragment();
+    if ((_dynamicRef.scheme.isNotEmpty && !isLocalRef) || isRelativeFileUri) {
+      // Add retrievals to _root schema.
+      _addRefRetrievals(_dynamicRef);
+    } else {
+      // Add _ref to _localRefs to be validated during schema path resolution.
+      _root._localRefs.add(_dynamicRef);
     }
   }
 
