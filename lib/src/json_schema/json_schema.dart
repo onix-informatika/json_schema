@@ -794,7 +794,7 @@ class JsonSchema {
   /// RecursiveRef to the Uri of the [JsonSchema].
   Uri _recursiveRef;
 
-  /// DynamicRef to the UIR of the [JsonSchema].
+  /// DynamicRef to the Uri of the [JsonSchema].
   Uri _dynamicRef;
 
   /// A [JsonSchema] used for validation if the schema also validates against the 'if' schema.
@@ -1406,7 +1406,7 @@ class JsonSchema {
   List<JsonSchema> get itemsList => _itemsList;
 
   /// Ordered list of [JsonSchema] which the value of the same index must conform to.
-  /// Used is draft2020-12
+  /// Used in draft2020-12
   /// https://json-schema.org/draft/2020-12/json-schema-core.html#rfc.section.10.3.1.1
   List<JsonSchema> get prefixItems => _prefixItems;
 
