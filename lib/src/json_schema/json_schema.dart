@@ -549,12 +549,15 @@ class JsonSchema {
   }
 
   /// Look for the given anchor at the schema. Returns null if nothing is found.
-  JsonSchema _resolveDynamicAnchor(JsonSchema schema, String anchor) {
+  JsonSchema _resolveDynamicAnchor(JsonSchema schema, String dynamicAnchor) {
+    if (this.schemaVersion < SchemaVersion.draft2020_12) {
+      return null;
+    }
     // IDs in draft2019 and up do not have fragments.
-    var ref = Uri.parse("${schema.id.toString()}#$anchor").toString();
+    var ref = Uri.parse("${schema.id.toString()}#$dynamicAnchor").toString();
     if (_refMap.containsKey(ref)) {
       var anchorPoint = _refMap[ref];
-      if (anchorPoint.dynamicAnchor == anchor) {
+      if (anchorPoint.dynamicAnchor == dynamicAnchor) {
         return anchorPoint;
       }
     }
@@ -1071,8 +1074,8 @@ class JsonSchema {
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
 
   /// Get a [JsonSchema] from the dynamicParent with the given anchor. Returns null if none exists.
-  JsonSchema resolveDynamicAnchor(JsonSchema dynamicParent, String anchor) =>
-      _resolveDynamicAnchor(dynamicParent, anchor);
+  JsonSchema resolveDynamicAnchor(JsonSchema dynamicParent, String dynamicAnchor) =>
+      _resolveDynamicAnchor(dynamicParent, dynamicAnchor);
 
   @override
   bool operator ==(dynamic other) => other is JsonSchema && DeepCollectionEquality().equals(schemaMap, other.schemaMap);
