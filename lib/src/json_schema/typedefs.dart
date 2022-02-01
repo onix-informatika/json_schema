@@ -48,3 +48,4 @@ typedef SchemaAssigner = Function(JsonSchema s);
 typedef SchemaAdder = Function(JsonSchema s);
 typedef AsyncRetrievalOperation = Future<JsonSchema> Function();
 typedef SyncRetrievalOperation = JsonSchema Function();
+typedef RefScopeOperation = Function();
