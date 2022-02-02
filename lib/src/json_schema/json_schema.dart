@@ -1078,7 +1078,7 @@ class JsonSchema {
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
 
   /// Get a [JsonSchema] from the dynamicParent with the given anchor. Returns null if none exists.
-  JsonSchema resolveDynamicAnchor(String dynamicAnchor, [JsonSchema dynamicParent]) =>
+  JsonSchema resolveDynamicAnchor(String dynamicAnchor, {JsonSchema dynamicParent}) =>
       _resolveDynamicAnchor(dynamicAnchor, dynamicParent);
 
   @override
