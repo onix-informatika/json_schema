@@ -41,6 +41,7 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:json_schema/src/json_schema/typedefs.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -68,6 +69,23 @@ class Instance {
 
   @override
   int get hashCode => this.path.hashCode;
+}
+
+/// Used for cycle detection when resolving references.
+class _InstanceRefPair {
+  _InstanceRefPair(this.path, this.ref);
+
+  String path;
+  Uri ref;
+
+  @override
+  toString() => "${ref.toString()}: $path";
+
+  @override
+  bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
+
+  @override
+  int get hashCode => Object.hash(this.path, this.ref);
 }
 
 /// The result of validating data against a schema
@@ -153,7 +171,9 @@ class Validator {
   /// https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.7.1
   ///
   /// This Map keeps track of schemas when a reference is resolved.
-  Map<JsonSchema, JsonSchema> _dynamicParents = Map();
+  Map<JsonSchema, JsonSchema> _dynamicParents = {};
+
+  Set<_InstanceRefPair> _refsEncountered = {};
 
   get evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
@@ -845,6 +865,18 @@ class Validator {
     return lastFound;
   }
 
+  /// A helper function to deal with infinite loops at evaluation time.
+  /// If we see the same data/ref pair twice, we're in a loop.
+  void _withRefScope(Uri refScope, Instance instance, RefScopeOperation fn) {
+    var irp = _InstanceRefPair(instance.path, refScope);
+    if (!_refsEncountered.add(irp)) {
+      // Throw if cycle is detected while evaluating refs.
+      throw FormatException('Cycle detected at path: "${refScope}"');
+    }
+    fn();
+    _refsEncountered.remove(irp);
+  }
+
   void _validate(JsonSchema schema, dynamic instance) {
     if (instance is! Instance) {
       instance = Instance(instance);
@@ -861,10 +893,13 @@ class Validator {
     /// If the [JsonSchema] being validated is a ref, pull the ref
     /// from the [refMap] instead.
     if (schema.ref != null) {
-      var nextSchema = schema.resolvePath(schema.ref);
-      final prevParent = _setDynamicParent(nextSchema, schema);
-      _validate(nextSchema, instance);
-      _setDynamicParent(nextSchema, prevParent);
+      _withRefScope(schema.ref, instance, () {
+        var nextSchema = schema.resolvePath(schema.ref);
+        final prevParent = _setDynamicParent(nextSchema, schema);
+        _validate(nextSchema, instance);
+        _setDynamicParent(nextSchema, prevParent);
+      });
+      // We're not supposed to evaluate other properties in drafts before 2019.
       if (schema.schemaVersion < SchemaVersion.draft2019_09) {
         return;
       }
@@ -873,17 +908,19 @@ class Validator {
     /// If the [JsonSchema] being validated is a recursiveRef, pull the ref
     /// from the [refMap] instead.
     if (schema.recursiveRef != null) {
-      var nextSchema = schema.resolvePath(schema.recursiveRef);
-      if (nextSchema.recursiveAnchor == true) {
-        nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
-        _validate(nextSchema, instance);
-      } else {
-        final prevParent = _setDynamicParent(nextSchema, schema);
-        _validate(nextSchema, instance);
-        _setDynamicParent(nextSchema, prevParent);
-        if (schema.schemaVersion < SchemaVersion.draft2019_09) {
-          return;
+      _withRefScope(schema.recursiveRef, instance, () {
+        var nextSchema = schema.resolvePath(schema.recursiveRef);
+        if (nextSchema.recursiveAnchor == true) {
+          nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
+          _validate(nextSchema, instance);
+        } else {
+          final prevParent = _setDynamicParent(nextSchema, schema);
+          _validate(nextSchema, instance);
+          _setDynamicParent(nextSchema, prevParent);
         }
+      });
+      if (schema.schemaVersion < SchemaVersion.draft2019_09) {
+        return;
       }
     }
 
