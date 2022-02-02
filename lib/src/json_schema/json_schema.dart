@@ -258,7 +258,7 @@ class JsonSchema {
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
     } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
-      accessMap = _accessMapV2019_09;
+      accessMap = _draft2019_combined;
     } else if (_root.schemaVersion == SchemaVersion.draft2020_12) {
       accessMap = _accessMapV2020_12;
     } else {
@@ -1072,6 +1072,92 @@ class JsonSchema {
 
       r'$dynamicRef': (JsonSchema s, dynamic v) => s._setDynamicRef(v),
       r'$dynamicAnchor': (JsonSchema s, dynamic v) => s._setDynamicAnchor(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2019_combined = Map()
+    ..addAll(_draft2019_core)
+    ..addAll(_draft2019_applicator)
+    ..addAll(_draft2019_content)
+    ..addAll(_draft2019_format)
+    ..addAll(_draft2019_metadata)
+    ..addAll(_draft2019_validation);
+
+  static Map<String, SchemaPropertySetter> _draft2019_core = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      r'$id': (JsonSchema s, dynamic v) => s._setId(v),
+      r'$schema': (JsonSchema s, dynamic v) => s._setSchema(v),
+      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
+      r'$ref': (JsonSchema s, dynamic v) => s._setRef(v),
+      r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
+      r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
+      r'$vocabulary': (JsonSchema s, dynamic v) => s._setVocabulary(v),
+      r'$comment': (JsonSchema s, dynamic v) => s._setComment(v),
+      r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
+    });
+  static Map<String, SchemaPropertySetter> _draft2019_applicator = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'additionalItems': (JsonSchema s, dynamic v) => s._setAdditionalItems(v),
+      'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
+      'items': (JsonSchema s, dynamic v) => s._setItems(v),
+      'contains': (JsonSchema s, dynamic v) => s._setContains(v),
+      'additionalProperties': (JsonSchema s, dynamic v) => s._setAdditionalProperties(v),
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
+      'properties': (JsonSchema s, dynamic v) => s._setProperties(v),
+      'patternProperties': (JsonSchema s, dynamic v) => s._setPatternProperties(v),
+      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
+      'propertyNames': (JsonSchema s, dynamic v) => s._setPropertyNames(v),
+      'if': (JsonSchema s, dynamic v) => s._setIf(v),
+      'then': (JsonSchema s, dynamic v) => s._setThen(v),
+      'else': (JsonSchema s, dynamic v) => s._setElse(v),
+      'allOf': (JsonSchema s, dynamic v) => s._setAllOf(v),
+      'anyOf': (JsonSchema s, dynamic v) => s._setAnyOf(v),
+      'oneOf': (JsonSchema s, dynamic v) => s._setOneOf(v),
+      'not': (JsonSchema s, dynamic v) => s._setNot(v)
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2019_content = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
+      'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
+      'contentSchema': (JsonSchema s, dynamic v) => s._setContentSchema(v)
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2019_format = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
+
+  static Map<String, SchemaPropertySetter> _draft2019_metadata = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'title': (JsonSchema s, dynamic v) => s._setTitle(v),
+      'description': (JsonSchema s, dynamic v) => s._setDescription(v),
+      'default': (JsonSchema s, dynamic v) => s._setDefault(v),
+      'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
+      'readOnly': (JsonSchema s, dynamic v) => s._setReadOnly(v),
+      'writeOnly': (JsonSchema s, dynamic v) => s._setWriteOnly(v),
+      'examples': (JsonSchema s, dynamic v) => s._setExamples(v)
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2019_validation = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'multipleOf': (JsonSchema s, dynamic v) => s._setMultipleOf(v),
+      'maximum': (JsonSchema s, dynamic v) => s._setMaximum(v),
+      'exclusiveMaximum': (JsonSchema s, dynamic v) => s._setExclusiveMaximumV6(v),
+      'minimum': (JsonSchema s, dynamic v) => s._setMinimum(v),
+      'exclusiveMinimum': (JsonSchema s, dynamic v) => s._setExclusiveMinimumV6(v),
+      'maxLength': (JsonSchema s, dynamic v) => s._setMaxLength(v),
+      'minLength': (JsonSchema s, dynamic v) => s._setMinLength(v),
+      'pattern': (JsonSchema s, dynamic v) => s._setPattern(v),
+      'maxItems': (JsonSchema s, dynamic v) => s._setMaxItems(v),
+      'minItems': (JsonSchema s, dynamic v) => s._setMinItems(v),
+      'uniqueItems': (JsonSchema s, dynamic v) => s._setUniqueItems(v),
+      'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
+      'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
+      'maxProperties': (JsonSchema s, dynamic v) => s._setMaxProperties(v),
+      'minProperties': (JsonSchema s, dynamic v) => s._setMinProperties(v),
+      'required': (JsonSchema s, dynamic v) => s._setRequiredV6(v),
+      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
+      'const': (JsonSchema s, dynamic v) => s._setConst(v),
+      'enum': (JsonSchema s, dynamic v) => s._setEnum(v),
+      'type': (JsonSchema s, dynamic v) => s._setType(v)
     });
 
   /// Get a nested [JsonSchema] from a path.
