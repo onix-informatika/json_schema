@@ -311,10 +311,6 @@ final List<String> draft2019SkippedTestFiles = [
 final List<String> draft2019FormatSkippedTestFiles = [];
 
 final List<String> draft2020SkippedTestFiles = [
-  "defs.json",
-  "dynamicRef.json",
-  "ref.json",
-
   // Optional
   "ecmascript-regex.json",
   "format-assertion.json",

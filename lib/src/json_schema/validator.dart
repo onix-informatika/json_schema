@@ -865,6 +865,23 @@ class Validator {
     return lastFound;
   }
 
+  // Traverse up the dynamic path, starting at schema, for the furthest most dynamicAnchor.
+  JsonSchema _findDynamicAnchorParent(JsonSchema schema, String anchorName) {
+    if (anchorName == null) {
+      return null;
+    }
+    JsonSchema lastFound;
+    var parent = schema;
+    while (parent != null) {
+      var nextCandidate = parent.resolveDynamicAnchor(anchorName);
+      if (nextCandidate != null) {
+        lastFound = nextCandidate;
+      }
+      parent = _dynamicParents[parent] ?? parent.parent;
+    }
+    return lastFound;
+  }
+
   /// A helper function to deal with infinite loops at evaluation time.
   /// If we see the same data/ref pair twice, we're in a loop.
   void _withRefScope(Uri refScope, Instance instance, RefScopeOperation fn) {
@@ -922,6 +939,18 @@ class Validator {
       if (schema.schemaVersion < SchemaVersion.draft2019_09) {
         return;
       }
+    }
+
+    if (schema.dynamicRef != null) {
+      _withRefScope(schema.recursiveRef, instance, () {
+        var nextSchema = schema.resolvePath(schema.dynamicRef);
+        var anchorParent = _findDynamicAnchorParent(schema, nextSchema.dynamicAnchor);
+        if (anchorParent != null) {
+          _validate(anchorParent, instance);
+        } else {
+          _validate(nextSchema, instance);
+        }
+      });
     }
 
     /// If the [JsonSchema] is a bool, always return this value.
