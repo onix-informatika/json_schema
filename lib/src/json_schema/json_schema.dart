@@ -260,7 +260,7 @@ class JsonSchema {
     } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
       accessMap = _draft2019_combined;
     } else if (_root.schemaVersion == SchemaVersion.draft2020_12) {
-      accessMap = _accessMapV2020_12;
+      accessMap = _draft2020_combined;
     } else {
       accessMap = _accessMapV7;
     }
@@ -1018,62 +1018,7 @@ class JsonSchema {
       'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
     });
 
-  static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
-    ..addAll(_baseAccessMap)
-    ..addAll(_accessMapV7)
-    // "Note that the standard meta-schema still reserves definitions for backwards compatibility"
-    // https://json-schema.org/draft/2019-09/release-notes.html#core-vocabulary
-    // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.5
-    // Unfortunately the spec does not explicitly say to ignore these old keywords,
-    // nor do the spec tests offer an answer. However, the sane thing to do seems to be to ignore them,
-    // otherwise we get into undocumented territory.
-    ..remove(r'$definitions')
-    ..remove(r'$dependencies')
-    ..addAll({
-      // Note: see https://json-schema.org/draft/2019-09/release-notes.html
-
-      // Added or changed in draft2019_09: Core Vocabulary
-      r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
-      r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
-      r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
-      r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
-      r'$vocabulary': (JsonSchema s, dynamic v) => s._setVocabulary(v),
-
-      // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
-      'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
-      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
-
-      // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
-      'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
-      'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
-
-      // Added or changed in draft2019_09: Format Vocabulary (TODO in other places)
-
-      // Added or changed in draft2019_09: Content Vocabulary
-      'contentSchema': (JsonSchema s, dynamic v) => s._setContentSchema(v),
-
-      // Added or changed in draft2019_09: Meta-Data Vocabulary
-      'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
-    });
-
-  static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
-    ..addAll(_baseAccessMap)
-    ..addAll(_accessMapV2019_09)
-    ..remove(r'$recursiveRef')
-    ..remove(r'$recursiveAnchor')
-    ..addAll({
-      // Note: see https://json-schema.org/draft/2020-12/release-notes.html
-
-      // Added or changed in draft2020_12
-      r'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v),
-      r'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v),
-
-      r'$dynamicRef': (JsonSchema s, dynamic v) => s._setDynamicRef(v),
-      r'$dynamicAnchor': (JsonSchema s, dynamic v) => s._setDynamicAnchor(v),
-    });
-
+  // TODO: Think about doing something with the deprecated keywords in this map.
   static Map<String, SchemaPropertySetter> _draft2019_combined = Map()
     ..addAll(_draft2019_core)
     ..addAll(_draft2019_applicator)
@@ -1159,6 +1104,54 @@ class JsonSchema {
       'enum': (JsonSchema s, dynamic v) => s._setEnum(v),
       'type': (JsonSchema s, dynamic v) => s._setType(v)
     });
+
+  // TODO: Think about doing something with the deprecated keywords in this map.
+  static Map<String, SchemaPropertySetter> _draft2020_combined = Map()
+    ..addAll(_draft2020_core)
+    ..addAll(_draft2020_applicator)
+    ..addAll(_draft2020_unevaluated)
+    ..addAll(_draft2020_validation)
+    ..addAll(_draft2020_metadata)
+    ..addAll(_draft2020_format_annotation)
+    ..addAll(_draft2020_content);
+
+  static Map<String, SchemaPropertySetter> _draft2020_core = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_core)
+    ..addAll({
+      r'$dynamicRef': (JsonSchema s, dynamic v) => s._setDynamicRef(v),
+      r'$dynamicAnchor': (JsonSchema s, dynamic v) => s._setDynamicAnchor(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2020_applicator = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_applicator)
+    ..remove('unevaluatedItems')
+    ..remove('unevaluatedProperties')
+    ..addAll({
+      'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v),
+      'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2020_unevaluated = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2020_validation = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_validation);
+
+  static Map<String, SchemaPropertySetter> _draft2020_format_annotation = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
+
+  // Not used in the draft 2020, but including for completeness and potential future vocabulary useage.
+  static Map<String, SchemaPropertySetter> _draft2020_format_assertion = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
+
+  static Map<String, SchemaPropertySetter> _draft2020_content = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_content);
+
+  static Map<String, SchemaPropertySetter> _draft2020_metadata = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_metadata);
 
   /// Get a nested [JsonSchema] from a path.
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
