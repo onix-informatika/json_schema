@@ -274,17 +274,9 @@ class JsonSchema {
       accessMap = _accessMapV4;
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
-    } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
-      this.metaschemaVocabulary.forEach((vocabUri, shouldApply) {
-        if (shouldApply) {
-          accessMap.addAll(_vocabMaps[vocabUri.toString()]);
-        }
-      });
-    } else if (_root.schemaVersion == SchemaVersion.draft2020_12) {
-      this.metaschemaVocabulary.forEach((vocabUri, shouldApply) {
-        if (shouldApply) {
-          accessMap.addAll(_vocabMaps[vocabUri.toString()]);
-        }
+    } else if (_root.schemaVersion >= SchemaVersion.draft2019_09) {
+      this.metaschemaVocabulary.keys.forEach((vocabUri) {
+        accessMap.addAll(_vocabMaps[vocabUri.toString()]);
       });
     } else {
       accessMap = _accessMapV7;
