@@ -91,7 +91,7 @@ class TypeValidators {
       return schemaVersion;
     }
     throw FormatExceptions.error(
-        'Only draft 4, draft 6, draft 7, draft 2019, draft 2020, and custom schemas supported');
+        'Only draft 4, draft 6, draft 7, draft 2019-09, draft 2020-12, and custom schemas supported');
   }
 
   static Uri uri(String key, dynamic value) {

@@ -223,10 +223,6 @@ class JsonSchema {
     if (_root == null) {
       /// Set the Schema version before doing anything else, since almost everything depends on it.
       final version = _getSchemaVersion(schemaVersion, this._schemaMap);
-      // Also select the $schema and attempt to process it it now.
-      // Set the vocabulary right here too?
-      // If one of the known schemas, set the vocab accordingly.
-      // If not one of the knows schemas, pull them and look at the vocabularies.
 
       _root = this;
       _isSync = isSync;
@@ -272,7 +268,6 @@ class JsonSchema {
   ///
   /// Doesn't validate interdependent properties. See [_validateInterdependentProperties]
   void _validateAndSetIndividualProperties() {
-    // maybe this is the best place?
     Map<String, SchemaPropertySetter> accessMap = {};
     // Set the access map based on features used in the currently set version.
     if (_root.schemaVersion == SchemaVersion.draft4) {
@@ -1568,11 +1563,6 @@ class JsonSchema {
   /// The vocabularies defined by the metaschema of this [JsonSchema].
   ///
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
-  // Map<Uri, bool> metaschemaVocabulary() {
-  //   return this._refMap[_schema?.toString()]?.vocabulary ??
-  //       JsonSchema._fromRootMap(getStaticSchema(schemaVersion.toString()), _schemaVersion).vocabulary;
-  // }
-
   Map<Uri, bool> get metaschemaVocabulary => _metaschemaVocabulary ?? _root._metaschemaVocabulary;
 
   Map<Uri, bool> _metaschemaVocabulary;
