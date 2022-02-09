@@ -176,7 +176,12 @@ void main() {
     commonSkippedTests,
     validateFormats: true,
   );
-  runAllTestsForDraftX(SchemaVersion.draft2020_12, allDraft2020, draft2020SkippedTestFiles, commonSkippedTests);
+  runAllTestsForDraftX(
+    SchemaVersion.draft2020_12,
+    allDraft2020,
+    draft2020SkippedTestFiles,
+    commonSkippedTests,
+  );
 
   // Run all tests synchronously with a sync json provider.
   runAllTestsForDraftX(
@@ -228,8 +233,14 @@ void main() {
     refProvider: syncRefProvider,
     validateFormats: true,
   );
-  runAllTestsForDraftX(SchemaVersion.draft2020_12, allDraft2020, draft2020SkippedTestFiles, commonSkippedTests,
-      isSync: true, refProvider: syncRefProvider);
+  runAllTestsForDraftX(
+    SchemaVersion.draft2020_12,
+    allDraft2020,
+    draft2020SkippedTestFiles,
+    commonSkippedTests,
+    isSync: true,
+    refProvider: syncRefProvider,
+  );
 
   // Run all tests asynchronously with an async json provider.
   runAllTestsForDraftX(
@@ -276,6 +287,11 @@ void main() {
     validateFormats: true,
   );
 
-  runAllTestsForDraftX(SchemaVersion.draft2020_12, allDraft2020, draft2020SkippedTestFiles, commonSkippedTests,
-      refProvider: asyncRefProvider);
+  runAllTestsForDraftX(
+    SchemaVersion.draft2020_12,
+    allDraft2020,
+    draft2020SkippedTestFiles,
+    commonSkippedTests,
+    refProvider: asyncRefProvider,
+  );
 }

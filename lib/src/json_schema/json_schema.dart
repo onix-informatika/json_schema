@@ -75,12 +75,15 @@ class JsonSchema {
     _initialize();
   }
 
-  JsonSchema._fromRootMap(this._schemaMap, SchemaVersion schemaVersion,
-      {Uri fetchedFromUri,
-      bool isSync = false,
-      Map<String, JsonSchema> refMap,
-      RefProvider refProvider,
-      Map<Uri, bool> metaschemaVocabulary}) {
+  JsonSchema._fromRootMap(
+    this._schemaMap,
+    SchemaVersion schemaVersion, {
+    Uri fetchedFromUri,
+    bool isSync = false,
+    Map<String, JsonSchema> refMap,
+    RefProvider refProvider,
+    Map<Uri, bool> metaschemaVocabulary,
+  }) {
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
@@ -91,12 +94,15 @@ class JsonSchema {
     );
   }
 
-  JsonSchema._fromRootBool(this._schemaBool, SchemaVersion schemaVersion,
-      {Uri fetchedFromUri,
-      bool isSync = false,
-      Map<String, JsonSchema> refMap,
-      RefProvider refProvider,
-      Map<Uri, bool> metaschemaVocabulary}) {
+  JsonSchema._fromRootBool(
+    this._schemaBool,
+    SchemaVersion schemaVersion, {
+    Uri fetchedFromUri,
+    bool isSync = false,
+    Map<String, JsonSchema> refMap,
+    RefProvider refProvider,
+    Map<Uri, bool> metaschemaVocabulary,
+  }) {
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
@@ -242,7 +248,7 @@ class JsonSchema {
       _addSchemaToRefMap(refString, this);
 
       schemaString = _schemaMap.containsKey(r'$schema') ? _schemaMap[r'$schema'] : null;
-      _resolveMetaSchemasForVocabulary(schemaString, _schemaVersion); // For Vocabulary
+      _resolveMetaSchemasForVocabulary(schemaString, _schemaVersion);
     } else {
       _isSync = _root._isSync;
       _refProvider = _root._refProvider;
@@ -257,6 +263,8 @@ class JsonSchema {
       _validateSchemaSync();
     } else {
       if (!_root._metaSchemaCompleter.isCompleted) {
+        // Wait here until the vocabularies from the metaschema have been resolved.
+        // This should only need to happen once for the _root object.
         _root._metaSchemaCompleter.future.then((_) => _validateSchemaAsync());
       } else {
         _validateSchemaAsync();
