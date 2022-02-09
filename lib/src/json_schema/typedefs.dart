@@ -42,10 +42,9 @@ import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 
 typedef CreateJsonSchemaFromUrl = Future<JsonSchema> Function(String schemaUrl, {SchemaVersion schemaVersion});
-typedef SchemaPropertySetter = dynamic Function(JsonSchema s, dynamic value);
-typedef SchemaPropertyGetter = dynamic Function(JsonSchema s);
+typedef SchemaPropertySetter = Object Function(JsonSchema s, Object value);
+typedef SchemaPropertyGetter = Object Function(JsonSchema s);
 typedef SchemaAssigner = Function(JsonSchema s);
 typedef SchemaAdder = Function(JsonSchema s);
 typedef AsyncRetrievalOperation = Future<JsonSchema> Function();
 typedef SyncRetrievalOperation = JsonSchema Function();
-typedef RefScopeOperation = Function();

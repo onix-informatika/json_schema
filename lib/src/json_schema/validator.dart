@@ -818,7 +818,7 @@ class Validator {
 
   /// A helper function to deal with infinite loops at evaluation time.
   /// If we see the same data/ref pair twice, we're in a loop.
-  void _withRefScope(Uri refScope, Instance instance, RefScopeOperation fn) {
+  void _withRefScope(Uri refScope, Instance instance, Function() fn) {
     var irp = _InstanceRefPair(instance.path, refScope);
     if (!_refsEncountered.add(irp)) {
       // Throw if cycle is detected while evaluating refs.
