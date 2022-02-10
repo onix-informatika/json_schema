@@ -9,11 +9,17 @@ import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
+import '../../../json_schema.dart';
+
 final Logger _logger = Logger('HtmlSchemaUrlClient');
 
 class HtmlSchemaUrlClient extends SchemaUrlClient {
   @override
-  createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) async {
+  createFromUrl(
+    String schemaUrl, {
+    SchemaVersion schemaVersion,
+    CustomVocabulary customKeyword,
+  }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     var uri = uriWithFrag.removeFragment();
     if (schemaUrl.endsWith('#')) {
@@ -33,8 +39,8 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
       }
 
       // HTTP servers ignore fragments, so resolve a sub-map if a fragment was specified.
-      final parentSchema =
-          await JsonSchema.createAsync(jsonResponse, schemaVersion: schemaVersion, fetchedFromUri: uri);
+      final parentSchema = await JsonSchema.createAsync(jsonResponse,
+          schemaVersion: schemaVersion, fetchedFromUri: uri, customKeyword: customKeyword);
       final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
       return schema ?? parentSchema;
     } else {

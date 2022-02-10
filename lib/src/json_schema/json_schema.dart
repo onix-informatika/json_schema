@@ -40,6 +40,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
+import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -83,6 +84,8 @@ class JsonSchema {
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
+    CustomVocabulary customKeyword,
+    Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
   }) {
     _initialize(
       schemaVersion: schemaVersion,
@@ -91,6 +94,7 @@ class JsonSchema {
       refMap: refMap,
       refProvider: refProvider,
       metaschemaVocabulary: metaschemaVocabulary,
+      customVocabMap: customVocabMap ?? _createCustomVocabMap(customKeyword),
     );
   }
 
@@ -102,6 +106,8 @@ class JsonSchema {
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
+    CustomVocabulary customKeyword,
+    Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
   }) {
     _initialize(
       schemaVersion: schemaVersion,
@@ -110,6 +116,7 @@ class JsonSchema {
       refMap: refMap,
       refProvider: refProvider,
       metaschemaVocabulary: metaschemaVocabulary,
+      customVocabMap: customVocabMap ?? _createCustomVocabMap(customKeyword),
     );
   }
 
@@ -123,8 +130,13 @@ class JsonSchema {
   ///
   /// The [schema] can either be a decoded JSON object (Only [Map] or [bool] per the spec),
   /// or alternatively, a [String] may be passed in and JSON decoding will be handled automatically.
-  static Future<JsonSchema> createAsync(Object schema,
-      {SchemaVersion schemaVersion, Uri fetchedFromUri, RefProvider refProvider}) {
+  static Future<JsonSchema> createAsync(
+    Object schema, {
+    SchemaVersion schemaVersion,
+    Uri fetchedFromUri,
+    RefProvider refProvider,
+    CustomVocabulary customKeyword,
+  }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
 
@@ -142,15 +154,23 @@ class JsonSchema {
     final version = _getSchemaVersion(schemaVersion, data);
 
     if (data is Map) {
-      return JsonSchema._fromRootMap(data, schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider)
-          ._thisCompleter
-          .future;
+      return JsonSchema._fromRootMap(
+        data,
+        schemaVersion,
+        fetchedFromUri: fetchedFromUri,
+        refProvider: refProvider,
+        customKeyword: customKeyword,
+      )._thisCompleter.future;
 
       // Boolean schemas are only supported in draft 6 and later.
     } else if (data is bool && version >= SchemaVersion.draft6) {
-      return JsonSchema._fromRootBool(data, schemaVersion, fetchedFromUri: fetchedFromUri, refProvider: refProvider)
-          ._thisCompleter
-          .future;
+      return JsonSchema._fromRootBool(
+        data,
+        schemaVersion,
+        fetchedFromUri: fetchedFromUri,
+        refProvider: refProvider,
+        customKeyword: customKeyword,
+      )._thisCompleter.future;
     }
     throw ArgumentError(
         'Data provided to createAsync is not valid: Data must be, or parse to a Map (or bool in draft6 or later). | $data');
@@ -168,6 +188,7 @@ class JsonSchema {
     SchemaVersion schemaVersion,
     Uri fetchedFromUri,
     RefProvider refProvider,
+    CustomVocabulary customKeyword,
   }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
@@ -192,6 +213,7 @@ class JsonSchema {
         fetchedFromUri: fetchedFromUri,
         isSync: true,
         refProvider: refProvider,
+        customKeyword: customKeyword,
       );
 
       // Boolean schemas are only supported in draft 6 and later.
@@ -202,6 +224,7 @@ class JsonSchema {
         fetchedFromUri: fetchedFromUri,
         isSync: true,
         refProvider: refProvider,
+        customKeyword: customKeyword,
       );
     }
     throw ArgumentError(
@@ -212,8 +235,12 @@ class JsonSchema {
   ///
   /// This method is asyncronous to support automatic fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
-  static Future<JsonSchema> createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) {
-    return createClient()?.createFromUrl(schemaUrl, schemaVersion: schemaVersion);
+  static Future<JsonSchema> createFromUrl(
+    String schemaUrl, {
+    SchemaVersion schemaVersion,
+    CustomVocabulary customKeyword,
+  }) {
+    return createClient()?.createFromUrl(schemaUrl, schemaVersion: schemaVersion, customKeyword: customKeyword);
   }
 
   /// Construct and validate a JsonSchema.
@@ -224,6 +251,7 @@ class JsonSchema {
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
+    Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
   }) {
     String schemaString;
     if (_root == null) {
@@ -237,6 +265,7 @@ class JsonSchema {
       _schemaVersion = version;
       _fetchedFromUri = fetchedFromUri;
       _metaschemaVocabulary = metaschemaVocabulary;
+      _customVocabMap = customVocabMap;
       try {
         _fetchedFromUriBase = JsonSchemaUtils.getBaseFromFullUri(_fetchedFromUri);
       } catch (e) {
@@ -258,6 +287,7 @@ class JsonSchema {
       _metaSchemaCompleter = _root._metaSchemaCompleter;
       _metaschemaVocabulary = metaschemaVocabulary;
       _schemaAssignments = _root._schemaAssignments;
+      _customVocabMap = _root._customVocabMap;
     }
     if (_root._isSync) {
       _validateSchemaSync();
@@ -283,8 +313,11 @@ class JsonSchema {
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
     } else if (_root.schemaVersion >= SchemaVersion.draft2019_09) {
+      final vocabMap = Map()
+        ..addAll(_vocabMaps)
+        ..addAll(_customVocabMap);
       this.metaschemaVocabulary.keys.forEach((vocabUri) {
-        accessMap.addAll(_vocabMaps[vocabUri.toString()]);
+        accessMap.addAll(vocabMap[vocabUri.toString()]);
       });
     } else {
       accessMap = _accessMapV7;
@@ -701,6 +734,7 @@ class JsonSchema {
         refProvider: _refProvider,
         fetchedFromUri: baseUri,
         metaschemaVocabulary: _root._metaschemaVocabulary,
+        customVocabMap: _root._customVocabMap,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
     } else if (schemaDefinition is bool && schemaVersion >= SchemaVersion.draft6) {
@@ -712,6 +746,7 @@ class JsonSchema {
         refProvider: _refProvider,
         fetchedFromUri: baseUri,
         metaschemaVocabulary: _root._metaschemaVocabulary,
+        customVocabMap: _root._customVocabMap,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
     }
@@ -1246,6 +1281,31 @@ class JsonSchema {
     ..addAll(_draft2019VocabMap)
     ..addAll(_draft2020VocabMap);
 
+  // configure the custom accessors for custom vocabularies.
+  Map<String, Map<String, SchemaPropertySetter>> _customVocabMap = Map();
+
+  // Hold values set by the custom accessors.
+  Map<String, CustomValidationResult Function(Object)> _customSetValue = Map();
+
+  // A wrapper.
+  SchemaPropertySetter _setCustomProperty(String property, KeywordProcessor processor) {
+    return (JsonSchema s, Object o) {
+      var obj = processor.setter(s, o);
+      CustomValidationResult Function(Object) fociwo = (Object instance) => processor.validator(obj, instance);
+      s._customSetValue[property] = fociwo;
+      return obj;
+    };
+  }
+
+  Map<String, Map<String, SchemaPropertySetter>> _createCustomVocabMap(CustomVocabulary customKeyword) {
+    if (customKeyword == null) {
+      return Map();
+    }
+    final wrappedSetters =
+        customKeyword.setters.map((attribute, setter) => MapEntry(attribute, _setCustomProperty(attribute, setter)));
+    return {customKeyword.vocab.toString(): wrappedSetters};
+  }
+
   /// Get a nested [JsonSchema] from a path.
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
 
@@ -1700,6 +1760,8 @@ class JsonSchema {
   ///
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.3
   JsonSchema get unevaluatedItems => _unevaluatedItems;
+
+  Map<String, CustomValidationResult Function(Object)> get customSetAttributes => _customSetValue;
 
   // --------------------------------------------------------------------------
   // Convenience Methods

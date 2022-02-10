@@ -321,6 +321,15 @@ class Validator {
     }
   }
 
+  void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
+    schema.customSetAttributes.forEach((attribute, validator) {
+      var result = validator(instance.data);
+      if (!result.pass) {
+        _err('Custom attribute, ${attribute}, violated ${result.message}', instance.path, instance.data);
+      }
+    });
+  }
+
   void _stringValidation(JsonSchema schema, Instance instance) {
     final actual = instance.data.runes.length;
     final minLength = schema.minLength;
@@ -911,6 +920,7 @@ class Validator {
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
+    if (schema.customSetAttributes.isNotEmpty) _validateCustomSetAttributes(schema, instance);
 
     if (schema.unevaluatedItems != null) {
       _popEvaluatedItemsContext();

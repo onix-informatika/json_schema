@@ -10,11 +10,17 @@ import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 
+import '../../../json_schema.dart';
+
 final Logger _logger = Logger('IoSchemaUrlClient');
 
 class IoSchemaUrlClient extends SchemaUrlClient {
   @override
-  createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) async {
+  createFromUrl(
+    String schemaUrl, {
+    SchemaVersion schemaVersion,
+    CustomVocabulary customKeyword,
+  }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     final uri = schemaUrl.endsWith('#') ? uriWithFrag : uriWithFrag.removeFragment();
     Map schemaMap;
@@ -38,7 +44,8 @@ class IoSchemaUrlClient extends SchemaUrlClient {
       throw FormatException('Url schema must be http, file, or empty: $schemaUrl');
     }
     // HTTP servers / file systems ignore fragments, so resolve a sub-map if a fragment was specified.
-    final parentSchema = await JsonSchema.createAsync(schemaMap, schemaVersion: schemaVersion, fetchedFromUri: uri);
+    final parentSchema = await JsonSchema.createAsync(schemaMap,
+        schemaVersion: schemaVersion, fetchedFromUri: uri, customKeyword: customKeyword);
     final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
     return schema ?? parentSchema;
   }
