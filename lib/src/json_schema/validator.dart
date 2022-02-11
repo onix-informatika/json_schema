@@ -331,7 +331,7 @@ class Validator {
         _warn(result.message, instance.path, schema.path);
       }
       if (result.error) {
-        _err('Custom attribute, ${keyword}, violated ${result.message}', instance.path, instance.data);
+        _err('${keyword}, violated ${result.message}', instance.path, instance.data);
       }
     });
   }
