@@ -4,10 +4,12 @@ import 'package:json_schema/src/json_schema/type_validators.dart';
 import 'package:test/test.dart';
 
 main() {
-  var ck = CustomVocabulary(
-    Uri.parse("http://localhost:4321/vocab/min-date"),
-    {"minDate": KeywordProcessor(_minDateSetter, _validateMinDate)},
-  );
+  var customVocabularies = [
+    CustomVocabulary(
+      Uri.parse("http://localhost:4321/vocab/min-date"),
+      {"minDate": CustomKeywordImplementation(_minDateSetter, _validateMinDate)},
+    ),
+  ];
   group("Custom Vocabulary Tests", () {
     test('Should process custom vocabularies and validate', () async {
       final schema = await JsonSchema.createAsync(
@@ -15,41 +17,63 @@ main() {
           r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
           r'$id': 'http://localhost:4321/date-keword-schema',
           'properties': {
-            "publishedOn": {"minDate": "2020-12-01"},
-            "baz": {"type": "string"}
+            'publishedOn': {'minDate': '2020-12-01'},
+            'baz': {'type': 'string'}
           },
-          "required": ["baz", "publishedOn"]
+          'required': ['baz', 'publishedOn']
         },
         schemaVersion: SchemaVersion.draft2020_12,
-        customKeyword: ck,
+        customVocabularies: customVocabularies,
       );
 
-      expect(schema.properties["publishedOn"].customSetAttributes.keys.contains("minDate"), true);
+      expect(schema.properties["publishedOn"].customAttributeValidators.keys.contains("minDate"), true);
 
       expect(schema.validate({'baz': 'foo', 'publishedOn': '2970-01-01'}).isValid, true);
       expect(schema.validate({'baz': 'foo', 'publishedOn': '1970-01-01'}).isValid, false);
     });
 
-    // test('Can throw an exception', () async {
-    //   final catchException = expectAsync1((e) {
-    //     expect(e is FormatException, true);
-    //   });
-    //   try {
-    //     await JsonSchema.createAsync(
-    //       {
-    //         r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
-    //         r'$id': 'http://localhost:4321/date-keword-schema',
-    //         'properties': {
-    //           "publishedOn": {"minDate": 42}
-    //         }
-    //       },
-    //       schemaVersion: SchemaVersion.draft2020_12,
-    //       customKeyword: ck,
-    //     );
-    //   } catch (e) {
-    //     catchException(e);
-    //   }
-    // });
+    group("skipped mysterious non-working tests", () {
+      test('can throw an exception with a bad schema', () async {
+        final catchException = expectAsync1((e) {
+          expect(e is FormatException, true);
+        });
+        try {
+          await JsonSchema.createAsync(
+            {
+              r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
+              r'$id': 'http://localhost:4321/date-keword-schema',
+              'properties': {
+                "publishedOn": {"minDate": 42}
+              }
+            },
+            schemaVersion: SchemaVersion.draft2020_12,
+            customVocabularies: customVocabularies,
+          );
+        } catch (e) {
+          catchException(e);
+        }
+      });
+
+      test('throws an exception with an unknown vocabulary', () async {
+        final catchException = expectAsync1((e) {
+          expect(e is FormatException, true);
+        });
+        try {
+          await JsonSchema.createAsync(
+            {
+              r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
+              r'$id': 'http://localhost:4321/date-keword-schema',
+              'properties': {
+                'publishedOn': {'minDate': '2022-06-21'}
+              }
+            },
+            schemaVersion: SchemaVersion.draft2020_12,
+          );
+        } catch (e) {
+          catchException(e);
+        }
+      });
+    }, skip: true);
   });
 }
 
@@ -76,7 +100,7 @@ CustomValidationResult _validateMinDate(Object schema, Object instance) {
     if (minDate.isAfter(testDate)) {
       return CustomValidationResult.error('min date is after given date');
     }
-    return CustomValidationResult.passed();
+    return CustomValidationResult.valid();
   } catch (e) {
     return CustomValidationResult.error('unable to parse date');
   }

@@ -84,7 +84,7 @@ class JsonSchema {
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
   }) {
     _initialize(
@@ -94,7 +94,7 @@ class JsonSchema {
       refMap: refMap,
       refProvider: refProvider,
       metaschemaVocabulary: metaschemaVocabulary,
-      customVocabMap: customVocabMap ?? _createCustomVocabMap(customKeyword),
+      customVocabMap: customVocabMap ?? _createCustomVocabMap(customVocabularies),
     );
   }
 
@@ -106,7 +106,7 @@ class JsonSchema {
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
   }) {
     _initialize(
@@ -116,11 +116,11 @@ class JsonSchema {
       refMap: refMap,
       refProvider: refProvider,
       metaschemaVocabulary: metaschemaVocabulary,
-      customVocabMap: customVocabMap ?? _createCustomVocabMap(customKeyword),
+      customVocabMap: customVocabMap ?? _createCustomVocabMap(customVocabularies),
     );
   }
 
-  /// Create a schema from a JSON [data].
+  /// Create a schema from a JSON data.
   ///
   /// This method is asynchronous to support fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
@@ -135,7 +135,7 @@ class JsonSchema {
     SchemaVersion schemaVersion,
     Uri fetchedFromUri,
     RefProvider refProvider,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
@@ -159,7 +159,7 @@ class JsonSchema {
         schemaVersion,
         fetchedFromUri: fetchedFromUri,
         refProvider: refProvider,
-        customKeyword: customKeyword,
+        customVocabularies: customVocabularies,
       )._thisCompleter.future;
 
       // Boolean schemas are only supported in draft 6 and later.
@@ -169,14 +169,14 @@ class JsonSchema {
         schemaVersion,
         fetchedFromUri: fetchedFromUri,
         refProvider: refProvider,
-        customKeyword: customKeyword,
+        customVocabularies: customVocabularies,
       )._thisCompleter.future;
     }
     throw ArgumentError(
         'Data provided to createAsync is not valid: Data must be, or parse to a Map (or bool in draft6 or later). | $data');
   }
 
-  /// Create a schema from JSON [data].
+  /// Create a schema from JSON data.
   ///
   /// This method is synchronous, and doesn't support fetching of remote references, properties, and sub-properties of the
   /// schema. If you need remote reference support use [createAsync].
@@ -188,7 +188,7 @@ class JsonSchema {
     SchemaVersion schemaVersion,
     Uri fetchedFromUri,
     RefProvider refProvider,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
@@ -213,7 +213,7 @@ class JsonSchema {
         fetchedFromUri: fetchedFromUri,
         isSync: true,
         refProvider: refProvider,
-        customKeyword: customKeyword,
+        customVocabularies: customVocabularies,
       );
 
       // Boolean schemas are only supported in draft 6 and later.
@@ -224,7 +224,7 @@ class JsonSchema {
         fetchedFromUri: fetchedFromUri,
         isSync: true,
         refProvider: refProvider,
-        customKeyword: customKeyword,
+        customVocabularies: customVocabularies,
       );
     }
     throw ArgumentError(
@@ -233,14 +233,15 @@ class JsonSchema {
 
   /// Create a schema from a URL.
   ///
-  /// This method is asyncronous to support automatic fetching of sub-[JsonSchema]s for items,
+  /// This method is asynchronous to support automatic fetching of sub-[JsonSchema]s for items,
   /// properties, and sub-properties of the root schema.
   static Future<JsonSchema> createFromUrl(
     String schemaUrl, {
     SchemaVersion schemaVersion,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   }) {
-    return createClient()?.createFromUrl(schemaUrl, schemaVersion: schemaVersion, customKeyword: customKeyword);
+    return createClient()
+        ?.createFromUrl(schemaUrl, schemaVersion: schemaVersion, customVocabularies: customVocabularies);
   }
 
   /// Construct and validate a JsonSchema.
@@ -920,8 +921,11 @@ class JsonSchema {
   /// Whether the schema is write-only.
   bool _writeOnly = false;
 
-  // For metaschemas, indicates the vocabularies in use and the requiredness of each for processing schemas.
+  // For current metaschemas, indicates the vocabularies in use and the requiredness of each for processing schemas.
   Map<Uri, bool> _vocabulary;
+
+  // For the current schema. Indicates the vocabularies in use and the requiredness of each for processing schemas.
+  Map<Uri, bool> _metaschemaVocabulary;
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Fields
@@ -1281,29 +1285,41 @@ class JsonSchema {
     ..addAll(_draft2019VocabMap)
     ..addAll(_draft2020VocabMap);
 
-  // configure the custom accessors for custom vocabularies.
+  // This structure holds setters for custom vocabularies.
+  // It is Vocab Name->Attribute->Setter Function.
   Map<String, Map<String, SchemaPropertySetter>> _customVocabMap = Map();
 
   // Hold values set by the custom accessors.
-  Map<String, CustomValidationResult Function(Object)> _customSetValue = Map();
+  Map<String, CustomValidationResult Function(Object)> _customAttributeValidators = Map();
 
-  // A wrapper.
-  SchemaPropertySetter _setCustomProperty(String property, KeywordProcessor processor) {
+  /// Create a SchemaPropertySetter function that is used for setting custom properties while processing a schema.
+  SchemaPropertySetter _setCustomProperty(String keyword, CustomKeywordImplementation processor) {
+    // Return an function that matches the function signature for setting an attribute. It's called when
+    // the given keyword is processed in a schema.
     return (JsonSchema s, Object o) {
-      var obj = processor.setter(s, o);
-      CustomValidationResult Function(Object) fociwo = (Object instance) => processor.validator(obj, instance);
-      s._customSetValue[property] = fociwo;
+      // Call the users given setter function. This allows them do manipulate the data how ever they want.
+      var obj = processor.propertySetter(s, o);
+      // Create and store a closure for the validation function. This is kind of weird, but makes the code in the
+      // validator simpler.
+      CustomValidationResult Function(Object) validationFunction =
+          (Object instance) => processor.validator(obj, instance);
+      s._customAttributeValidators[keyword] = validationFunction;
       return obj;
     };
   }
 
-  Map<String, Map<String, SchemaPropertySetter>> _createCustomVocabMap(CustomVocabulary customKeyword) {
-    if (customKeyword == null) {
+  /// Transform a list of custom vocabularies into vocabulary map.
+  /// The Vocabulary map is Vocabulary->Accessor->Setter function
+  Map<String, Map<String, SchemaPropertySetter>> _createCustomVocabMap(List<CustomVocabulary> customVocabularies) {
+    if (customVocabularies == null) {
       return Map();
     }
-    final wrappedSetters =
-        customKeyword.setters.map((attribute, setter) => MapEntry(attribute, _setCustomProperty(attribute, setter)));
-    return {customKeyword.vocab.toString(): wrappedSetters};
+    Map<String, Map<String, SchemaPropertySetter>> accessorMap = Map();
+    customVocabularies.forEach((customVocabulary) {
+      accessorMap[customVocabulary.vocab.toString()] = customVocabulary.keywordImplementations
+          .map((keyword, setter) => MapEntry(keyword, _setCustomProperty(keyword, setter)));
+    });
+    return accessorMap;
   }
 
   /// Get a nested [JsonSchema] from a path.
@@ -1359,7 +1375,7 @@ class JsonSchema {
 
   /// JSON Schema version used.
   ///
-  /// Note: Only one version can be used for a nested [JsonScehema] object.
+  /// Note: Only one version can be used for a nested [JsonSchema] object.
   /// Default: [SchemaVersion.draft7]
   SchemaVersion get schemaVersion => _root._schemaVersion ?? SchemaVersion.draft7;
 
@@ -1625,8 +1641,6 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
   Map<Uri, bool> get metaschemaVocabulary => _metaschemaVocabulary ?? _root._metaschemaVocabulary;
 
-  Map<Uri, bool> _metaschemaVocabulary;
-
   // --------------------------------------------------------------------------
   // Schema List Item Related Getters
   // --------------------------------------------------------------------------
@@ -1761,7 +1775,8 @@ class JsonSchema {
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.3
   JsonSchema get unevaluatedItems => _unevaluatedItems;
 
-  Map<String, CustomValidationResult Function(Object)> get customSetAttributes => _customSetValue;
+  /// The set of functions to validate custom keywords.
+  Map<String, CustomValidationResult Function(Object)> get customAttributeValidators => _customAttributeValidators;
 
   // --------------------------------------------------------------------------
   // Convenience Methods
@@ -2206,10 +2221,18 @@ class JsonSchema {
 
   _setMetaschemaVocabulary(dynamic value) {
     try {
-      _metaschemaVocabulary = TypeValidators.object(r'$vocabulary', value)
-          .cast<String, bool>()
-          .map<Uri, bool>((key, value) => MapEntry(Uri.parse(key), value));
-    } catch (RuntimeException) {
+      _metaschemaVocabulary =
+          TypeValidators.object(r'$vocabulary', value).cast<String, bool>().map<Uri, bool>((key, required) {
+        // Check to see if the vocabulary is required to validate and if we are able to validate the vocabulary.
+        if (required && !(_vocabMaps.containsKey(key.toString()) || _customVocabMap.containsKey(key.toString()))) {
+          throw FormatExceptions.error(
+              '\$vocabulary ${key} is required by the schema but is unknown to this validator');
+        }
+        return MapEntry(Uri.parse(key), required);
+      });
+    } on FormatException catch (e) {
+      throw e;
+    } catch (e) {
       throw FormatExceptions.error('\$vocabulary must be a map from URI to bool: $value');
     }
   }

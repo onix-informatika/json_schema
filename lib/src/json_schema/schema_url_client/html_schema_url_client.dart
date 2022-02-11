@@ -18,7 +18,7 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
   createFromUrl(
     String schemaUrl, {
     SchemaVersion schemaVersion,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     var uri = uriWithFrag.removeFragment();
@@ -39,8 +39,12 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
       }
 
       // HTTP servers ignore fragments, so resolve a sub-map if a fragment was specified.
-      final parentSchema = await JsonSchema.createAsync(jsonResponse,
-          schemaVersion: schemaVersion, fetchedFromUri: uri, customKeyword: customKeyword);
+      final parentSchema = await JsonSchema.createAsync(
+        jsonResponse,
+        schemaVersion: schemaVersion,
+        fetchedFromUri: uri,
+        customVocabularies: customVocabularies,
+      );
       final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
       return schema ?? parentSchema;
     } else {

@@ -4,7 +4,7 @@ abstract class SchemaUrlClient {
   Future<JsonSchema> createFromUrl(
     String schemaUrl, {
     SchemaVersion schemaVersion,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   });
 
   Future<Map<String, dynamic>> getSchemaJsonFromUrl(String schemaUrl);

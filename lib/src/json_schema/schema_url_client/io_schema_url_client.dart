@@ -19,7 +19,7 @@ class IoSchemaUrlClient extends SchemaUrlClient {
   createFromUrl(
     String schemaUrl, {
     SchemaVersion schemaVersion,
-    CustomVocabulary customKeyword,
+    List<CustomVocabulary> customVocabularies,
   }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     final uri = schemaUrl.endsWith('#') ? uriWithFrag : uriWithFrag.removeFragment();
@@ -45,7 +45,7 @@ class IoSchemaUrlClient extends SchemaUrlClient {
     }
     // HTTP servers / file systems ignore fragments, so resolve a sub-map if a fragment was specified.
     final parentSchema = await JsonSchema.createAsync(schemaMap,
-        schemaVersion: schemaVersion, fetchedFromUri: uri, customKeyword: customKeyword);
+        schemaVersion: schemaVersion, fetchedFromUri: uri, customVocabularies: customVocabularies);
     final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
     return schema ?? parentSchema;
   }
