@@ -75,25 +75,41 @@ class JsonSchema {
     _initialize();
   }
 
-  JsonSchema._fromRootMap(this._schemaMap, SchemaVersion schemaVersion,
-      {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
+  JsonSchema._fromRootMap(
+    this._schemaMap,
+    SchemaVersion schemaVersion, {
+    Uri fetchedFromUri,
+    bool isSync = false,
+    Map<String, JsonSchema> refMap,
+    RefProvider refProvider,
+    Map<Uri, bool> metaschemaVocabulary,
+  }) {
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
       isSync: isSync,
       refMap: refMap,
       refProvider: refProvider,
+      metaschemaVocabulary: metaschemaVocabulary,
     );
   }
 
-  JsonSchema._fromRootBool(this._schemaBool, SchemaVersion schemaVersion,
-      {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
+  JsonSchema._fromRootBool(
+    this._schemaBool,
+    SchemaVersion schemaVersion, {
+    Uri fetchedFromUri,
+    bool isSync = false,
+    Map<String, JsonSchema> refMap,
+    RefProvider refProvider,
+    Map<Uri, bool> metaschemaVocabulary,
+  }) {
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
       isSync: isSync,
       refMap: refMap,
       refProvider: refProvider,
+      metaschemaVocabulary: metaschemaVocabulary,
     );
   }
 
@@ -207,7 +223,9 @@ class JsonSchema {
     bool isSync = false,
     Map<String, JsonSchema> refMap,
     RefProvider refProvider,
+    Map<Uri, bool> metaschemaVocabulary,
   }) {
+    String schemaString;
     if (_root == null) {
       /// Set the Schema version before doing anything else, since almost everything depends on it.
       final version = _getSchemaVersion(schemaVersion, this._schemaMap);
@@ -218,6 +236,7 @@ class JsonSchema {
       _refProvider = refProvider;
       _schemaVersion = version;
       _fetchedFromUri = fetchedFromUri;
+      _metaschemaVocabulary = metaschemaVocabulary;
       try {
         _fetchedFromUriBase = JsonSchemaUtils.getBaseFromFullUri(_fetchedFromUri);
       } catch (e) {
@@ -227,23 +246,29 @@ class JsonSchema {
       _path = '#';
       final String refString = '${_uri ?? ''}$_path';
       _addSchemaToRefMap(refString, this);
-      _thisCompleter = Completer<JsonSchema>();
+
+      schemaString = _schemaMap.containsKey(r'$schema') ? _schemaMap[r'$schema'] : null;
+      _resolveMetaSchemasForVocabulary(schemaString, _schemaVersion);
     } else {
       _isSync = _root._isSync;
       _refProvider = _root._refProvider;
       _schemaVersion = _root.schemaVersion;
       _refMap = _root._refMap;
       _thisCompleter = _root._thisCompleter;
+      _metaSchemaCompleter = _root._metaSchemaCompleter;
+      _metaschemaVocabulary = metaschemaVocabulary;
       _schemaAssignments = _root._schemaAssignments;
     }
-
     if (_root._isSync) {
       _validateSchemaSync();
-      if (_root == this) {
-        _thisCompleter.complete(this);
-      }
     } else {
-      _validateSchemaAsync();
+      if (!_root._metaSchemaCompleter.isCompleted) {
+        // Wait here until the vocabularies from the metaschema have been resolved.
+        // This should only need to happen once for the _root object.
+        _root._metaSchemaCompleter.future.then((_) => _validateSchemaAsync());
+      } else {
+        _validateSchemaAsync();
+      }
     }
   }
 
@@ -251,16 +276,16 @@ class JsonSchema {
   ///
   /// Doesn't validate interdependent properties. See [_validateInterdependentProperties]
   void _validateAndSetIndividualProperties() {
-    var accessMap;
+    Map<String, SchemaPropertySetter> accessMap = {};
     // Set the access map based on features used in the currently set version.
     if (_root.schemaVersion == SchemaVersion.draft4) {
       accessMap = _accessMapV4;
     } else if (_root.schemaVersion == SchemaVersion.draft6) {
       accessMap = _accessMapV6;
-    } else if (_root.schemaVersion == SchemaVersion.draft2019_09) {
-      accessMap = _accessMapV2019_09;
-    } else if (_root.schemaVersion == SchemaVersion.draft2020_12) {
-      accessMap = _accessMapV2020_12;
+    } else if (_root.schemaVersion >= SchemaVersion.draft2019_09) {
+      this.metaschemaVocabulary.keys.forEach((vocabUri) {
+        accessMap.addAll(_vocabMaps[vocabUri.toString()]);
+      });
     } else {
       accessMap = _accessMapV7;
     }
@@ -420,6 +445,45 @@ class JsonSchema {
     _validateSchemaBase();
     _baseResolvePaths();
     _resolveAllPathsSync();
+  }
+
+  void _resolveMetaSchemasForVocabulary(String schemaString, SchemaVersion schemaVersion) {
+    if (_root._metaSchemaCompleter.isCompleted) {
+      return;
+    }
+    if (schemaVersion >= SchemaVersion.draft2019_09) {
+      final baseUri = Uri.parse(schemaString ?? schemaVersion.toString());
+      if (_root._isSync) {
+        _resolveMetaSchemasSync(baseUri);
+        _root._metaSchemaCompleter.complete();
+      } else {
+        _resolveMetaSchemasAsync(baseUri);
+      }
+    } else {
+      _root._metaSchemaCompleter.complete();
+    }
+  }
+
+  void _resolveMetaSchemasSync(Uri baseUri) {
+    final Map<String, dynamic> staticSchema = getStaticSchemaByURI(baseUri) ??
+        _refProvider.provide(baseUri.toString()) ??
+        _refProvider.provide('${baseUri}#');
+
+    if (staticSchema.containsKey(r'$vocabulary')) {
+      _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
+    }
+  }
+
+  void _resolveMetaSchemasAsync(Uri baseUri) async {
+    final refProvider = _refProvider ?? defaultUrlRefProvider;
+    final Map<String, dynamic> staticSchema = getStaticSchemaByURI(baseUri) ??
+        await refProvider.provide(baseUri.toString()) ??
+        await refProvider.provide('${baseUri}#');
+
+    if (staticSchema.containsKey(r'$vocabulary')) {
+      _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
+    }
+    _root._metaSchemaCompleter.complete();
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
@@ -593,7 +657,7 @@ class JsonSchema {
     // 1. Statically-known schema definition (skips ref provider)
     // 2. Base URI (example: localhost:1234/integer.json)
     // 3. Base URI with empty fragment (example: localhost:1234/integer.json#)
-    final dynamic schemaDefinition =
+    final Map<String, dynamic> schemaDefinition =
         getStaticSchemaByURI(ref) ?? _refProvider.provide(baseUri.toString()) ?? _refProvider.provide('${baseUri}#');
 
     return _createAndResolveProvidedSchema(ref, schemaDefinition);
@@ -636,6 +700,7 @@ class JsonSchema {
         refMap: _refMap,
         refProvider: _refProvider,
         fetchedFromUri: baseUri,
+        metaschemaVocabulary: _root._metaschemaVocabulary,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
     } else if (schemaDefinition is bool && schemaVersion >= SchemaVersion.draft6) {
@@ -646,6 +711,7 @@ class JsonSchema {
         refMap: _refMap,
         refProvider: _refProvider,
         fetchedFromUri: baseUri,
+        metaschemaVocabulary: _root._metaschemaVocabulary,
       );
       _addSchemaToRefMap(baseSchema._uri.toString(), baseSchema);
     }
@@ -916,6 +982,7 @@ class JsonSchema {
 
   /// Completer that fires when [this] [JsonSchema] has finished building.
   Completer<JsonSchema> _thisCompleter = Completer<JsonSchema>();
+  Completer<void> _metaSchemaCompleter = Completer<void>();
 
   bool _isSync = false;
 
@@ -970,7 +1037,7 @@ class JsonSchema {
     'maxProperties': (JsonSchema s, dynamic v) => s._setMaxProperties(v),
     'minProperties': (JsonSchema s, dynamic v) => s._setMinProperties(v),
     'patternProperties': (JsonSchema s, dynamic v) => s._setPatternProperties(v),
-    '\$schema': (JsonSchema s, dynamic v) => s._setSchema(v),
+    r'$schema': (JsonSchema s, dynamic v) => s._setSchema(v),
   };
 
   /// Map to allow getters to be accessed by String key.
@@ -1018,61 +1085,166 @@ class JsonSchema {
       'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
     });
 
-  static Map<String, SchemaPropertySetter> _accessMapV2019_09 = Map<String, SchemaPropertySetter>()
-    ..addAll(_baseAccessMap)
-    ..addAll(_accessMapV7)
-    // "Note that the standard meta-schema still reserves definitions for backwards compatibility"
-    // https://json-schema.org/draft/2019-09/release-notes.html#core-vocabulary
-    // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.5
-    // Unfortunately the spec does not explicitly say to ignore these old keywords,
-    // nor do the spec tests offer an answer. However, the sane thing to do seems to be to ignore them,
-    // otherwise we get into undocumented territory.
-    ..remove(r'$definitions')
-    ..remove(r'$dependencies')
-    ..addAll({
-      // Note: see https://json-schema.org/draft/2019-09/release-notes.html
+  // TODO: Think about doing something with the deprecated keywords in this map.
+  static Map<String, SchemaPropertySetter> _draft2019_combined = Map()
+    ..addAll(_draft2019_core)
+    ..addAll(_draft2019_applicator)
+    ..addAll(_draft2019_content)
+    ..addAll(_draft2019_format)
+    ..addAll(_draft2019_metadata)
+    ..addAll(_draft2019_validation);
 
-      // Added or changed in draft2019_09: Core Vocabulary
+  static Map<String, SchemaPropertySetter> _draft2019_core = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      r'$id': (JsonSchema s, dynamic v) => s._setId(v),
+      r'$schema': (JsonSchema s, dynamic v) => s._setSchema(v),
       r'$anchor': (JsonSchema s, dynamic v) => s._setAnchor(v),
-      r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
+      r'$ref': (JsonSchema s, dynamic v) => s._setRef(v),
       r'$recursiveRef': (JsonSchema s, dynamic v) => s._setRecursiveRef(v),
       r'$recursiveAnchor': (JsonSchema s, dynamic v) => s._setRecursiveAnchor(v),
       r'$vocabulary': (JsonSchema s, dynamic v) => s._setVocabulary(v),
-
-      // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
+      r'$comment': (JsonSchema s, dynamic v) => s._setComment(v),
+      r'$defs': (JsonSchema s, dynamic v) => s._setDefs(v),
+    });
+  static Map<String, SchemaPropertySetter> _draft2019_applicator = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'additionalItems': (JsonSchema s, dynamic v) => s._setAdditionalItems(v),
       'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
+      'items': (JsonSchema s, dynamic v) => s._setItems(v),
+      'contains': (JsonSchema s, dynamic v) => s._setContains(v),
+      'additionalProperties': (JsonSchema s, dynamic v) => s._setAdditionalProperties(v),
       'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
-
-      // Added or changed in draft2019_09: Applicator Vocabulary
-      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
-      'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
-      'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
-
-      // Added or changed in draft2019_09: Format Vocabulary (TODO in other places)
-
-      // Added or changed in draft2019_09: Content Vocabulary
-      'contentSchema': (JsonSchema s, dynamic v) => s._setContentSchema(v),
-
-      // Added or changed in draft2019_09: Meta-Data Vocabulary
-      'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
+      'properties': (JsonSchema s, dynamic v) => s._setProperties(v),
+      'patternProperties': (JsonSchema s, dynamic v) => s._setPatternProperties(v),
+      'dependentSchemas': (JsonSchema s, dynamic v) => s._setDependentSchemas(v),
+      'propertyNames': (JsonSchema s, dynamic v) => s._setPropertyNames(v),
+      'if': (JsonSchema s, dynamic v) => s._setIf(v),
+      'then': (JsonSchema s, dynamic v) => s._setThen(v),
+      'else': (JsonSchema s, dynamic v) => s._setElse(v),
+      'allOf': (JsonSchema s, dynamic v) => s._setAllOf(v),
+      'anyOf': (JsonSchema s, dynamic v) => s._setAnyOf(v),
+      'oneOf': (JsonSchema s, dynamic v) => s._setOneOf(v),
+      'not': (JsonSchema s, dynamic v) => s._setNot(v)
     });
 
-  static Map<String, SchemaPropertySetter> _accessMapV2020_12 = Map<String, SchemaPropertySetter>()
-    ..addAll(_baseAccessMap)
-    ..addAll(_accessMapV2019_09)
-    ..remove(r'$recursiveRef')
-    ..remove(r'$recursiveAnchor')
+  static Map<String, SchemaPropertySetter> _draft2019_content = Map<String, SchemaPropertySetter>()
     ..addAll({
-      // Note: see https://json-schema.org/draft/2020-12/release-notes.html
+      'contentMediaType': (JsonSchema s, dynamic v) => s._setContentMediaType(v),
+      'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
+      'contentSchema': (JsonSchema s, dynamic v) => s._setContentSchema(v)
+    });
 
-      // Added or changed in draft2020_12
-      r'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v),
-      r'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v),
+  static Map<String, SchemaPropertySetter> _draft2019_format = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
 
+  static Map<String, SchemaPropertySetter> _draft2019_metadata = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'title': (JsonSchema s, dynamic v) => s._setTitle(v),
+      'description': (JsonSchema s, dynamic v) => s._setDescription(v),
+      'default': (JsonSchema s, dynamic v) => s._setDefault(v),
+      'deprecated': (JsonSchema s, dynamic v) => s._setDeprecated(v),
+      'readOnly': (JsonSchema s, dynamic v) => s._setReadOnly(v),
+      'writeOnly': (JsonSchema s, dynamic v) => s._setWriteOnly(v),
+      'examples': (JsonSchema s, dynamic v) => s._setExamples(v)
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2019_validation = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'multipleOf': (JsonSchema s, dynamic v) => s._setMultipleOf(v),
+      'maximum': (JsonSchema s, dynamic v) => s._setMaximum(v),
+      'exclusiveMaximum': (JsonSchema s, dynamic v) => s._setExclusiveMaximumV6(v),
+      'minimum': (JsonSchema s, dynamic v) => s._setMinimum(v),
+      'exclusiveMinimum': (JsonSchema s, dynamic v) => s._setExclusiveMinimumV6(v),
+      'maxLength': (JsonSchema s, dynamic v) => s._setMaxLength(v),
+      'minLength': (JsonSchema s, dynamic v) => s._setMinLength(v),
+      'pattern': (JsonSchema s, dynamic v) => s._setPattern(v),
+      'maxItems': (JsonSchema s, dynamic v) => s._setMaxItems(v),
+      'minItems': (JsonSchema s, dynamic v) => s._setMinItems(v),
+      'uniqueItems': (JsonSchema s, dynamic v) => s._setUniqueItems(v),
+      'maxContains': (JsonSchema s, dynamic v) => s._setMaxContains(v),
+      'minContains': (JsonSchema s, dynamic v) => s._setMinContains(v),
+      'maxProperties': (JsonSchema s, dynamic v) => s._setMaxProperties(v),
+      'minProperties': (JsonSchema s, dynamic v) => s._setMinProperties(v),
+      'required': (JsonSchema s, dynamic v) => s._setRequiredV6(v),
+      'dependentRequired': (JsonSchema s, dynamic v) => s._setDependentRequired(v),
+      'const': (JsonSchema s, dynamic v) => s._setConst(v),
+      'enum': (JsonSchema s, dynamic v) => s._setEnum(v),
+      'type': (JsonSchema s, dynamic v) => s._setType(v)
+    });
+
+  static Map<String, Map<String, SchemaPropertySetter>> _draft2019VocabMap = Map()
+    ..addAll({
+      "https://json-schema.org/draft/2019-09/vocab/core": _draft2019_core,
+      "https://json-schema.org/draft/2019-09/vocab/applicator": _draft2019_applicator,
+      "https://json-schema.org/draft/2019-09/vocab/validation": _draft2019_validation,
+      "https://json-schema.org/draft/2019-09/vocab/meta-data": _draft2019_metadata,
+      "https://json-schema.org/draft/2019-09/vocab/format": _draft2019_format,
+      "https://json-schema.org/draft/2019-09/vocab/content": _draft2019_content
+    });
+
+  // TODO: Think about doing something with the deprecated keywords in this map.
+  static Map<String, SchemaPropertySetter> _draft2020_combined = Map()
+    ..addAll(_draft2020_core)
+    ..addAll(_draft2020_applicator)
+    ..addAll(_draft2020_unevaluated)
+    ..addAll(_draft2020_validation)
+    ..addAll(_draft2020_metadata)
+    ..addAll(_draft2020_format_annotation)
+    ..addAll(_draft2020_content);
+
+  static Map<String, SchemaPropertySetter> _draft2020_core = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_core)
+    ..addAll({
       r'$dynamicRef': (JsonSchema s, dynamic v) => s._setDynamicRef(v),
       r'$dynamicAnchor': (JsonSchema s, dynamic v) => s._setDynamicAnchor(v),
     });
+
+  static Map<String, SchemaPropertySetter> _draft2020_applicator = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_applicator)
+    ..remove('unevaluatedItems')
+    ..remove('unevaluatedProperties')
+    ..addAll({
+      'prefixItems': (JsonSchema s, dynamic v) => s._setPrefixItems(v),
+      'items': (JsonSchema s, dynamic v) => s._setItemsDraft2020(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2020_unevaluated = Map<String, SchemaPropertySetter>()
+    ..addAll({
+      'unevaluatedItems': (JsonSchema s, dynamic v) => s._setUnevaluatedItems(v),
+      'unevaluatedProperties': (JsonSchema s, dynamic v) => s._setUnevaluatedProperties(v),
+    });
+
+  static Map<String, SchemaPropertySetter> _draft2020_validation = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_validation);
+
+  static Map<String, SchemaPropertySetter> _draft2020_format_annotation = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
+
+  // Not used in the draft 2020, but including for completeness and potential future vocabulary useage.
+  static Map<String, SchemaPropertySetter> _draft2020_format_assertion = Map<String, SchemaPropertySetter>()
+    ..addAll({'format': (JsonSchema s, dynamic v) => s._setFormat(v)});
+
+  static Map<String, SchemaPropertySetter> _draft2020_content = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_content);
+
+  static Map<String, SchemaPropertySetter> _draft2020_metadata = Map<String, SchemaPropertySetter>()
+    ..addAll(_draft2019_metadata);
+
+  static Map<String, Map<String, SchemaPropertySetter>> _draft2020VocabMap = Map()
+    ..addAll({
+      "https://json-schema.org/draft/2020-12/vocab/core": _draft2020_core,
+      "https://json-schema.org/draft/2020-12/vocab/applicator": _draft2020_applicator,
+      "https://json-schema.org/draft/2020-12/vocab/unevaluated": _draft2020_unevaluated,
+      "https://json-schema.org/draft/2020-12/vocab/validation": _draft2020_validation,
+      "https://json-schema.org/draft/2020-12/vocab/meta-data": _draft2020_metadata,
+      "https://json-schema.org/draft/2020-12/vocab/format-annotation": _draft2020_format_annotation,
+      "https://json-schema.org/draft/2020-12/vocab/format-assertion": _draft2020_format_assertion,
+      "https://json-schema.org/draft/2020-12/vocab/content": _draft2020_content
+    });
+
+  static Map<String, Map<String, SchemaPropertySetter>> _vocabMaps = Map()
+    ..addAll(_draft2019VocabMap)
+    ..addAll(_draft2020VocabMap);
 
   /// Get a nested [JsonSchema] from a path.
   JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
@@ -1391,10 +1563,9 @@ class JsonSchema {
   /// The vocabularies defined by the metaschema of this [JsonSchema].
   ///
   /// Spec: https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.2
-  Map<Uri, bool> metaschemaVocabulary() {
-    return this._refMap[_schema?.toString()]?.vocabulary ??
-        JsonSchema._fromRootMap(getStaticSchema(schemaVersion.toString()), _schemaVersion).vocabulary;
-  }
+  Map<Uri, bool> get metaschemaVocabulary => _metaschemaVocabulary ?? _root._metaschemaVocabulary;
+
+  Map<Uri, bool> _metaschemaVocabulary;
 
   // --------------------------------------------------------------------------
   // Schema List Item Related Getters
@@ -1938,9 +2109,9 @@ class JsonSchema {
   /// Note: Uses the user specified version first, then the version set on the schema JSON, then the default.
   static SchemaVersion _getSchemaVersion(SchemaVersion userSchemaVersion, dynamic schema) {
     if (userSchemaVersion != null) {
-      return TypeValidators.jsonSchemaVersion4Or6Or7(r'$schema', userSchemaVersion.toString());
+      return TypeValidators.builtInSchemaVersion(r'$schema', userSchemaVersion.toString());
     } else if (schema is Map && schema[r'$schema'] is String) {
-      return TypeValidators.jsonSchemaVersion4Or6Or7(r'$schema', schema[r'$schema']);
+      return TypeValidators.builtInSchemaVersion(r'$schema', schema[r'$schema']);
     }
     return SchemaVersion.draft7;
   }
@@ -1964,6 +2135,16 @@ class JsonSchema {
   _setVocabulary(dynamic value) {
     try {
       _vocabulary = TypeValidators.object(r'$vocabulary', value)
+          .cast<String, bool>()
+          .map<Uri, bool>((key, value) => MapEntry(Uri.parse(key), value));
+    } catch (RuntimeException) {
+      throw FormatExceptions.error('\$vocabulary must be a map from URI to bool: $value');
+    }
+  }
+
+  _setMetaschemaVocabulary(dynamic value) {
+    try {
+      _metaschemaVocabulary = TypeValidators.object(r'$vocabulary', value)
           .cast<String, bool>()
           .map<Uri, bool>((key, value) => MapEntry(Uri.parse(key), value));
     } catch (RuntimeException) {

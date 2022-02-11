@@ -84,13 +84,14 @@ class TypeValidators {
     throw FormatExceptions.object(key, value);
   }
 
-  static SchemaVersion jsonSchemaVersion4Or6Or7(String key, dynamic value) {
+  static SchemaVersion builtInSchemaVersion(String key, dynamic value) {
     string(key, value);
     final schemaVersion = SchemaVersion.fromString(value);
     if (schemaVersion != null) {
       return schemaVersion;
     }
-    throw FormatExceptions.error('Only draft 4, draft 6, and draft 7 schemas supported');
+    throw FormatExceptions.error(
+        'Only draft 4, draft 6, draft 7, draft 2019-09, draft 2020-12, and custom schemas supported');
   }
 
   static Uri uri(String key, dynamic value) {
