@@ -517,8 +517,14 @@ class JsonSchema {
         await refProvider.provide('${baseUri}#');
 
     if (staticSchema.containsKey(r'$vocabulary')) {
-      _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
+      try {
+        _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
+      } catch (e) {
+        _root._metaSchemaCompleter.completeError(e);
+        return;
+      }
     }
+
     _root._metaSchemaCompleter.complete();
   }
 

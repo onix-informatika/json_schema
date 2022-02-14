@@ -86,22 +86,20 @@ main() {
           throwsFormatException);
     });
 
-    group("skipped mysterious non-working tests", () {
       test('throws an exception with an unknown vocabulary', () async {
         await expectLater(
             JsonSchema.createAsync(
               {
-                r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
-                r'$id': 'http://localhost:4321/date-keword-schema',
-                'properties': {
-                  'publishedOn': {'minDate': '2022-06-21'}
-                }
-              },
-              schemaVersion: SchemaVersion.draft2020_12,
-            ),
-            throwsFormatException);
-      });
-    }, skip: true);
+              r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
+              r'$id': 'http://localhost:4321/date-keword-schema',
+              'properties': {
+                'publishedOn': {'minDate': '2022-06-21'}
+              }
+            },
+            schemaVersion: SchemaVersion.draft2020_12,
+          ),
+          throwsFormatException);
+    });
   });
 }
 
