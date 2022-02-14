@@ -86,10 +86,10 @@ main() {
           throwsFormatException);
     });
 
-      test('throws an exception with an unknown vocabulary', () async {
-        await expectLater(
-            JsonSchema.createAsync(
-              {
+    test('throws an exception with an unknown vocabulary', () async {
+      await expectLater(
+          JsonSchema.createAsync(
+            {
               r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
               r'$id': 'http://localhost:4321/date-keword-schema',
               'properties': {
