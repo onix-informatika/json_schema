@@ -79,6 +79,13 @@ class CustomKeywordImplementation {
 enum _ValidationState { valid, warning, error }
 
 /// Result object for a custom Validation function.
+/// The result can be valid, warning, or error.
+/// A valid result means the data passed validation.
+/// A warning means the data passed validations,
+/// but with a warning. A message should be provided
+/// to give the user additional information.
+/// An errors means that validation failed. A message
+/// should be returned explaining why validation failed.
 class CustomValidationResult {
   /// Use to return a successful validation.
   CustomValidationResult.valid() {
@@ -97,7 +104,7 @@ class CustomValidationResult {
     this._message = message;
   }
 
-  _ValidationState _state = _ValidationState.error;
+  _ValidationState _state;
   String _message = "";
 
   /// Returns true when the result passes.
