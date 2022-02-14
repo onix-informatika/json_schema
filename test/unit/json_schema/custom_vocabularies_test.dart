@@ -70,13 +70,9 @@ main() {
       expect(schema.validate({'baz': 'foo', 'publishedOn': '1970-01-01'}).isValid, false);
     });
 
-    group("skipped mysterious non-working tests", () {
-      test('can throw an exception with a bad schema', () async {
-        final catchException = expectAsync1((e) {
-          expect(e is FormatException, true);
-        });
-        try {
-          await JsonSchema.createAsync(
+    test('throws an exception with a bad schema', () async {
+      await expectLater(
+          JsonSchema.createAsync(
             {
               r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
               r'$id': 'http://localhost:4321/date-keword-schema',
@@ -86,30 +82,24 @@ main() {
             },
             schemaVersion: SchemaVersion.draft2020_12,
             customVocabularies: customVocabularies,
-          );
-        } catch (e) {
-          catchException(e);
-        }
-      });
+          ),
+          throwsFormatException);
+    });
 
+    group("skipped mysterious non-working tests", () {
       test('throws an exception with an unknown vocabulary', () async {
-        final catchException = expectAsync1((e) {
-          expect(e is FormatException, true);
-        });
-        try {
-          await JsonSchema.createAsync(
-            {
-              r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
-              r'$id': 'http://localhost:4321/date-keword-schema',
-              'properties': {
-                'publishedOn': {'minDate': '2022-06-21'}
-              }
-            },
-            schemaVersion: SchemaVersion.draft2020_12,
-          );
-        } catch (e) {
-          catchException(e);
-        }
+        await expectLater(
+            JsonSchema.createAsync(
+              {
+                r'$schema': 'http://localhost:4321/date-keyword-meta-schema.json',
+                r'$id': 'http://localhost:4321/date-keword-schema',
+                'properties': {
+                  'publishedOn': {'minDate': '2022-06-21'}
+                }
+              },
+              schemaVersion: SchemaVersion.draft2020_12,
+            ),
+            throwsFormatException);
       });
     }, skip: true);
   });

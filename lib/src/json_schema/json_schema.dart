@@ -296,7 +296,9 @@ class JsonSchema {
       if (!_root._metaSchemaCompleter.isCompleted) {
         // Wait here until the vocabularies from the metaschema have been resolved.
         // This should only need to happen once for the _root object.
-        _root._metaSchemaCompleter.future.then((_) => _validateSchemaAsync());
+        _root._metaSchemaCompleter.future
+            .then((_) => _validateSchemaAsync())
+            .onError((e, stack) => _root._thisCompleter.completeError(e, stack));
       } else {
         _validateSchemaAsync();
       }
