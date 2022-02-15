@@ -1784,7 +1784,7 @@ class JsonSchema {
   JsonSchema get unevaluatedItems => _unevaluatedItems;
 
   /// The set of functions to validate custom keywords.
-  @Deprecated("For use with the Validator only")
+  @Deprecated("For internal use by the Validator only")
   Map<String, CustomValidationResult Function(Object)> get customAttributeValidators => _customAttributeValidators;
 
   // --------------------------------------------------------------------------
