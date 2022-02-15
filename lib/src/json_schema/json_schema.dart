@@ -1320,7 +1320,7 @@ class JsonSchema {
   /// The Vocabulary map is Vocabulary->Accessor->Setter function
   Map<String, Map<String, SchemaPropertySetter>> _createCustomVocabMap(List<CustomVocabulary> customVocabularies) {
     if (customVocabularies == null) {
-      return Map();
+      return {};
     }
     Map<String, Map<String, SchemaPropertySetter>> accessorMap = Map();
     customVocabularies.forEach((customVocabulary) {
