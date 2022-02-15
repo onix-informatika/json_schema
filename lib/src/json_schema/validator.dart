@@ -85,7 +85,27 @@ class _InstanceRefPair {
   bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
 
   @override
-  int get hashCode => Object.hash(this.path, this.ref);
+  int get hashCode => _hash2(this.path.hashCode, this.ref.hashCode);
+}
+
+// These functions were yanked from Dart 2.14 hashing functions.
+int _combine(int hash, int value) {
+  hash = 0x1fffffff & (hash + value);
+  hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+  return hash ^ (hash >> 6);
+}
+
+int _finish(int hash) {
+  hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+  hash = hash ^ (hash >> 11);
+  return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+}
+// This can be replaced with Object.hash() once the minimum language version is set to 2.14
+int _hash2(int v1, int v2, [int seed = 0]) {
+  int hash = seed;
+  hash = _combine(hash, v1);
+  hash = _combine(hash, v2);
+  return _finish(hash);
 }
 
 /// The result of validating data against a schema
