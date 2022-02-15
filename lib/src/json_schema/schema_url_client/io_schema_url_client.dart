@@ -10,7 +10,7 @@ import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 
-import '../../../json_schema.dart';
+import 'package:json_schema/src/json_schema.dart';
 
 final Logger _logger = Logger('IoSchemaUrlClient');
 
