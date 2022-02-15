@@ -155,7 +155,11 @@ class SchemaVersion implements Comparable<SchemaVersion> {
         return draft7;
       case 'https://json-schema.org/draft/2019-09/schema':
         return draft2019_09;
+      case 'https://json-schema.org/draft/2019-09/schema#':
+        return draft2019_09;
       case 'https://json-schema.org/draft/2020-12/schema':
+        return draft2020_12;
+      case 'https://json-schema.org/draft/2020-12/schema#':
         return draft2020_12;
       default:
         return null;
@@ -213,6 +217,10 @@ Map getStaticSchemaByURI(Uri ref) {
   if (ref.fragment != "") return null;
   final mapped = _staticSchemaMapping[standardizeUri(ref)];
   return mapped != null ? json.decode(mapped) : null;
+}
+
+Map getStaticSchemaByVersion(SchemaVersion version) {
+  return getStaticSchema(version.toString());
 }
 
 class JsonSchemaDefinitions {
