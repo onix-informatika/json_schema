@@ -75,8 +75,9 @@ class JsonSchema {
     _initialize();
   }
 
-  JsonSchema._fromRootMap(this._schemaMap, SchemaVersion schemaVersion,
+  JsonSchema._fromRootMap(Map schemaMap, SchemaVersion schemaVersion,
       {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
+    this._schemaMap = schemaMap != null ? Map<String, dynamic>.from(schemaMap) : {};
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
