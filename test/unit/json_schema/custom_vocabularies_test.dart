@@ -45,7 +45,7 @@ main() {
   var customVocabularies = [
     CustomVocabulary(
       Uri.parse("http://localhost:4321/vocab/min-date"),
-      {"minDate": CustomKeywordImplementation(_minDateSetter, _validateMinDate)},
+      {"minDate": CustomKeyword(_minDateSetter, _validateMinDate)},
     ),
   ];
   group("Custom Vocabulary Tests", () {

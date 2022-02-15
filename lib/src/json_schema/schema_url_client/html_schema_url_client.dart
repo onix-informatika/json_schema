@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:json_schema/src/json_schema/constants.dart';
+import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
-import 'package:json_schema/src/json_schema.dart';
 
 final Logger _logger = Logger('HtmlSchemaUrlClient');
 

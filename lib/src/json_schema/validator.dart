@@ -324,13 +324,13 @@ class Validator {
   void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
     schema.customAttributeValidators.forEach((keyword, validator) {
       var result = validator(instance.data);
-      if (result.valid) {
+      if (result.isValid) {
         return;
       }
-      if (result.warning) {
+      if (result.isWarning) {
         _warn(result.message, instance.path, schema.path);
       }
-      if (result.error) {
+      if (result.isError) {
         _err('${keyword}, violated ${result.message}', instance.path, instance.data);
       }
     });

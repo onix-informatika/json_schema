@@ -1301,7 +1301,7 @@ class JsonSchema {
   Map<String, CustomValidationResult Function(Object)> _customAttributeValidators = Map();
 
   /// Create a SchemaPropertySetter function that is used for setting custom properties while processing a schema.
-  SchemaPropertySetter _setCustomProperty(String keyword, CustomKeywordImplementation processor) {
+  SchemaPropertySetter _setCustomProperty(String keyword, CustomKeyword processor) {
     // Return an function that matches the function signature for setting an attribute. It's called when
     // the given keyword is processed in a schema.
     return (JsonSchema s, Object o) {
@@ -1324,7 +1324,7 @@ class JsonSchema {
     }
     Map<String, Map<String, SchemaPropertySetter>> accessorMap = Map();
     customVocabularies.forEach((customVocabulary) {
-      accessorMap[customVocabulary.vocab.toString()] = customVocabulary.keywordImplementations
+      accessorMap[customVocabulary.vocabulary.toString()] = customVocabulary.keywordImplementations
           .map((keyword, setter) => MapEntry(keyword, _setCustomProperty(keyword, setter)));
     });
     return accessorMap;

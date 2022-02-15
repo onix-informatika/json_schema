@@ -47,8 +47,8 @@ main() async {
     // Name of the vocabulary.
     Uri.parse("http://localhost/vocab/date-range"),
     {
-      'minDate': CustomKeywordImplementation(_dateSetter, _validateMinDate),
-      'maxDate': CustomKeywordImplementation(_dateSetter, _validateMaxDate),
+      'minDate': CustomKeyword(_dateSetter, _validateMinDate),
+      'maxDate': CustomKeyword(_dateSetter, _validateMaxDate),
     },
   );
   var schema = await JsonSchema.createFromUrl(

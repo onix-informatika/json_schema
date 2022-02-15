@@ -41,16 +41,13 @@ import 'package:json_schema/json_schema.dart';
 /// Use to register a custom vocabulary with the [JsonSchema] compiler.
 ///
 class CustomVocabulary {
-  CustomVocabulary(this._vocab, this._keywordImplementations);
-
-  Uri _vocab;
-  Map<String, CustomKeywordImplementation> _keywordImplementations;
+  CustomVocabulary(this.vocabulary, this.keywordImplementations);
 
   /// Name of the vocabulary.
-  Uri get vocab => _vocab;
+  final Uri vocabulary;
 
   /// A map of the keywords and implementation for the keywords.
-  Map<String, CustomKeywordImplementation> get keywordImplementations => _keywordImplementations;
+  final Map<String, CustomKeyword> keywordImplementations;
 }
 
 /// A class to contain the set of functions for setting and validating keywords in a custom vocabulary.
@@ -63,17 +60,14 @@ class CustomVocabulary {
 ///
 /// The validation function takes the output from the property setter and data from a JSON payload to be validated.
 /// A [CustomValidationResult] should be returned to indicate the outcome of the validation.
-class CustomKeywordImplementation {
-  CustomKeywordImplementation(this._propertySetter, this._validator);
-
-  Object Function(JsonSchema schema, Object value) _propertySetter;
-  CustomValidationResult Function(Object schemaProperty, Object instanceData) _validator;
+class CustomKeyword {
+  CustomKeyword(this.propertySetter, this.validator);
 
   /// Function used to set a property from the a schema.
-  Object Function(JsonSchema schema, Object value) get propertySetter => this._propertySetter;
+  final Object Function(JsonSchema schema, Object value) propertySetter;
 
   /// Function used to validate a json value.
-  CustomValidationResult Function(Object schemaProperty, Object instanceData) get validator => this._validator;
+  final CustomValidationResult Function(Object schemaProperty, Object instanceData) validator;
 }
 
 enum _ValidationState { valid, warning, error }
@@ -88,27 +82,27 @@ enum _ValidationState { valid, warning, error }
 /// should be returned explaining why validation failed.
 class CustomValidationResult {
   final _ValidationState state;
-  
+
   /// Custom message for errors and warnings.
   final String message;
-  
+
   CustomValidationResult._(this.state, [this.message = '']);
-  
+
   /// Use to return a successful validation.
-  static CustomValidationResult valid()  => CustomValidationResult._(_ValidationState.valid);
-  
+  static CustomValidationResult valid() => CustomValidationResult._(_ValidationState.valid);
+
   /// Used to return a warning from a custom validator.
-  static CustomValidationResult warning(String message)  => CustomValidationResult._(_ValidationState.warning, message);
-  
+  static CustomValidationResult warning(String message) => CustomValidationResult._(_ValidationState.warning, message);
+
   /// Used to return an error from a custom validator.
   static CustomValidationResult error(String message) => CustomValidationResult._(_ValidationState.error, message);
 
   /// Returns true when the result passes.
-  bool get valid => state == _ValidationState.valid;
+  bool get isValid => state == _ValidationState.valid;
 
   /// Returns true when in an error state.
-  bool get error => state == _ValidationState.error;
+  bool get isError => state == _ValidationState.error;
 
   /// Returns true when in a warning state.
-  bool get warning => state == _ValidationState.warning;
+  bool get isWarning => state == _ValidationState.warning;
 }
