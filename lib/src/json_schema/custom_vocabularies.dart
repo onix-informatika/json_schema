@@ -87,35 +87,28 @@ enum _ValidationState { valid, warning, error }
 /// An errors means that validation failed. A message
 /// should be returned explaining why validation failed.
 class CustomValidationResult {
+  final _ValidationState state;
+  
+  /// Custom message for errors and warnings.
+  final String message;
+  
+  CustomValidationResult._(this.state, [this.message = '']);
+  
   /// Use to return a successful validation.
-  CustomValidationResult.valid() {
-    this._state = _ValidationState.valid;
-  }
-
+  static CustomValidationResult valid()  => CustomValidationResult._(_ValidationState.valid);
+  
   /// Used to return a warning from a custom validator.
-  CustomValidationResult.warning(String message) {
-    this._state = _ValidationState.warning;
-    this._message = message;
-  }
-
+  static CustomValidationResult warning(String message)  => CustomValidationResult._(_ValidationState.warning, message);
+  
   /// Used to return an error from a custom validator.
-  CustomValidationResult.error(String message) {
-    this._state = _ValidationState.error;
-    this._message = message;
-  }
-
-  _ValidationState _state;
-  String _message = "";
+  static CustomValidationResult error(String message) => CustomValidationResult._(_ValidationState.error, message);
 
   /// Returns true when the result passes.
-  bool get valid => _state == _ValidationState.valid;
+  bool get valid => state == _ValidationState.valid;
 
   /// Returns true when in an error state.
-  bool get error => _state == _ValidationState.error;
+  bool get error => state == _ValidationState.error;
 
   /// Returns true when in a warning state.
-  bool get warning => _state == _ValidationState.warning;
-
-  /// Custom message for errors and warnings.
-  String get message => _message;
+  bool get warning => state == _ValidationState.warning;
 }
