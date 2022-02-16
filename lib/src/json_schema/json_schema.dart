@@ -403,7 +403,7 @@ class JsonSchema {
             localSchema = _refMap[baseUriString];
           } else if (baseUriString != null && SchemaVersion.fromString(baseUriString) != null) {
             // If the referenced URI is or within versioned schema spec.
-            final staticSchema = getStaticSchema(baseUriString);
+            final staticSchema = getStaticSchemaByVersion(SchemaVersion.fromString(baseUriString));
             if (staticSchema != null) {
               _addSchemaToRefMap(baseUriString, JsonSchema.create(staticSchema));
             }

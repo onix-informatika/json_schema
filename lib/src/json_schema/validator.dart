@@ -47,6 +47,7 @@ import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
+import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
 import 'package:rfc_6901/rfc_6901.dart';
 
@@ -85,7 +86,8 @@ class _InstanceRefPair {
   bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
 
   @override
-  int get hashCode => Object.hash(this.path, this.ref);
+  // This can be replaced with Object.hash() once the minimum language version is set to 2.14
+  int get hashCode => Hasher.hash2(this.path.hashCode, this.ref.hashCode);
 }
 
 class ConcreteValidationContext implements ValidationContext {
