@@ -487,9 +487,10 @@ class JsonSchema {
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
-  JsonSchema _getSchemaFromPath(Uri pathUri, [Set<Uri> refsEncountered]) {
+  JsonSchema _getSchemaFromPath(Uri pathUri, [bool deepDive, Set<Uri> refsEncountered]) {
     // Store encountered refs to avoid cycles.
     refsEncountered ??= {};
+    deepDive ??= true;
 
     Uri basePathUri;
     if (pathUri.host.isEmpty && pathUri.path.isEmpty && (_uri != null || _inheritedUri != null)) {
@@ -590,13 +591,13 @@ class JsonSchema {
 
           // If currentSchema is a ref, resolve ref recursively.
           // Cycle detection happens at evaluation time for drafts 2019 and 2020.
-          if (currentSchema.schemaVersion < SchemaVersion.draft2019_09 && currentSchema.ref != null) {
+          if (currentSchema.schemaVersion < SchemaVersion.draft2019_09 && currentSchema.ref != null && deepDive) {
             if (!refsEncountered.add(currentSchema.ref)) {
               // Throw if cycle is detected for currentSchema ref.
               throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
             }
 
-            currentSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
+            currentSchema = currentSchema._getSchemaFromPath(currentSchema.ref, deepDive, refsEncountered);
             if (currentSchema == null) {
               throw ArgumentError(
                   'Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
@@ -1247,7 +1248,7 @@ class JsonSchema {
     ..addAll(_draft2020VocabMap);
 
   /// Get a nested [JsonSchema] from a path.
-  JsonSchema resolvePath(Uri path) => _getSchemaFromPath(path);
+  JsonSchema resolvePath(Uri path, {bool deepDive = true}) => _getSchemaFromPath(path, deepDive);
 
   /// Get a [JsonSchema] from the dynamicParent with the given anchor. Returns null if none exists.
   JsonSchema resolveDynamicAnchor(String dynamicAnchor, {JsonSchema dynamicParent}) =>

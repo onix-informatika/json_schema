@@ -847,7 +847,7 @@ class Validator {
     /// from the [refMap] instead.
     if (schema.ref != null) {
       _withRefScope(schema.ref, instance, () {
-        var nextSchema = schema.resolvePath(schema.ref);
+        var nextSchema = schema.resolvePath(schema.ref, deepDive: false);
         final prevParent = _setDynamicParent(nextSchema, schema);
         _validate(nextSchema, instance);
         _setDynamicParent(nextSchema, prevParent);
@@ -862,7 +862,7 @@ class Validator {
     /// from the [refMap] instead.
     if (schema.recursiveRef != null) {
       _withRefScope(schema.recursiveRef, instance, () {
-        var nextSchema = schema.resolvePath(schema.recursiveRef);
+        var nextSchema = schema.resolvePath(schema.recursiveRef, deepDive: false);
         if (nextSchema.recursiveAnchor == true) {
           nextSchema = _findAnchorParent(nextSchema) ?? nextSchema;
           _validate(nextSchema, instance);
@@ -879,7 +879,7 @@ class Validator {
 
     if (schema.dynamicRef != null) {
       _withRefScope(schema.recursiveRef, instance, () {
-        var nextSchema = schema.resolvePath(schema.dynamicRef);
+        var nextSchema = schema.resolvePath(schema.dynamicRef, deepDive: false);
         var anchorParent = _findDynamicAnchorParent(schema, nextSchema.dynamicAnchor);
         if (anchorParent != null) {
           _validate(anchorParent, instance);
