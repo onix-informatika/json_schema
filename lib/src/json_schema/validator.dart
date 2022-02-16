@@ -45,6 +45,7 @@ import 'package:json_schema/src/json_schema/typedefs.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
+import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
 import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
@@ -75,8 +76,8 @@ class Instance {
 class _InstanceRefPair {
   _InstanceRefPair(this.path, this.ref);
 
-  String path;
-  Uri ref;
+  final String path;
+  final Uri ref;
 
   @override
   toString() => "${ref.toString()}: $path";
@@ -86,6 +87,25 @@ class _InstanceRefPair {
 
   @override
   int get hashCode => Object.hash(this.path, this.ref);
+}
+
+class ConcreteValidationContext implements ValidationContext {
+  ConcreteValidationContext(this.instancePath, this.schemaPath, this._errFn, this._warnFn);
+
+  final String instancePath;
+  final String schemaPath;
+  final void Function(String, String, String) _errFn;
+  final void Function(String, String, String) _warnFn;
+
+  @override
+  void addError(String message) {
+    _errFn(message, instancePath, schemaPath);
+  }
+
+  @override
+  void addWarning(String message) {
+    _warnFn(message, instancePath, schemaPath);
+  }
 }
 
 /// The result of validating data against a schema
@@ -322,17 +342,9 @@ class Validator {
   }
 
   void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
+    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn);
     schema.customAttributeValidators.forEach((keyword, validator) {
-      var result = validator(instance.data);
-      if (result.isValid) {
-        return;
-      }
-      if (result.isWarning) {
-        _warn(result.message, instance.path, schema.path);
-      }
-      if (result.isError) {
-        _err('${keyword}, violated ${result.message}', instance.path, instance.data);
-      }
+      var _result = validator(context, instance.data);
     });
   }
 

@@ -67,42 +67,15 @@ class CustomKeyword {
   final Object Function(JsonSchema schema, Object value) propertySetter;
 
   /// Function used to validate a json value.
-  final CustomValidationResult Function(Object schemaProperty, Object instanceData) validator;
+  final ValidationContext Function(ValidationContext context, Object schemaProperty, Object instanceData) validator;
 }
 
-enum _ValidationState { valid, warning, error }
+/// [ValidationContext] is the public interface for an object keeping track of the current validation state.
+/// A concrete instance is passed into the validation function an updated is return from the validation function.
+abstract class ValidationContext {
+  /// Use [addError] to add a new error message to the validation context.
+  void addError(String message);
 
-/// Result object for a custom Validation function.
-/// The result can be valid, warning, or error.
-/// A valid result means the data passed validation.
-/// A warning means the data passed validations,
-/// but with a warning. A message should be provided
-/// to give the user additional information.
-/// An errors means that validation failed. A message
-/// should be returned explaining why validation failed.
-class CustomValidationResult {
-  final _ValidationState state;
-
-  /// Custom message for errors and warnings.
-  final String message;
-
-  CustomValidationResult._(this.state, [this.message = '']);
-
-  /// Use to return a successful validation.
-  static CustomValidationResult valid() => CustomValidationResult._(_ValidationState.valid);
-
-  /// Used to return a warning from a custom validator.
-  static CustomValidationResult warning(String message) => CustomValidationResult._(_ValidationState.warning, message);
-
-  /// Used to return an error from a custom validator.
-  static CustomValidationResult error(String message) => CustomValidationResult._(_ValidationState.error, message);
-
-  /// Returns true when the result passes.
-  bool get isValid => state == _ValidationState.valid;
-
-  /// Returns true when in an error state.
-  bool get isError => state == _ValidationState.error;
-
-  /// Returns true when in a warning state.
-  bool get isWarning => state == _ValidationState.warning;
+  /// Use [addWarning] to ad a new warning message to the validation context.
+  void addWarning(String message);
 }

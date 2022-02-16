@@ -1298,7 +1298,7 @@ class JsonSchema {
   Map<String, Map<String, SchemaPropertySetter>> _customVocabMap = Map();
 
   // Hold values set by the custom accessors.
-  Map<String, CustomValidationResult Function(Object)> _customAttributeValidators = Map();
+  Map<String, ValidationContext Function(ValidationContext, Object)> _customAttributeValidators = Map();
 
   /// Create a SchemaPropertySetter function that is used for setting custom properties while processing a schema.
   SchemaPropertySetter _setCustomProperty(String keyword, CustomKeyword processor) {
@@ -1309,8 +1309,8 @@ class JsonSchema {
       var obj = processor.propertySetter(s, o);
       // Create and store a closure for the validation function. This is kind of weird, but makes the code in the
       // validator simpler.
-      CustomValidationResult Function(Object) validationFunction =
-          (Object instance) => processor.validator(obj, instance);
+      ValidationContext Function(ValidationContext, Object) validationFunction =
+          (ValidationContext context, Object instance) => processor.validator(context, obj, instance);
       s._customAttributeValidators[keyword] = validationFunction;
       return obj;
     };
@@ -1785,7 +1785,8 @@ class JsonSchema {
 
   /// The set of functions to validate custom keywords.
   @Deprecated("For internal use by the Validator only")
-  Map<String, CustomValidationResult Function(Object)> get customAttributeValidators => _customAttributeValidators;
+  Map<String, ValidationContext Function(ValidationContext, Object)> get customAttributeValidators =>
+      _customAttributeValidators;
 
   // --------------------------------------------------------------------------
   // Convenience Methods

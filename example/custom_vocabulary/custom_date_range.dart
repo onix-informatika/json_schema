@@ -77,43 +77,44 @@ Object _dateSetter(JsonSchema s, Object value) {
 }
 
 // Validate the given data against the property.
-CustomValidationResult _validateMinDate(Object schemaProperty, Object instanceData) {
+ValidationContext _validateMinDate(ValidationContext context, Object schemaProperty, Object instanceData) {
   if (schemaProperty is! DateTime) {
-    return CustomValidationResult.error('schema is not a date time object.');
+    context.addError('schema is not a date time object.');
   }
   DateTime minDate = schemaProperty;
   if (instanceData is! String) {
-    return CustomValidationResult.error('Data is not stringy');
+    context.addError('Data is not stringy');
   }
   String instanceString = instanceData;
   try {
     var testDate = DateTime.parse(instanceString);
     if (minDate.isAfter(testDate)) {
-      return CustomValidationResult.error('min date is after given date');
+      context.addError('min date is after given date');
     }
-    return CustomValidationResult.valid();
   } catch (e) {
-    return CustomValidationResult.error('unable to parse date from data');
+    context.addError('unable to parse date from data');
   }
+
+  return context;
 }
 
 // Validate the given data against the property.
-CustomValidationResult _validateMaxDate(Object schemaProperty, Object instanceData) {
+ValidationContext _validateMaxDate(ValidationContext context, Object schemaProperty, Object instanceData) {
   if (schemaProperty is! DateTime) {
-    return CustomValidationResult.error('schema is not a date time object.');
+    context.addError('schema is not a date time object.');
   }
   DateTime maxDate = schemaProperty;
   if (instanceData is! String) {
-    return CustomValidationResult.error('Data is not stringy');
+    context.addError('Data is not stringy');
   }
   String instanceString = instanceData;
   try {
     var testDate = DateTime.parse(instanceString);
     if (maxDate.isBefore(testDate)) {
-      return CustomValidationResult.error('max date is before given date');
+      context.addError('max date is before given date');
     }
-    return CustomValidationResult.valid();
   } catch (e) {
-    return CustomValidationResult.error('unable to parse date from data');
+    context.addError('unable to parse date from data');
   }
+  return context;
 }

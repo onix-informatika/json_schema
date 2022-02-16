@@ -10,7 +10,6 @@ import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
-
 final Logger _logger = Logger('HtmlSchemaUrlClient');
 
 class HtmlSchemaUrlClient extends SchemaUrlClient {
