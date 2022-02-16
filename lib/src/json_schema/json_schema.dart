@@ -1132,15 +1132,6 @@ class JsonSchema {
       'contentEncoding': (JsonSchema s, dynamic v) => s._setContentEncoding(v),
     });
 
-  // TODO: Think about doing something with the deprecated keywords in this map.
-  static Map<String, SchemaPropertySetter> _draft2019_combined = Map()
-    ..addAll(_draft2019_core)
-    ..addAll(_draft2019_applicator)
-    ..addAll(_draft2019_content)
-    ..addAll(_draft2019_format)
-    ..addAll(_draft2019_metadata)
-    ..addAll(_draft2019_validation);
-
   static Map<String, SchemaPropertySetter> _draft2019_core = Map<String, SchemaPropertySetter>()
     ..addAll({
       r'$id': (JsonSchema s, dynamic v) => s._setId(v),
@@ -1228,16 +1219,6 @@ class JsonSchema {
       "https://json-schema.org/draft/2019-09/vocab/format": _draft2019_format,
       "https://json-schema.org/draft/2019-09/vocab/content": _draft2019_content
     });
-
-  // TODO: Think about doing something with the deprecated keywords in this map.
-  static Map<String, SchemaPropertySetter> _draft2020_combined = Map()
-    ..addAll(_draft2020_core)
-    ..addAll(_draft2020_applicator)
-    ..addAll(_draft2020_unevaluated)
-    ..addAll(_draft2020_validation)
-    ..addAll(_draft2020_metadata)
-    ..addAll(_draft2020_format_annotation)
-    ..addAll(_draft2020_content);
 
   static Map<String, SchemaPropertySetter> _draft2020_core = Map<String, SchemaPropertySetter>()
     ..addAll(_draft2019_core)

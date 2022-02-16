@@ -64,9 +64,10 @@ main() {
         customVocabularies: customVocabularies,
       );
 
+      // ignore: deprecated_member_use_from_same_package
       expect(schema.properties['publishedOn'].customAttributeValidators.keys.contains('minDate'), true);
 
-      // expect(schema.validate({'baz': 'foo', 'publishedOn': '2970-01-01'}).isValid, true);
+      expect(schema.validate({'baz': 'foo', 'publishedOn': '2970-01-01'}).isValid, true);
       expect(schema.validate({'baz': 'foo', 'publishedOn': '1970-01-01'}).isValid, false);
     });
 

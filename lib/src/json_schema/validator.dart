@@ -41,7 +41,6 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/typedefs.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -343,8 +342,10 @@ class Validator {
 
   void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
     final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn);
+    // ignore: deprecated_member_use_from_same_package
     schema.customAttributeValidators.forEach((keyword, validator) {
-      var _result = validator(context, instance.data);
+      // ignore: unused_local_variable
+      var _context = validator(context, instance.data);
     });
   }
 
@@ -938,6 +939,7 @@ class Validator {
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
+    // ignore: deprecated_member_use_from_same_package
     if (schema.customAttributeValidators.isNotEmpty) _validateCustomSetAttributes(schema, instance);
 
     if (schema.unevaluatedItems != null) {
