@@ -42,6 +42,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:json_schema/src/json_schema/typedefs.dart';
+import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
@@ -85,7 +86,8 @@ class _InstanceRefPair {
   bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
 
   @override
-  int get hashCode => Object.hash(this.path, this.ref);
+  // This can be replaced with Object.hash() once the minimum language version is set to 2.14
+  int get hashCode => Hasher.hash2(this.path.hashCode, this.ref.hashCode);
 }
 
 /// The result of validating data against a schema
