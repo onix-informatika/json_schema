@@ -66,7 +66,10 @@ class RetrievalRequest {
 /// result in a FormatException being thrown.
 class JsonSchema {
   JsonSchema._fromMap(this._root, Map schemaMap, this._path, {JsonSchema parent}) {
-    this._schemaMap = schemaMap != null ? Map<String, dynamic>.from(schemaMap) : {};
+    if (schemaMap == null) {
+      throw ArgumentError.notNull('schemaMap');
+    }
+    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     this._parent = parent;
     _initialize();
   }
@@ -78,7 +81,10 @@ class JsonSchema {
 
   JsonSchema._fromRootMap(Map schemaMap, SchemaVersion schemaVersion,
       {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
-    this._schemaMap = schemaMap != null ? Map<String, dynamic>.from(schemaMap) : {};
+    if (schemaMap == null) {
+      throw ArgumentError.notNull('schemaMap');
+    }
+    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,

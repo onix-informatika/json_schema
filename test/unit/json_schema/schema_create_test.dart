@@ -54,5 +54,15 @@ void main() {
       final results = schema.validateWithResults({'multiple': 2});
       expect(results.errors.length, 0);
     });
+
+    test('create with Unmodifiable Map succeeds', () {
+      final schema = JsonSchema.create(Map.unmodifiable({
+        'properties': {
+          'multiple': {'multipleOf': 2}
+        }
+      }));
+      final results = schema.validateWithResults({'multiple': 2});
+      expect(results.errors.length, 0);
+    });
   });
 }
