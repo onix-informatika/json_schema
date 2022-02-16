@@ -65,7 +65,11 @@ class RetrievalRequest {
 /// the schema itself is done on construction. Any errors in the schema
 /// result in a FormatException being thrown.
 class JsonSchema {
-  JsonSchema._fromMap(this._root, this._schemaMap, this._path, {JsonSchema parent}) {
+  JsonSchema._fromMap(this._root, Map schemaMap, this._path, {JsonSchema parent}) {
+    if (schemaMap == null) {
+      throw ArgumentError.notNull('schemaMap');
+    }
+    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     this._parent = parent;
     _initialize();
   }
@@ -75,8 +79,12 @@ class JsonSchema {
     _initialize();
   }
 
-  JsonSchema._fromRootMap(this._schemaMap, SchemaVersion schemaVersion,
+  JsonSchema._fromRootMap(Map schemaMap, SchemaVersion schemaVersion,
       {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
+    if (schemaMap == null) {
+      throw ArgumentError.notNull('schemaMap');
+    }
+    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
