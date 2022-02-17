@@ -36,15 +36,46 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-import 'dart:async';
+import 'package:json_schema/json_schema.dart';
 
-import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/json_schema.dart';
+/// Use to register a custom vocabulary with the [JsonSchema] compiler.
+///
+class CustomVocabulary {
+  CustomVocabulary(this.vocabulary, this.keywordImplementations);
 
-typedef CreateJsonSchemaFromUrl = Future<JsonSchema> Function(String schemaUrl, {SchemaVersion schemaVersion});
-typedef SchemaPropertySetter = Object Function(JsonSchema s, Object value);
-typedef SchemaPropertyGetter = Object Function(JsonSchema s);
-typedef SchemaAssigner = Function(JsonSchema s);
-typedef SchemaAdder = Function(JsonSchema s);
-typedef AsyncRetrievalOperation = Future<JsonSchema> Function();
-typedef SyncRetrievalOperation = JsonSchema Function();
+  /// Name of the vocabulary.
+  final Uri vocabulary;
+
+  /// A map of the keywords and implementation for the keywords.
+  final Map<String, CustomKeyword> keywordImplementations;
+}
+
+/// A class to contain the set of functions for setting and validating keywords in a custom vocabulary.
+///
+/// The two functions provided are used to process an attribute in a schema and then validate data.
+///
+/// The setter function takes the current JsonSchema node being processed and the data from the json.
+/// The given function should validate and transform the data however is needed for the corresponding validation
+/// function. If the data is bad a [FormatException] with a clear message should be thrown.
+///
+/// The validation function takes the output from the property setter and data from a JSON payload to be validated.
+/// A [CustomValidationResult] should be returned to indicate the outcome of the validation.
+class CustomKeyword {
+  CustomKeyword(this.propertySetter, this.validator);
+
+  /// Function used to set a property from the a schema.
+  final Object Function(JsonSchema schema, Object value) propertySetter;
+
+  /// Function used to validate a json value.
+  final ValidationContext Function(ValidationContext context, Object schemaProperty, Object instanceData) validator;
+}
+
+/// [ValidationContext] is the public interface for an object keeping track of the current validation state.
+/// A concrete instance is passed into the validation function an updated is return from the validation function.
+abstract class ValidationContext {
+  /// Use [addError] to add a new error message to the validation context.
+  void addError(String message);
+
+  /// Use [addWarning] to ad a new warning message to the validation context.
+  void addWarning(String message);
+}

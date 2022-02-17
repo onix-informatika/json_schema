@@ -63,23 +63,23 @@ main() {
   JsonSchema.createFromUrl(url).then((schema) {
     final grades = json.decode('''
 {
-    'semesters': [
+    "semesters": [
         {
-            'semester': 1,
-            'grades': [
+            "semester": 1,
+            "grades": [
                 {
-                    'type': 'homework',
-                    'date': '09/27/2013',
-                    'grade': 100,
-                    'avg': 93,
-                    'std': 8
+                    "type": "homework",
+                    "date": "09/27/2013",
+                    "grade": 100,
+                    "avg": 93,
+                    "std": 8
                 },
                 {
-                    'type': 'homework',
-                    'date': '09/28/2013',
-                    'grade': 100,
-                    'avg': 60,
-                    'std': 25
+                    "type": "homework",
+                    "date": "09/28/2013",
+                    "grade": 100,
+                    "avg": 60,
+                    "std": 25
                 }
             ]
         }

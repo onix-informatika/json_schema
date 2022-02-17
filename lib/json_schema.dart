@@ -36,6 +36,8 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+export 'package:json_schema/src/json_schema/custom_vocabularies.dart'
+    show CustomVocabulary, CustomKeyword, ValidationContext;
 export 'package:json_schema/src/json_schema/json_schema.dart' show JsonSchema;
 export 'package:json_schema/src/json_schema/constants.dart' show SchemaVersion;
 export 'package:json_schema/src/json_schema/schema_type.dart' show SchemaType;

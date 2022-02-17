@@ -41,13 +41,13 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/typedefs.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
+import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_type.dart';
+import 'package:json_schema/src/json_schema/utils.dart';
 import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
 import 'package:rfc_6901/rfc_6901.dart';
 
@@ -76,8 +76,8 @@ class Instance {
 class _InstanceRefPair {
   _InstanceRefPair(this.path, this.ref);
 
-  String path;
-  Uri ref;
+  final String path;
+  final Uri ref;
 
   @override
   toString() => "${ref.toString()}: $path";
@@ -88,6 +88,25 @@ class _InstanceRefPair {
   @override
   // This can be replaced with Object.hash() once the minimum language version is set to 2.14
   int get hashCode => Hasher.hash2(this.path.hashCode, this.ref.hashCode);
+}
+
+class ConcreteValidationContext implements ValidationContext {
+  ConcreteValidationContext(this.instancePath, this.schemaPath, this._errFn, this._warnFn);
+
+  final String instancePath;
+  final String schemaPath;
+  final void Function(String, String, String) _errFn;
+  final void Function(String, String, String) _warnFn;
+
+  @override
+  void addError(String message) {
+    _errFn(message, instancePath, schemaPath);
+  }
+
+  @override
+  void addWarning(String message) {
+    _warnFn(message, instancePath, schemaPath);
+  }
 }
 
 /// The result of validating data against a schema
@@ -321,6 +340,15 @@ class Validator {
     if (schema.deprecated == true) {
       _warn('deprecated ${instance}', instance.path, schema.path);
     }
+  }
+
+  void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
+    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn);
+    // ignore: deprecated_member_use_from_same_package
+    schema.customAttributeValidators.forEach((keyword, validator) {
+      // ignore: unused_local_variable
+      var _context = validator(context, instance.data);
+    });
   }
 
   void _stringValidation(JsonSchema schema, Instance instance) {
@@ -820,7 +848,7 @@ class Validator {
 
   /// A helper function to deal with infinite loops at evaluation time.
   /// If we see the same data/ref pair twice, we're in a loop.
-  void _withRefScope(Uri refScope, Instance instance, RefScopeOperation fn) {
+  void _withRefScope(Uri refScope, Instance instance, Function() fn) {
     var irp = _InstanceRefPair(instance.path, refScope);
     if (!_refsEncountered.add(irp)) {
       // Throw if cycle is detected while evaluating refs.
@@ -913,6 +941,8 @@ class Validator {
     if (schema.format != null) _validateFormat(schema, instance);
     if (instance.data is Map) _objectValidation(schema, instance);
     if (schema.deprecated == true) _validateDeprecated(schema, instance);
+    // ignore: deprecated_member_use_from_same_package
+    if (schema.customAttributeValidators.isNotEmpty) _validateCustomSetAttributes(schema, instance);
 
     if (schema.unevaluatedItems != null) {
       _popEvaluatedItemsContext();

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:json_schema/src/json_schema/constants.dart';
+import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
@@ -13,7 +14,11 @@ final Logger _logger = Logger('HtmlSchemaUrlClient');
 
 class HtmlSchemaUrlClient extends SchemaUrlClient {
   @override
-  createFromUrl(String schemaUrl, {SchemaVersion schemaVersion}) async {
+  createFromUrl(
+    String schemaUrl, {
+    SchemaVersion schemaVersion,
+    List<CustomVocabulary> customVocabularies,
+  }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     var uri = uriWithFrag.removeFragment();
     if (schemaUrl.endsWith('#')) {
@@ -33,8 +38,12 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
       }
 
       // HTTP servers ignore fragments, so resolve a sub-map if a fragment was specified.
-      final parentSchema =
-          await JsonSchema.createAsync(jsonResponse, schemaVersion: schemaVersion, fetchedFromUri: uri);
+      final parentSchema = await JsonSchema.createAsync(
+        jsonResponse,
+        schemaVersion: schemaVersion,
+        fetchedFromUri: uri,
+        customVocabularies: customVocabularies,
+      );
       final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
       return schema ?? parentSchema;
     } else {
