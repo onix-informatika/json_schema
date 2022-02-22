@@ -631,7 +631,17 @@ class JsonSchema {
           }
 
           // If currentSchema is a ref, we might want to resolve it recursively right now.
-          if (currentSchema.ref != null && currentSchema._schemaMap.length == 1) {
+          if (currentSchema.ref != null) {
+            // If we are at the end of the fragments to search and there are additional properties in the schema,
+            // continue with the current schema instead of resolving the ref.
+            if (i + 1 == fragments.length && currentSchema._schemaMap.length > 1) {
+              continue;
+            }
+            // If the next fragment is in the current schema, continue with the current schema instead of resolving the ref.
+            if (i + 1 < fragments.length && currentSchema._schemaMap.containsKey(fragments[i + 1])) {
+              continue;
+            }
+
             if (!refsEncountered.add(currentSchema.ref)) {
               // Throw if cycle is detected for currentSchema ref.
               throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
