@@ -631,10 +631,7 @@ class JsonSchema {
           }
 
           // If currentSchema is a ref, we might want to resolve it recursively right now.
-          // If the schemaVersion is before draft2019, just resolve it.
-          // If there are fragments left to go through, resolve the ref, then carry on.
-          if (currentSchema.ref != null && (currentSchema.schemaVersion < SchemaVersion.draft2019_09) ||
-              ((i + 1 < fragments.length && currentSchema.schemaVersion >= SchemaVersion.draft2019_09))) {
+          if (currentSchema.ref != null && currentSchema._schemaMap.length == 1) {
             if (!refsEncountered.add(currentSchema.ref)) {
               // Throw if cycle is detected for currentSchema ref.
               throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
