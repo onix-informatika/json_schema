@@ -560,108 +560,193 @@ class JsonSchema {
     // Follow JSON Pointer path of fragments if provided.
     if (pathUri.fragment.isNotEmpty) {
       final List<String> fragments = Uri.parse(pathUri.fragment).pathSegments;
-      if (fragments.isNotEmpty) {
-        // Start at the baseSchema.
-        JsonSchema currentSchema = baseSchema;
-
-        // Iterate through supported keywords or custom properties.
-        for (int i = 0; i < fragments.length; i++) {
-          final String fragment = fragments[i];
-
-          /// Fetch the property getter from the [_baseAccessGetterMap].
-          final SchemaPropertyGetter accessor = _baseAccessGetterMap[fragment];
-          if (accessor != null) {
-            // Get the property off the current schema.
-            final schemaValues = _baseAccessGetterMap[fragment](currentSchema);
-            if (schemaValues is JsonSchema) {
-              // Continue iteration if result is a valid schema.
-              currentSchema = schemaValues;
-            } else if (schemaValues is Map<String, JsonSchema>) {
-              // Map properties use the following fragment to fetch the value by key.
-              i += 1;
-              String propertyKey = fragments[i];
-              if (schemaValues[propertyKey] is! JsonSchema) {
-                try {
-                  propertyKey = Uri.decodeQueryComponent(propertyKey);
-                  // Create a JSON Pointer with one segment from the current key.
-                  // (This will throw a FormatException if invalid, and not be unescaped)
-                  JsonPointer('/$propertyKey');
-                  propertyKey = JsonSchemaUtils.unescapeJsonPointerToken(propertyKey);
-                } on FormatException catch (_) {
-                  // Fall back to original propertyKey if it can't be unescaped.
-                }
-              }
-              currentSchema = schemaValues[propertyKey];
-
-              // Fetched properties must be valid schemas.
-              if (currentSchema is! JsonSchema) {
-                throw FormatException(
-                    'Failed to get schema at path: "$fragment/$propertyKey". Property must be a valid schema : $currentSchema');
-              }
-            } else if (schemaValues is List<JsonSchema>) {
-              // List properties use the following fragment to fetch the value by index.
-              i += 1;
-              final String propertyIndex = fragments[i];
-              try {
-                final int schemaIndex = int.parse(propertyIndex);
-                currentSchema = schemaValues[schemaIndex];
-              } catch (e) {
-                throw FormatException(
-                    'Failed to get schema at path: "$fragment/$propertyIndex". Unable to resolve index.');
-              }
-
-              if (currentSchema is! JsonSchema) {
-                throw FormatException(
-                    'Failed to get schema at path: "$fragment/$propertyIndex". Property must be a valid schema : $currentSchema');
-              }
-            }
-          } else {
-            // Fragment might be a custom property, pull from _refMap and throw if result is not a valid JsonSchema.
-
-            // If the currentSchema does not have a _uri set from refProvider, check _refMap for fragment only.
-            String currentSchemaRefPath = pathUri.toString();
-            if (currentSchema._uri == null && currentSchema._inheritedUri == null) {
-              currentSchemaRefPath = '#${pathUri.fragment}';
-            }
-            currentSchema = currentSchema._refMap[currentSchemaRefPath];
-            if (currentSchema is! JsonSchema) {
-              throw FormatException(
-                  'Failed to get schema at path: "$fragment". Custom property must be a valid schema, but got : $currentSchema');
-            }
-          }
-
-          // If currentSchema is a ref, we might want to resolve it recursively right now.
-          if (currentSchema.ref != null) {
-            // If the next fragment is in the current schema, continue with the current schema instead of resolving the ref.
-            if (i + 1 < fragments.length && currentSchema._schemaMap.containsKey(fragments[i + 1])) {
-              continue;
-            }
-            // Set of properties that don't impact validation.
-            final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
-            // If we are at the end of the fragments to search and there are additional properties in the schema,
-            // continue with the current schema instead of resolving the ref.
-            if (i + 1 == fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
-              continue;
-            }
-            if (!refsEncountered.add(currentSchema.ref)) {
-              // Throw if cycle is detected for currentSchema ref.
-              throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
-            }
-
-            currentSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
-            if (currentSchema == null) {
-              throw ArgumentError(
-                  'Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
-            }
-          }
-        }
-
-        // Return the successfully resolved schema from fragment path.
-        return currentSchema;
-      }
+      return _recursiveResolvePath(pathUri, fragments.slice(0), baseSchema, refsEncountered);
     }
 
     // No fragments present, return the successfully resolved base schema.
+    return baseSchema;
+  }
+
+  JsonSchema _resolveParallelPaths(Uri pathUri, ListSlice<String> fragments, JsonSchema schemaWithRef,
+      JsonSchema resolvedSchema, Set<Uri> refsEncountered1, Set<Uri> refsEncountered2) {
+    if (schemaWithRef.ref == null) {
+      throw ArgumentError("Expected schemaWithRef to contain a ref");
+    }
+    JsonSchema firstResult;
+    JsonSchema secondResult;
+    dynamic firstError;
+    dynamic secondError;
+    try {
+      firstResult = _recursiveResolvePath(
+        pathUri,
+        fragments,
+        schemaWithRef,
+        Set.of(refsEncountered1),
+        skipInitialRefCheck: true,
+      );
+    } catch (e) {
+      firstError = e;
+    }
+    try {
+      secondResult = _recursiveResolvePath(
+        pathUri,
+        fragments,
+        resolvedSchema,
+        Set.of(refsEncountered2),
+      );
+    } catch (e) {
+      secondError = e;
+    }
+    if (firstResult == null && secondResult == null) {
+      throw firstError; // Is there a nice way to combine errors?
+    } else if (firstResult != null && secondResult != null) {
+      throw Exception("Ambiguous paths detected");
+    } else if (firstResult != null) {
+      return firstResult;
+    } else if (secondResult != null) {
+      return secondResult;
+    }
+    return null;
+  }
+
+  JsonSchema _recursiveResolvePath(
+      Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema, Set<Uri> refsEncountered,
+      {bool skipInitialRefCheck = false}) {
+    if (fragments.isNotEmpty) {
+      // Start at the baseSchema.
+      JsonSchema currentSchema = baseSchema;
+
+      // If currentSchema is a ref, we might want to resolve it recursively right now.
+      if (currentSchema.ref != null &&
+          currentSchema.ref != pathUri &&
+          !refsEncountered.contains(currentSchema.ref) &&
+          !skipInitialRefCheck) {
+        // Set of properties that don't impact validation.
+        final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
+        Set<Uri> preRefsEncountered = Set.of(refsEncountered);
+        if (!refsEncountered.add(currentSchema.ref)) {
+          // Throw if cycle is detected for currentSchema ref.
+          throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
+        }
+
+        var nextSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
+        if (nextSchema == null) {
+          throw ArgumentError('Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
+        }
+
+        // If the next fragment is in the current schema, continue with the current schema instead of resolving the ref.
+        if (currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
+          return _resolveParallelPaths(
+              pathUri, fragments, currentSchema, nextSchema, preRefsEncountered, refsEncountered);
+        }
+
+        currentSchema = nextSchema;
+      }
+
+      // Iterate through supported keywords or custom properties.
+      for (int i = 0; i < fragments.length; i++) {
+        final String fragment = fragments[i];
+
+        /// Fetch the property getter from the [_baseAccessGetterMap].
+        final SchemaPropertyGetter accessor = _baseAccessGetterMap[fragment];
+        if (accessor != null) {
+          // Get the property off the current schema.
+          final schemaValues = _baseAccessGetterMap[fragment](currentSchema);
+          if (schemaValues is JsonSchema) {
+            // Continue iteration if result is a valid schema.
+            currentSchema = schemaValues;
+          } else if (schemaValues is Map<String, JsonSchema>) {
+            // Map properties use the following fragment to fetch the value by key.
+            i += 1;
+            String propertyKey = fragments[i];
+            if (schemaValues[propertyKey] is! JsonSchema) {
+              try {
+                propertyKey = Uri.decodeQueryComponent(propertyKey);
+                // Create a JSON Pointer with one segment from the current key.
+                // (This will throw a FormatException if invalid, and not be unescaped)
+                JsonPointer('/$propertyKey');
+                propertyKey = JsonSchemaUtils.unescapeJsonPointerToken(propertyKey);
+              } on FormatException catch (_) {
+                // Fall back to original propertyKey if it can't be unescaped.
+              }
+            }
+            currentSchema = schemaValues[propertyKey];
+
+            // Fetched properties must be valid schemas.
+            if (currentSchema is! JsonSchema) {
+              throw FormatException(
+                  'Failed to get schema at path: "$fragment/$propertyKey". Property must be a valid schema : $currentSchema');
+            }
+          } else if (schemaValues is List<JsonSchema>) {
+            // List properties use the following fragment to fetch the value by index.
+            i += 1;
+            final String propertyIndex = fragments[i];
+            try {
+              final int schemaIndex = int.parse(propertyIndex);
+              currentSchema = schemaValues[schemaIndex];
+            } catch (e) {
+              throw FormatException(
+                  'Failed to get schema at path: "$fragment/$propertyIndex". Unable to resolve index.');
+            }
+
+            if (currentSchema is! JsonSchema) {
+              throw FormatException(
+                  'Failed to get schema at path: "$fragment/$propertyIndex". Property must be a valid schema : $currentSchema');
+            }
+          }
+        } else {
+          // Fragment might be a custom property, pull from _refMap and throw if result is not a valid JsonSchema.
+
+          // If the currentSchema does not have a _uri set from refProvider, check _refMap for fragment only.
+          String currentSchemaRefPath = pathUri.toString();
+          if (currentSchema._uri == null && currentSchema._inheritedUri == null) {
+            currentSchemaRefPath = '#${pathUri.fragment}';
+          }
+          currentSchema = currentSchema._refMap[currentSchemaRefPath];
+          if (currentSchema is! JsonSchema) {
+            throw FormatException(
+                'Failed to get schema at path: "$fragment". Custom property must be a valid schema, but got : $currentSchema');
+          }
+        }
+
+        // If currentSchema is a ref, we might want to resolve it recursively right now.
+        if (currentSchema.ref != null) {
+          // Set of properties that don't impact validation.
+          final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
+          // If we are at the end of the fragments to search and there are additional properties in the schema,
+          // continue with the current schema instead of resolving the ref. There is no more searching to do.
+          if (i + 1 == fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
+            continue;
+          }
+          if (i + 1 < fragments.length &&
+              // currentSchema._schemaMap.keys.toSet().difference(consts).length > 1 &&
+              refsEncountered.contains(currentSchema.ref)) {
+            continue;
+          }
+          Set<Uri> preRefsEncountered = Set.of(refsEncountered);
+          if (!refsEncountered.add(currentSchema.ref)) {
+            // Throw if cycle is detected for currentSchema ref.
+            throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
+          }
+
+          var nextSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
+          if (nextSchema == null) {
+            throw ArgumentError(
+                'Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
+          }
+
+          // If there are still fragments, and the current schema still has properties to resolve, check both schemas.
+          if (i + 1 < fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
+            return _resolveParallelPaths(pathUri, fragments.slice(i, fragments.length - 1), currentSchema, nextSchema,
+                preRefsEncountered, refsEncountered);
+          }
+          currentSchema = nextSchema;
+        }
+      }
+
+      // Return the successfully resolved schema from fragment path.
+      return currentSchema;
+    }
     return baseSchema;
   }
 
