@@ -2,13 +2,17 @@ import 'package:json_schema/json_schema.dart';
 import 'package:test/test.dart';
 
 main() {
-  JsonSchema fooSchema;
-  setUp(() async {
-    fooSchema = await JsonSchema.createAsync({
+  JsonSchema testSchema;
+  setUp(() {
+    testSchema = JsonSchema.create({
+      '\$id': 'root',
       '\$defs': {
         'a': {
+          '\$anchor': 'a_anchor',
           'const': 'found in ref',
-          'deeper': {'const': 'deeper in the schema'},
+          'properties': {
+            'deeper': {'const': 'deeper in the schema'},
+          },
           '\$ref': '#/\$defs/b'
         },
         'b': {'const': 'b in not resolved'}
@@ -16,7 +20,7 @@ main() {
       'properties': {
         'foo': {'\$ref': '#/\$defs/a'},
         'baz': {
-          '\$ref': '#/\$defs/a',
+          '\$ref': '#a_anchor',
           'findMe': {'const': 'is found'}
         }
       }
@@ -24,19 +28,44 @@ main() {
   });
   group('Resolve path', () {
     test('ref resolved immediately when it is the only property.', () {
-      var ref = fooSchema.resolvePath(Uri.parse('#/properties/foo'));
+      var ref = testSchema.resolvePath(Uri.parse('#/properties/foo'));
       expect(ref.constValue, 'found in ref');
     });
 
     test('ref should not resolve when there are multiple properties', () {
-      var ref = fooSchema.resolvePath(Uri.parse('#/properties/baz'));
+      var ref = testSchema.resolvePath(Uri.parse('#/properties/baz'));
       expect(ref.constValue, null);
       expect(ref.ref == null, false);
     });
 
     test('should continue resolving in the current node even if there is a ref', () {
-      final schema = fooSchema.resolvePath(Uri.parse('#/properties/baz/findMe'));
-      expect(schema.constValue, 'is found');
+      final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/findMe'));
+      expect(ref.constValue, 'is found');
+    });
+
+    test('should follow the ref and continue resolving', () {
+      final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/properties/deeper'));
+      expect(ref.constValue, 'deeper in the schema');
+    });
+
+    test('should throw an exception when there in an ambiguous path', () {
+      final schema = JsonSchema.create({
+        "\$defs": {
+          "a": {"type": "integer"},
+          "b": {"\$ref": "#/\$defs/a"},
+          "c": {"\$ref": "#/\$defs/b"}
+        },
+        "properties": {
+          "Q": {
+            "type": "object",
+            "\$ref": "#/\$defs/c",
+            "properties": {
+              "a": {"type": "string"}
+            }
+          }
+        }
+      }, schemaVersion: SchemaVersion.draft2020_12);
+      expect(() => schema.resolvePath(Uri.parse('#/properties/Q/a')), throwsException);
     });
   });
 }

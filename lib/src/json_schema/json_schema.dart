@@ -632,9 +632,10 @@ class JsonSchema {
 
           // If currentSchema is a ref, we might want to resolve it recursively right now.
           if (currentSchema.ref != null) {
-            // If the next fragment is in the current schema, continue with the current schema instead of resolving the ref.
+            // If the next fragment is in the current schema, throw an exception. The behavior is not well defined.
             if (i + 1 < fragments.length && currentSchema._schemaMap.containsKey(fragments[i + 1])) {
-              continue;
+              // continue;
+              throw Exception("Ambiguous path detected");
             }
             // Set of properties that don't impact validation.
             final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
