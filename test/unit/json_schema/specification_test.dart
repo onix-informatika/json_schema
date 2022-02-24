@@ -36,6 +36,7 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+@TestOn('vm')
 import 'dart:convert';
 import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/validator.dart';
@@ -145,43 +146,43 @@ void main() {
   });
 
   //Run all tests asynchronously with no ref provider.
-  runAllTestsForDraftX(
-    SchemaVersion.draft4,
-    allDraft4,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft6,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft7,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    allDraft2019,
-    draft2019SkippedTestFiles,
-    commonSkippedTests,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    draft2019Format,
-    draft2019FormatSkippedTestFiles,
-    commonSkippedTests,
-    validateFormats: true,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2020_12,
-    allDraft2020,
-    draft2020SkippedTestFiles,
-    commonSkippedTests,
-  );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft4,
+  //   allDraft4,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft6,
+  //   allDraft6,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft7,
+  //   allDraft7,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2019_09,
+  //   allDraft2019,
+  //   draft2019SkippedTestFiles,
+  //   commonSkippedTests,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2019_09,
+  //   draft2019Format,
+  //   draft2019FormatSkippedTestFiles,
+  //   commonSkippedTests,
+  //   validateFormats: true,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2020_12,
+  //   allDraft2020,
+  //   draft2020SkippedTestFiles,
+  //   commonSkippedTests,
+  // );
 
   // Run all tests synchronously with a sync json provider.
   runAllTestsForDraftX(
@@ -243,55 +244,55 @@ void main() {
   );
 
   // Run all tests asynchronously with an async json provider.
-  runAllTestsForDraftX(
-    SchemaVersion.draft4,
-    allDraft4,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft6,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft6,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft7,
-    allDraft7,
-    commonSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    allDraft2019,
-    draft2019SkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
-  runAllTestsForDraftX(
-    SchemaVersion.draft2019_09,
-    draft2019Format,
-    draft2019FormatSkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-    validateFormats: true,
-  );
-
-  runAllTestsForDraftX(
-    SchemaVersion.draft2020_12,
-    allDraft2020,
-    draft2020SkippedTestFiles,
-    commonSkippedTests,
-    refProvider: asyncRefProvider,
-  );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft4,
+  //   allDraft4,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft6,
+  //   allDraft6,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft7,
+  //   allDraft6,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft7,
+  //   allDraft7,
+  //   commonSkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2019_09,
+  //   allDraft2019,
+  //   draft2019SkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2019_09,
+  //   draft2019Format,
+  //   draft2019FormatSkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  //   validateFormats: true,
+  // );
+  //
+  // runAllTestsForDraftX(
+  //   SchemaVersion.draft2020_12,
+  //   allDraft2020,
+  //   draft2020SkippedTestFiles,
+  //   commonSkippedTests,
+  //   refProvider: asyncRefProvider,
+  // );
 }

@@ -613,14 +613,12 @@ class JsonSchema {
       Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema, Set<Uri> refsEncountered,
       {bool skipInitialRefCheck = false}) {
     if (fragments.isNotEmpty) {
+      var savedRefsEncountered = Set.of(refsEncountered);
       // Start at the baseSchema.
       JsonSchema currentSchema = baseSchema;
 
       // If currentSchema is a ref, we might want to resolve it recursively right now.
-      if (currentSchema.ref != null &&
-          currentSchema.ref != pathUri &&
-          !refsEncountered.contains(currentSchema.ref) &&
-          !skipInitialRefCheck) {
+      if (currentSchema.ref != null && !refsEncountered.contains(currentSchema.ref) && !skipInitialRefCheck) {
         // Set of properties that don't impact validation.
         final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
         Set<Uri> preRefsEncountered = Set.of(refsEncountered);
@@ -718,11 +716,6 @@ class JsonSchema {
           if (i + 1 == fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
             continue;
           }
-          if (i + 1 < fragments.length &&
-              // currentSchema._schemaMap.keys.toSet().difference(consts).length > 1 &&
-              refsEncountered.contains(currentSchema.ref)) {
-            continue;
-          }
           Set<Uri> preRefsEncountered = Set.of(refsEncountered);
           if (!refsEncountered.add(currentSchema.ref)) {
             // Throw if cycle is detected for currentSchema ref.
@@ -743,6 +736,21 @@ class JsonSchema {
           currentSchema = nextSchema;
         }
       }
+      // if (baseSchema.ref != null) {
+      //   JsonSchema foo;
+      //   try {
+      //     foo = baseSchema._getSchemaFromPath(baseSchema.ref, savedRefsEncountered);
+      //   } catch (e) {
+      //     return currentSchema;
+      //   }
+      //
+      //   if (foo != null) {
+      //     var res = _recursiveResolvePath(pathUri, fragments, foo, savedRefsEncountered);
+      //     if (res != null) {
+      //       throw Exception("sucks");
+      //     }
+      //   }
+      // }
 
       // Return the successfully resolved schema from fragment path.
       return currentSchema;
