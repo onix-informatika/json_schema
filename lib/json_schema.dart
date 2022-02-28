@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+export 'package:json_schema/src/json_schema/custom_vocabularies.dart'
+    show CustomVocabulary, CustomKeyword, ValidationContext;
 export 'package:json_schema/src/json_schema/json_schema.dart' show JsonSchema;
 export 'package:json_schema/src/json_schema/constants.dart' show SchemaVersion;
 export 'package:json_schema/src/json_schema/schema_type.dart' show SchemaType;

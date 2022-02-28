@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -104,5 +104,28 @@ class DefaultValidators {
     } catch (e) {
       return false;
     }
+  }
+}
+
+/// [Hasher] can be replaced with [Object.hash()] once the minimum language version is set to 2.14
+class Hasher {
+// These functions were yanked from Dart 2.14 hashing functions.
+  static int _combine(int hash, int value) {
+    hash = 0x1fffffff & (hash + value);
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int _finish(int hash) {
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+
+  static int hash2(int v1, int v2, [int seed = 0]) {
+    int hash = seed;
+    hash = _combine(hash, v1);
+    hash = _combine(hash, v2);
+    return _finish(hash);
   }
 }

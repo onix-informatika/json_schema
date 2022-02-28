@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,17 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+import 'dart:convert';
+
 class JsonSchemaValidationRegexes {
+  // Spec: https://datatracker.ietf.org/doc/html/rfc3339#appendix-A
+  static RegExp duration = RegExp(
+      r'^P(\d{1,}W|T(\d{1,}H(\d{1,}M(\d{1,}S)?)?|\d{1,}M(\d{1,}S)?|\d{1,}S)|(\d{1,}D|\d{1,}M(\d{1,}D)?|\d{1,}Y(\d{1,}M(\d{1,}D)?)?)(T(\d{1,}H(\d{1,}M(\d{1,}S)?)?|\d{1,}M(\d{1,}S)?|\d{1,}S))?)$');
+
+  // Spec: https://datatracker.ietf.org/doc/html/rfc4122
+  static RegExp uuid =
+      RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-5][0-9a-fA-F]{3}-[089abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
   // From: https://emailregex.com/ (JavaScript)
   static RegExp email = RegExp(
       r'^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$');
@@ -46,12 +56,23 @@ class JsonSchemaValidationRegexes {
       r'(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))\.'
       r'(\d|[1-9]\d|1\d\d|2([0-4]\d|5[0-5]))$');
 
+  // Spec: https://datatracker.ietf.org/doc/html/rfc1034
   static RegExp hostname = RegExp(r'^(?=.{1,255}$)'
       r'[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?'
       r'(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$');
 
+  // Spec: https://datatracker.ietf.org/doc/html/rfc1123
+  static RegExp hostnameDraft2019 = RegExp(r'^(?=.{1,255}$)'
+      r'[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?'
+      r'(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$');
+
   // From: https://github.com/johno/domain-regex/blob/master/index.js
+  // Spec: https://datatracker.ietf.org/doc/html/rfc1034
   static RegExp idnHostname = RegExp(r'\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b');
+
+  // Spec: https://datatracker.ietf.org/doc/html/rfc1123
+  static RegExp idnHostnameDraft2019 =
+      RegExp(r'\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b');
 
   static RegExp jsonPointer = RegExp(r'^(?:\/(?:[^~/]|~0|~1)*)*$');
 
@@ -67,6 +88,9 @@ class JsonSchemaValidationRegexes {
   // Spec: https://tools.ietf.org/html/rfc3339#section-5.6
   // From: https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s07.html
   static RegExp fullDate = RegExp(r'^([0-9]{4})(-?)(1[0-2]|0[1-9])\2(3[01]|0[1-9]|[12][0-9])$');
+
+  // https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.3
+  static RegExp anchor = RegExp(r"^[A-Za-z][\w\-.:]+$");
 }
 
 class SchemaVersion implements Comparable<SchemaVersion> {
@@ -78,7 +102,11 @@ class SchemaVersion implements Comparable<SchemaVersion> {
 
   static const SchemaVersion draft7 = SchemaVersion._(2);
 
-  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6, draft7];
+  static const SchemaVersion draft2019_09 = SchemaVersion._(3);
+
+  static const SchemaVersion draft2020_12 = SchemaVersion._(4);
+
+  static List<SchemaVersion> get values => const <SchemaVersion>[draft4, draft6, draft7, draft2019_09, draft2020_12];
 
   final int value;
 
@@ -93,12 +121,19 @@ class SchemaVersion implements Comparable<SchemaVersion> {
   @override
   int compareTo(SchemaVersion other) => value.compareTo(other.value);
 
+  bool operator <(Object other) => other is SchemaVersion && this.compareTo(other) < 0;
+  bool operator >(Object other) => other is SchemaVersion && this.compareTo(other) > 0;
+  bool operator <=(Object other) => other is SchemaVersion && this.compareTo(other) <= 0;
+  bool operator >=(Object other) => other is SchemaVersion && this.compareTo(other) >= 0;
+
   @override
   String toString() {
     final draftToStringMap = {
       draft4: 'http://json-schema.org/draft-04/schema#',
       draft6: 'http://json-schema.org/draft-06/schema#',
       draft7: 'http://json-schema.org/draft-07/schema#',
+      draft2019_09: 'https://json-schema.org/draft/2019-09/schema',
+      draft2020_12: 'https://json-schema.org/draft/2020-12/schema',
     };
     return draftToStringMap[this];
   }
@@ -112,28 +147,84 @@ class SchemaVersion implements Comparable<SchemaVersion> {
         return draft6;
       case 'http://json-schema.org/draft-07/schema#':
         return draft7;
+      case 'https://json-schema.org/draft-04/schema#':
+        return draft4;
+      case 'https://json-schema.org/draft-06/schema#':
+        return draft6;
+      case 'https://json-schema.org/draft-07/schema#':
+        return draft7;
+      case 'https://json-schema.org/draft/2019-09/schema':
+        return draft2019_09;
+      case 'https://json-schema.org/draft/2019-09/schema#':
+        return draft2019_09;
+      case 'https://json-schema.org/draft/2020-12/schema':
+        return draft2020_12;
+      case 'https://json-schema.org/draft/2020-12/schema#':
+        return draft2020_12;
       default:
         return null;
     }
   }
 }
 
-String getJsonSchemaDefinitionByRef(String ref) {
-  final mapping = {
-    SchemaVersion.draft4.toString(): JsonSchemaDefinitions.draft4,
-    SchemaVersion.draft6.toString(): JsonSchemaDefinitions.draft6,
-    SchemaVersion.draft7.toString(): JsonSchemaDefinitions.draft7,
-  };
+final _staticSchemaMapping = {
+  parseStandardizedUri(SchemaVersion.draft4.toString()): JsonSchemaDefinitions.draft4,
+  parseStandardizedUri(SchemaVersion.draft6.toString()): JsonSchemaDefinitions.draft6,
+  parseStandardizedUri(SchemaVersion.draft7.toString()): JsonSchemaDefinitions.draft7,
+  parseStandardizedUri(SchemaVersion.draft2019_09.toString()): JsonSchemaDefinitions.draft2019_09,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/validation"): Draft2019Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/format"): Draft2019Subschemas.format,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/core"): Draft2019Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/metadata"): Draft2019Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/applicator"): Draft2019Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/meta/content"): Draft2019Subschemas.content,
+  parseStandardizedUri("https://json-schema.org/draft/2019-09/vocab/content"): Draft2019Subschemas.content,
+  parseStandardizedUri(SchemaVersion.draft2020_12.toString()): JsonSchemaDefinitions.draft2020_12,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/validation"): Draft2020Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/validation"): Draft2020Subschemas.validation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/format-annotation"):
+      Draft2020Subschemas.format_annotation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/format-annotation"):
+      Draft2020Subschemas.format_annotation,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/format-assertion"):
+      Draft2020Subschemas.format_assertion,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/format-assertion"):
+      Draft2020Subschemas.format_assertion,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/core"): Draft2020Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/core"): Draft2020Subschemas.core,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/metadata"): Draft2020Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/metadata"): Draft2020Subschemas.metadata,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/applicator"): Draft2020Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/applicator"): Draft2020Subschemas.applicator,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/meta/content"): Draft2020Subschemas.content,
+  parseStandardizedUri("https://json-schema.org/draft/2020-12/vocab/content"): Draft2020Subschemas.content,
+};
 
-  if (SchemaVersion.values.map((value) => value.toString()).contains(ref)) {
-    return mapping[ref];
-  }
+Uri parseStandardizedUri(String s) => standardizeUri(Uri.parse(s));
 
-  return null;
+Uri standardizeUri(Uri uri) => uri?.replace(scheme: uri.scheme == "http" ? "https" : uri.scheme, fragment: null);
+
+Map getStaticSchema(String ref) {
+  return getStaticSchemaByURI(parseStandardizedUri(ref));
+}
+
+Map getStaticSchemaByURI(Uri ref) {
+  if (ref.fragment != "") return null;
+  final mapped = _staticSchemaMapping[standardizeUri(ref)];
+  return mapped != null ? json.decode(mapped) : null;
+}
+
+Map getStaticSchemaByVersion(SchemaVersion version) {
+  return getStaticSchema(version.toString());
 }
 
 class JsonSchemaDefinitions {
-  static String draft4 = r'''
+  static final String draft4 = r'''
     {
     "id": "http://json-schema.org/draft-04/schema#",
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -285,7 +376,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft6 = r'''
+  static final String draft6 = r'''
     {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://json-schema.org/draft-06/schema#",
@@ -442,7 +533,7 @@ class JsonSchemaDefinitions {
 }
     ''';
 
-  static String draft7 = r'''{
+  static final String draft7 = r'''{
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "http://json-schema.org/draft-07/schema#",
     "title": "Core schema meta-schema",
@@ -615,4 +706,763 @@ class JsonSchemaDefinitions {
     "default": true
 }
   ''';
+
+  static final String draft2019_09 = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/schema",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/core": true,
+        "https://json-schema.org/draft/2019-09/vocab/applicator": true,
+        "https://json-schema.org/draft/2019-09/vocab/validation": true,
+        "https://json-schema.org/draft/2019-09/vocab/meta-data": true,
+        "https://json-schema.org/draft/2019-09/vocab/format": false,
+        "https://json-schema.org/draft/2019-09/vocab/content": true
+    },
+    "$recursiveAnchor": true,
+    "allOf": [
+      {"$ref": "#/$defs/vocab-applicator"},
+      {"$ref": "#/$defs/vocab-content"},
+      {"$ref": "#/$defs/vocab-core"},
+      {"$ref": "#/$defs/vocab-format"},
+      {"$ref": "#/$defs/vocab-metadata"},
+      {"$ref": "#/$defs/vocab-validation"}
+    ],
+    "title": "Core and Validation specifications meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "definitions": {
+            "$comment": "While no longer an official keyword as it is replaced by $defs, this keyword is retained in the meta-schema to prevent incompatible extensions as it remains in common use.",
+            "type": "object",
+            "additionalProperties": { "$recursiveRef": "#" },
+            "default": {}
+        },
+        "dependencies": {
+            "$comment": "\"dependencies\" is no longer a keyword, but schema authors should avoid redefining it to facilitate a smooth transition to \"dependentSchemas\" and \"dependentRequired\"",
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    { "$recursiveRef": "#" },
+                    { "$ref": "meta/validation#/$defs/stringArray" }
+                ]
+            }
+        }
+    },
+    "$defs": {''' +
+      '''
+      "vocab-applicator": ${Draft2019Subschemas.applicator},
+      "vocab-content": ${Draft2019Subschemas.content},
+      "vocab-core": ${Draft2019Subschemas.core},
+      "vocab-format": ${Draft2019Subschemas.format},
+      "vocab-metadata": ${Draft2019Subschemas.metadata},
+      "vocab-validation": ${Draft2019Subschemas.validation}
+    }
+}
+  ''';
+
+  static String draft2020_12 = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/schema",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true,
+        "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+        "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+        "https://json-schema.org/draft/2020-12/vocab/content": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Core and Validation specifications meta-schema",
+    "allOf": [
+        {"$ref": "#/$defs/vocab-core"},
+        {"$ref": "#/$defs/vocab-applicator"},
+        {"$ref": "#/$defs/vocab-unevaluated"},
+        {"$ref": "#/$defs/vocab-validation"},
+        {"$ref": "#/$defs/vocab-meta-data"},
+        {"$ref": "#/$defs/vocab-format-annotation"},
+        {"$ref": "#/$defs/vocab-content"}
+    ],
+    "type": ["object", "boolean"],
+    "$comment": "This meta-schema also defines keywords that have appeared in previous drafts in order to prevent incompatible extensions as they remain in common use.",
+    "properties": {
+        "definitions": {
+            "$comment": "\"definitions\" has been replaced by \"$defs\".",
+            "type": "object",
+            "additionalProperties": { "$dynamicRef": "#meta" },
+            "deprecated": true,
+            "default": {}
+        },
+        "dependencies": {
+            "$comment": "\"dependencies\" has been split and replaced by \"dependentSchemas\" and \"dependentRequired\" in order to serve their differing semantics.",
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    { "$dynamicRef": "#meta" },
+                    { "$ref": "meta/validation#/$defs/stringArray" }
+                ]
+            },
+            "deprecated": true,
+            "default": {}
+        },
+        "$recursiveAnchor": {
+            "$comment": "\"$recursiveAnchor\" has been replaced by \"$dynamicAnchor\".",
+            "$ref": "meta/core#/$defs/anchorString",
+            "deprecated": true
+        },
+        "$recursiveRef": {
+            "$comment": "\"$recursiveRef\" has been replaced by \"$dynamicRef\".",
+            "$ref": "meta/core#/$defs/uriReferenceString",
+            "deprecated": true
+        }
+    },
+    "$defs": {''' +
+      '''
+      "vocab-core": ${Draft2020Subschemas.core},
+      "vocab-applicator": ${Draft2020Subschemas.applicator},
+      "vocab-unevaluated": ${Draft2020Subschemas.unevaluated}, 
+      "vocab-validation": ${Draft2020Subschemas.validation},
+      "vocab-meta-data": ${Draft2020Subschemas.metadata},
+      "vocab-format-annotation": ${Draft2020Subschemas.format_annotation},
+      "vocab-content": ${Draft2020Subschemas.content} 
+    }
+}''';
+}
+
+class Draft2019Subschemas {
+  static final String format = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/format",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/format": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Format vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "format": { "type": "string" }
+    }
+}''';
+
+  static final String core = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/core",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/core": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Core vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "$id": {
+            "type": "string",
+            "format": "uri-reference",
+            "$comment": "Non-empty fragments not allowed.",
+            "pattern": "^[^#]*#?$"
+        },
+        "$schema": {
+            "type": "string",
+            "format": "uri"
+        },
+        "$anchor": {
+            "type": "string",
+            "pattern": "^[A-Za-z][-A-Za-z0-9.:_]*$"
+        },
+        "$ref": {
+            "type": "string",
+            "format": "uri-reference"
+        },
+        "$recursiveRef": {
+            "type": "string",
+            "format": "uri-reference"
+        },
+        "$recursiveAnchor": {
+            "type": "boolean",
+            "default": false
+        },
+        "$vocabulary": {
+            "type": "object",
+            "propertyNames": {
+                "type": "string",
+                "format": "uri"
+            },
+            "additionalProperties": {
+                "type": "boolean"
+            }
+        },
+        "$comment": {
+            "type": "string"
+        },
+        "$defs": {
+            "type": "object",
+            "additionalProperties": { "$recursiveRef": "#" },
+            "default": {}
+        }
+    }
+}''';
+
+  static final String applicator = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/applicator",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/applicator": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Applicator vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "additionalItems": { "$recursiveRef": "#" },
+        "unevaluatedItems": { "$recursiveRef": "#" },
+        "items": {
+            "anyOf": [
+                { "$recursiveRef": "#" },
+                { "$ref": "#/$defs/schemaArray" }
+            ]
+        },
+        "contains": { "$recursiveRef": "#" },
+        "additionalProperties": { "$recursiveRef": "#" },
+        "unevaluatedProperties": { "$recursiveRef": "#" },
+        "properties": {
+            "type": "object",
+            "additionalProperties": { "$recursiveRef": "#" },
+            "default": {}
+        },
+        "patternProperties": {
+            "type": "object",
+            "additionalProperties": { "$recursiveRef": "#" },
+            "propertyNames": { "format": "regex" },
+            "default": {}
+        },
+        "dependentSchemas": {
+            "type": "object",
+            "additionalProperties": {
+                "$recursiveRef": "#"
+            }
+        },
+        "propertyNames": { "$recursiveRef": "#" },
+        "if": { "$recursiveRef": "#" },
+        "then": { "$recursiveRef": "#" },
+        "else": { "$recursiveRef": "#" },
+        "allOf": { "$ref": "#/$defs/schemaArray" },
+        "anyOf": { "$ref": "#/$defs/schemaArray" },
+        "oneOf": { "$ref": "#/$defs/schemaArray" },
+        "not": { "$recursiveRef": "#" }
+    },
+    "$defs": {
+        "schemaArray": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$recursiveRef": "#" }
+        }
+    }
+}''';
+
+  static final String validation = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/validation",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/validation": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Validation vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "multipleOf": {
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "maximum": {
+            "type": "number"
+        },
+        "exclusiveMaximum": {
+            "type": "number"
+        },
+        "minimum": {
+            "type": "number"
+        },
+        "exclusiveMinimum": {
+            "type": "number"
+        },
+        "maxLength": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minLength": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "pattern": {
+            "type": "string",
+            "format": "regex"
+        },
+        "maxItems": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minItems": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "uniqueItems": {
+            "type": "boolean",
+            "default": false
+        },
+        "maxContains": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minContains": {
+            "$ref": "#/$defs/nonNegativeInteger",
+            "default": 1
+        },
+        "maxProperties": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minProperties": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "required": { "$ref": "#/$defs/stringArray" },
+        "dependentRequired": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/stringArray"
+            }
+        },
+        "const": true,
+        "enum": {
+            "type": "array",
+            "items": true
+        },
+        "type": {
+            "anyOf": [
+                { "$ref": "#/$defs/simpleTypes" },
+                {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/simpleTypes" },
+                    "minItems": 1,
+                    "uniqueItems": true
+                }
+            ]
+        }
+    },
+    "$defs": {
+        "nonNegativeInteger": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "nonNegativeIntegerDefault0": {
+            "$ref": "#/$defs/nonNegativeInteger",
+            "default": 0
+        },
+        "simpleTypes": {
+            "enum": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+            ]
+        },
+        "stringArray": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true,
+            "default": []
+        }
+    }
+}''';
+
+  static final String metadata = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/meta-data",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/meta-data": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Meta-data vocabulary meta-schema",
+
+    "type": ["object", "boolean"],
+    "properties": {
+        "title": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "default": true,
+        "deprecated": {
+            "type": "boolean",
+            "default": false
+        },
+        "readOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "writeOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "examples": {
+            "type": "array",
+            "items": true
+        }
+    }
+}''';
+
+  static final String content = r'''{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://json-schema.org/draft/2019-09/meta/content",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2019-09/vocab/content": true
+    },
+    "$recursiveAnchor": true,
+
+    "title": "Content vocabulary meta-schema",
+
+    "type": ["object", "boolean"],
+    "properties": {
+        "contentMediaType": { "type": "string" },
+        "contentEncoding": { "type": "string" },
+        "contentSchema": { "$recursiveRef": "#" }
+    }
+}''';
+}
+
+class Draft2020Subschemas {
+  static String core = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/core",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Core vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "$id": {
+            "$ref": "#/$defs/uriReferenceString",
+            "$comment": "Non-empty fragments not allowed.",
+            "pattern": "^[^#]*#?$"
+        },
+        "$schema": { "$ref": "#/$defs/uriString" },
+        "$ref": { "$ref": "#/$defs/uriReferenceString" },
+        "$anchor": { "$ref": "#/$defs/anchorString" },
+        "$dynamicRef": { "$ref": "#/$defs/uriReferenceString" },
+        "$dynamicAnchor": { "$ref": "#/$defs/anchorString" },
+        "$vocabulary": {
+            "type": "object",
+            "propertyNames": { "$ref": "#/$defs/uriString" },
+            "additionalProperties": {
+                "type": "boolean"
+            }
+        },
+        "$comment": {
+            "type": "string"
+        },
+        "$defs": {
+            "type": "object",
+            "additionalProperties": { "$dynamicRef": "#meta" }
+        }
+    },
+    "$defs": {
+        "anchorString": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][-A-Za-z0-9._]*$"
+        },
+        "uriString": {
+            "type": "string",
+            "format": "uri"
+        },
+        "uriReferenceString": {
+            "type": "string",
+            "format": "uri-reference"
+        }
+    }
+}''';
+
+  static String applicator = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/applicator",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Applicator vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "prefixItems": { "$ref": "#/$defs/schemaArray" },
+        "items": { "$dynamicRef": "#meta" },
+        "contains": { "$dynamicRef": "#meta" },
+        "additionalProperties": { "$dynamicRef": "#meta" },
+        "properties": {
+            "type": "object",
+            "additionalProperties": { "$dynamicRef": "#meta" },
+            "default": {}
+        },
+        "patternProperties": {
+            "type": "object",
+            "additionalProperties": { "$dynamicRef": "#meta" },
+            "propertyNames": { "format": "regex" },
+            "default": {}
+        },
+        "dependentSchemas": {
+            "type": "object",
+            "additionalProperties": { "$dynamicRef": "#meta" },
+            "default": {}
+        },
+        "propertyNames": { "$dynamicRef": "#meta" },
+        "if": { "$dynamicRef": "#meta" },
+        "then": { "$dynamicRef": "#meta" },
+        "else": { "$dynamicRef": "#meta" },
+        "allOf": { "$ref": "#/$defs/schemaArray" },
+        "anyOf": { "$ref": "#/$defs/schemaArray" },
+        "oneOf": { "$ref": "#/$defs/schemaArray" },
+        "not": { "$dynamicRef": "#meta" }
+    },
+    "$defs": {
+        "schemaArray": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$dynamicRef": "#meta" }
+        }
+    }
+}''';
+
+  static String validation = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/validation",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Validation vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "type": {
+            "anyOf": [
+                { "$ref": "#/$defs/simpleTypes" },
+                {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/simpleTypes" },
+                    "minItems": 1,
+                    "uniqueItems": true
+                }
+            ]
+        },
+        "const": true,
+        "enum": {
+            "type": "array",
+            "items": true
+        },
+        "multipleOf": {
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "maximum": {
+            "type": "number"
+        },
+        "exclusiveMaximum": {
+            "type": "number"
+        },
+        "minimum": {
+            "type": "number"
+        },
+        "exclusiveMinimum": {
+            "type": "number"
+        },
+        "maxLength": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minLength": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "pattern": {
+            "type": "string",
+            "format": "regex"
+        },
+        "maxItems": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minItems": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "uniqueItems": {
+            "type": "boolean",
+            "default": false
+        },
+        "maxContains": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minContains": {
+            "$ref": "#/$defs/nonNegativeInteger",
+            "default": 1
+        },
+        "maxProperties": { "$ref": "#/$defs/nonNegativeInteger" },
+        "minProperties": { "$ref": "#/$defs/nonNegativeIntegerDefault0" },
+        "required": { "$ref": "#/$defs/stringArray" },
+        "dependentRequired": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/stringArray"
+            }
+        }
+    },
+    "$defs": {
+        "nonNegativeInteger": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "nonNegativeIntegerDefault0": {
+            "$ref": "#/$defs/nonNegativeInteger",
+            "default": 0
+        },
+        "simpleTypes": {
+            "enum": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+            ]
+        },
+        "stringArray": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true,
+            "default": []
+        }
+    }
+}''';
+
+  static String unevaluated = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/unevaluated",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/unevaluated": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Unevaluated applicator vocabulary meta-schema",
+    "type": ["object", "boolean"],
+    "properties": {
+        "unevaluatedItems": { "$dynamicRef": "#meta" },
+        "unevaluatedProperties": { "$dynamicRef": "#meta" }
+    }
+}
+''';
+
+  static String format_annotation = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/format-annotation",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/format-annotation": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Format vocabulary meta-schema for annotation results",
+    "type": ["object", "boolean"],
+    "properties": {
+        "format": { "type": "string" }
+    }
+} ''';
+
+  static String format_assertion = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/format-assertion",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/format-assertion": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Format vocabulary meta-schema for assertion results",
+    "type": ["object", "boolean"],
+    "properties": {
+        "format": { "type": "string" }
+    }
+}''';
+
+  static String content = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/content",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/content": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Content vocabulary meta-schema",
+
+    "type": ["object", "boolean"],
+    "properties": {
+        "contentEncoding": { "type": "string" },
+        "contentMediaType": { "type": "string" },
+        "contentSchema": { "$dynamicRef": "#meta" }
+    }
+}''';
+
+  static String metadata = r'''{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://json-schema.org/draft/2020-12/meta/meta-data",
+    "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/meta-data": true
+    },
+    "$dynamicAnchor": "meta",
+
+    "title": "Meta-data vocabulary meta-schema",
+
+    "type": ["object", "boolean"],
+    "properties": {
+        "title": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "default": true,
+        "deprecated": {
+            "type": "boolean",
+            "default": false
+        },
+        "readOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "writeOnly": {
+            "type": "boolean",
+            "default": false
+        },
+        "examples": {
+            "type": "array",
+            "items": true
+        }
+    }
+}''';
+}
+
+class SupportedVocabularies {
+  static final CORE_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/core");
+  static final APPLICATOR_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/applicator");
+  static final VALIDATION_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/validation");
+  static final METADATA_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/meta-data");
+  static final FORMAT_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/format");
+  static final CONTENT_2019 = Uri.parse("https://json-schema.org/draft/2019-09/vocab/content");
+
+  static final CORE_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/core");
+  static final APPLICATOR_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/applicator");
+  static final UNEVALUATED_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/unevaluated");
+  static final VALIDATION_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/validation");
+  static final METADATA_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/meta-data");
+  static final FORMAT_ANNOTATION_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/format-annotation");
+  static final CONTENT_2020 = Uri.parse("https://json-schema.org/draft/2020-12/vocab/content");
+
+  static final ALL_2019 = {
+    CORE_2019,
+    APPLICATOR_2019,
+    VALIDATION_2019,
+    METADATA_2019,
+    FORMAT_2019,
+    CONTENT_2019,
+  };
+
+  static final ALL_2020 = {
+    CORE_2020,
+    APPLICATOR_2020,
+    UNEVALUATED_2020,
+    VALIDATION_2020,
+    METADATA_2020,
+    FORMAT_ANNOTATION_2020,
+    CONTENT_2020,
+  };
+
+  static Set<Uri> allFor(SchemaVersion version) {
+    if (version <= SchemaVersion.draft2019_09) {
+      return ALL_2019;
+    } else if (version == SchemaVersion.draft2020_12) {
+      return ALL_2020;
+    } else {
+      return Set.identity();
+    }
+  }
 }

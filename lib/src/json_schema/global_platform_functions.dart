@@ -1,4 +1,4 @@
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,26 +37,7 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/typedefs.dart';
 import 'package:json_schema/src/json_schema/utils.dart';
-
-import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_client.dart'
-    if (dart.library.html) 'package:json_schema/src/json_schema/schema_url_client/html_schema_url_client.dart'
-    if (dart.library.io) 'package:json_schema/src/json_schema/schema_url_client/io_schema_url_client.dart';
-
-/// The globally configured json shema class. Any json schema class that is not
-/// explicitly given a [JsonSchema] instance upon construction will
-/// inherit this global one.
-@Deprecated(
-    'The library now automatically configures based on available libraries, use JsonSchema.createFromUrl instead.')
-CreateJsonSchemaFromUrl get globalCreateJsonSchemaFromUrl => createClient()?.createFromUrl;
-
-@Deprecated('The library now automatically configures based on available libraries, this is a no-op.')
-set globalCreateJsonSchemaFromUrl(CreateJsonSchemaFromUrl createJsonSchemaFromUrl) {}
-
-/// Reset the globally configured json schema class.
-@Deprecated('The library now automatically configures based on available libraries, this is a no-op.')
-void resetGlobalTransportPlatform() {}
 
 /// Default validators for all [JsonSchema]s.
 DefaultValidators get defaultValidators => _defaultValidators ?? DefaultValidators();

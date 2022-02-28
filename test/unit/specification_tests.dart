@@ -78700,5 +78700,66 @@ Map<String, String> specificationTests = {
         ]
     }
 ]
+""",
+  "/draft2019-09/example.json": r"""[
+  {
+    "description": "Simple test that passes",
+    "schema": {
+      "properties": {
+        "foo": {"type":  "string"}
+      }
+    },
+    "tests": [
+      {
+        "description": "passes",
+        "data": {"foo": "string"},
+        "valid": true
+      },
+      {
+        "description": "fails",
+        "data": {"foo": 42},
+        "valid": false
+      }
+    ]
+  },
+ {
+    "description": "Properties in refs are evaluated",
+    "schema": {
+      "$defs": {
+        "a": {
+          "multipleOf": 10,
+          "$ref": "#/$defs/b"
+        },
+        "b": {
+          "multipleOf": 3,
+          "$ref": "#/$defs/c"
+        },
+        "c": {
+          "type": "number"
+        }
+      },
+      "properties": {
+        "foo": {"$ref":  "#/$defs/a"}
+      }
+    },
+    "tests": [
+      {
+        "description": "30 passes",
+        "data": {"foo": 30},
+        "valid": true
+      },
+      {
+        "description": "20 is not a multiple of 3",
+        "data": {"foo":  20},
+        "valid": false
+      },
+      {
+        "description": "A String fails",
+        "data": {"foo": "String"},
+        "valid": false
+      }
+    ]
+  }
+]
 """
 };

@@ -3,34 +3,24 @@ import 'package:test/test.dart';
 
 main() {
   test('Should respect configurable format validation', () {
-    final schema = JsonSchema.create({
+    final schemaDraft7 = JsonSchema.create({
       'properties': {
-        'someKey': {'format': 'uri-template'}
+        'someKey': {'format': 'email'}
       }
-    });
+    }, schemaVersion: SchemaVersion.draft7);
 
-    final isValidFormatsOn =
-        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
+    final schemaDraft2019 = JsonSchema.create({
+      'properties': {
+        'someKey': {'format': 'email'}
+      }
+    }, schemaVersion: SchemaVersion.draft2019_09);
 
-    expect(isValidFormatsOn, isFalse);
+    final badlyFormatted = {'someKey': '@@@@@'};
 
-    final isValidFormatsOff = schema
-        .validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false)
-        .errors
-        .isEmpty;
+    expect(schemaDraft7.validate(badlyFormatted).isValid, isFalse);
+    expect(schemaDraft7.validate(badlyFormatted, validateFormats: false).isValid, isTrue);
 
-    expect(isValidFormatsOff, isTrue);
-
-    final errorsFormatsOn =
-        schema.validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}).isValid;
-
-    expect(errorsFormatsOn, isFalse);
-
-    final errorsFormatsOff = schema
-        .validateWithResults({'someKey': 'http://example.com/dictionary/{term:1}/{term'}, validateFormats: false)
-        .errors
-        .isEmpty;
-
-    expect(errorsFormatsOff, isTrue);
+    expect(schemaDraft2019.validate(badlyFormatted).isValid, isTrue);
+    expect(schemaDraft2019.validate(badlyFormatted, validateFormats: true).isValid, isFalse);
   });
 }

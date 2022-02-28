@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ main() {
 
   JsonSchema.createAsync(movieSchema).then((schema) {
     final validator = Validator(schema);
-    final results = validator.validateWithResults(movies, reportMultipleErrors: true);
+    final results = validator.validate(movies, reportMultipleErrors: true);
     print('$movies:\n$results');
   });
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env dart
-// Copyright 2013-2018 Workiva Inc.
+// Copyright 2013-2022 Workiva Inc.
 //
 // Licensed under the Boost Software License (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,11 +49,11 @@ main() {
   JsonSchema.createFromUrl(url).then((JsonSchema schema) {
     final validSchema = {'type': 'integer'};
     print('''Does schema validate valid schema $validSchema?
-  ${schema.validateWithResults(validSchema)}''');
+  ${schema.validate(validSchema)}''');
 
     final invalidSchema = {'type': 'nibble'};
     print('''Does schema validate invalid schema $invalidSchema?
-  ${schema.validateWithResults(invalidSchema)}''');
+  ${schema.validate(invalidSchema)}''');
   });
 
   //////////////////////////////////////////////////////////////////////
@@ -63,23 +63,23 @@ main() {
   JsonSchema.createFromUrl(url).then((schema) {
     final grades = json.decode('''
 {
-    'semesters': [
+    "semesters": [
         {
-            'semester': 1,
-            'grades': [
+            "semester": 1,
+            "grades": [
                 {
-                    'type': 'homework',
-                    'date': '09/27/2013',
-                    'grade': 100,
-                    'avg': 93,
-                    'std': 8
+                    "type": "homework",
+                    "date": "09/27/2013",
+                    "grade": 100,
+                    "avg": 93,
+                    "std": 8
                 },
                 {
-                    'type': 'homework',
-                    'date': '09/28/2013',
-                    'grade': 100,
-                    'avg': 60,
-                    'std': 25
+                    "type": "homework",
+                    "date": "09/28/2013",
+                    "grade": 100,
+                    "avg": 60,
+                    "std": 25
                 }
             ]
         }
@@ -87,6 +87,6 @@ main() {
 }''');
 
     print('''Does grades schema validate $grades
-  ${schema.validateWithResults(grades)}''');
+  ${schema.validate(grades)}''');
   });
 }
