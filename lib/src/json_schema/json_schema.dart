@@ -603,6 +603,7 @@ class JsonSchema {
     JsonSchema firstResult;
     JsonSchema secondResult;
     dynamic firstError;
+    // ignore: unused_local_variable
     dynamic secondError;
     try {
       firstResult = _recursiveResolvePath(
