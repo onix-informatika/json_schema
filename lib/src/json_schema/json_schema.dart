@@ -267,6 +267,7 @@ class JsonSchema {
       _fetchedFromUri = fetchedFromUri;
       _metaschemaVocabulary = metaschemaVocabulary;
       _customVocabMap = customVocabMap;
+      _rootMemomizedPathResults = {};
       try {
         _fetchedFromUriBase = JsonSchemaUtils.getBaseFromFullUri(_fetchedFromUri);
       } catch (e) {
@@ -529,16 +530,13 @@ class JsonSchema {
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
-  JsonSchema _getSchemaFromPath(Uri pathUri,
-      [Set<Uri> refsEncountered, Map<SchemaPathPair, JsonSchema> memorizedResults]) {
+  JsonSchema _getSchemaFromPath(Uri pathUri, [Set<Uri> refsEncountered]) {
     // Store encountered refs to avoid cycles.
     refsEncountered ??= {};
-    // Store results from previous lookups.
-    memorizedResults ??= {};
 
     final currentPair = SchemaPathPair(this, pathUri);
-    if (memorizedResults.containsKey(currentPair)) {
-      return memorizedResults[currentPair];
+    if (_memomizedResults.containsKey(currentPair)) {
+      return _memomizedResults[currentPair];
     }
 
     Uri basePathUri;
@@ -568,9 +566,8 @@ class JsonSchema {
     // Follow JSON Pointer path of fragments if provided.
     if (pathUri.fragment.isNotEmpty) {
       final List<String> fragments = Uri.parse(pathUri.fragment).pathSegments;
-      final foundSchema =
-          _recursiveResolvePath(pathUri, fragments.slice(0), baseSchema, refsEncountered, memorizedResults);
-      memorizedResults[currentPair] = foundSchema;
+      final foundSchema = _recursiveResolvePath(pathUri, fragments.slice(0), baseSchema, refsEncountered);
+      _memomizedResults[currentPair] = foundSchema;
       return foundSchema;
     }
 
@@ -580,17 +577,18 @@ class JsonSchema {
 
   // When there are 2 possible path to be resolve, traverse both paths.
   JsonSchema _resolveParallelPaths(
-      Uri pathUri, // The path being resolved
-      ListSlice<String> fragments, // A slice of fragments being traversed.
-      JsonSchema schemaWithRef, // A JsonSchema containing a ref.
-      Set<Uri> refsEncountered, // Refs encountered from schemaWithRef
-      Map<SchemaPathPair, JsonSchema> memorizedResults) {
+    Uri pathUri, // The path being resolved
+    ListSlice<String> fragments, // A slice of fragments being traversed.
+    JsonSchema schemaWithRef, // A JsonSchema containing a ref.
+    Set<Uri> refsEncountered, // Refs encountered from schemaWithRef
+  ) {
     if (schemaWithRef.ref == null) {
       throw ArgumentError("Expected schemaWithRef to contain a ref");
     }
     // Store refs encountered for the other branch.
     var preRefsEncountered = Set.of(refsEncountered);
-    var resolvedSchema = _resolveSchemaWithAccounting(pathUri, schemaWithRef, refsEncountered, memorizedResults);
+    var resolvedRefsEncountered = Set.of(refsEncountered);
+    var resolvedSchema = _resolveSchemaWithAccounting(pathUri, schemaWithRef, resolvedRefsEncountered);
 
     JsonSchema firstResult;
     JsonSchema secondResult;
@@ -602,7 +600,6 @@ class JsonSchema {
         fragments,
         schemaWithRef,
         preRefsEncountered,
-        memorizedResults,
         skipInitialRefCheck:
             true, // Check the other properties, no the ref. No need to check it again and have an infinite loop.
       );
@@ -614,8 +611,7 @@ class JsonSchema {
         pathUri,
         fragments,
         resolvedSchema,
-        refsEncountered,
-        memorizedResults,
+        resolvedRefsEncountered,
       );
     } catch (e) {
       secondError = e;
@@ -630,16 +626,18 @@ class JsonSchema {
     } else if (firstResult != null && secondResult != null) {
       throw Exception("Ambiguous paths detected");
     } else if (firstResult != null) {
+      refsEncountered.addAll(preRefsEncountered);
       return firstResult;
     } else if (secondResult != null) {
+      refsEncountered.addAll(resolvedRefsEncountered);
       return secondResult;
     }
     // This line should never be reached.
     return null;
   }
 
-  JsonSchema _recursiveResolvePath(Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema,
-      Set<Uri> refsEncountered, Map<SchemaPathPair, JsonSchema> memorizedResults,
+  JsonSchema _recursiveResolvePath(
+      Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema, Set<Uri> refsEncountered,
       {bool skipInitialRefCheck = false}) {
     // Set of properties that are ignored when set beside a `$ref`.
     final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
@@ -652,9 +650,9 @@ class JsonSchema {
       if (currentSchema.ref != null && !refsEncountered.contains(currentSchema.ref) && !skipInitialRefCheck) {
         // If currentSchema has additional values, then traverse both paths to find the result.
         if (currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
-          return _resolveParallelPaths(pathUri, fragments, currentSchema, refsEncountered, memorizedResults);
+          return _resolveParallelPaths(pathUri, fragments, currentSchema, refsEncountered);
         }
-        currentSchema = _resolveSchemaWithAccounting(pathUri, currentSchema, refsEncountered, memorizedResults);
+        currentSchema = _resolveSchemaWithAccounting(pathUri, currentSchema, refsEncountered);
       }
 
       // Iterate through supported keywords or custom properties.
@@ -734,10 +732,10 @@ class JsonSchema {
           // If currentSchema has additional values, then traverse both paths to find the result.
           if (i + 1 < fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
             return _resolveParallelPaths(
-                pathUri, fragments.slice(i, fragments.length - 1), currentSchema, refsEncountered, memorizedResults);
+                pathUri, fragments.slice(i, fragments.length - 1), currentSchema, refsEncountered);
           }
 
-          currentSchema = _resolveSchemaWithAccounting(pathUri, currentSchema, refsEncountered, memorizedResults);
+          currentSchema = _resolveSchemaWithAccounting(pathUri, currentSchema, refsEncountered);
         }
       }
       // Return the successfully resolved schema from fragment path.
@@ -747,14 +745,13 @@ class JsonSchema {
   }
 
   // Not to be confused with _getSchemaFromPath! This one throws exceptions and track if a ref has been seen before.
-  JsonSchema _resolveSchemaWithAccounting(
-      Uri pathUri, JsonSchema schema, Set<Uri> refsEncountered, Map<SchemaPathPair, JsonSchema> memorizedResults) {
+  JsonSchema _resolveSchemaWithAccounting(Uri pathUri, JsonSchema schema, Set<Uri> refsEncountered) {
     if (!refsEncountered.add(schema.ref)) {
       // Throw if cycle is detected for currentSchema ref.
       throw FormatException('Failed to get schema at path: "${schema.ref}". Cycle detected.');
     }
 
-    var resolvedSchema = schema._getSchemaFromPath(schema.ref, refsEncountered, memorizedResults);
+    var resolvedSchema = schema._getSchemaFromPath(schema.ref, refsEncountered);
     if (resolvedSchema == null) {
       throw ArgumentError('Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
     }
@@ -1148,6 +1145,9 @@ class JsonSchema {
   /// If provider type is [RefProviderType.schema], fully resolved + validated schemas are expected from the provider.
   /// If provider type is [RefProviderType.json], the provider expects valid JSON objects from the provider.
   RefProvider _refProvider;
+
+  /// Store results for looking up paths in a jsonSchema. Helps performance and bogus cycle detection.
+  Map<SchemaPathPair, JsonSchema> _rootMemomizedPathResults;
 
   static Map<String, SchemaPropertyGetter> _baseAccessGetterMap = {
     r'$defs': (JsonSchema s) => s.defs,
@@ -1875,6 +1875,8 @@ class JsonSchema {
   @Deprecated("For internal use by the Validator only")
   Map<String, ValidationContext Function(ValidationContext, Object)> get customAttributeValidators =>
       _customAttributeValidators;
+
+  Map<SchemaPathPair, JsonSchema> get _memomizedResults => _rootMemomizedPathResults ?? _root._memomizedResults;
 
   // --------------------------------------------------------------------------
   // Convenience Methods
