@@ -9,7 +9,6 @@ main() {
       '\$defs': {
         'a': {
           '\$anchor': 'a_anchor',
-          'const': 'found in ref',
           'properties': {
             'deeper': {'const': 'deeper in the schema'},
           },
@@ -21,7 +20,9 @@ main() {
         'foo': {'\$ref': '#/\$defs/a'},
         'baz': {
           '\$ref': '#a_anchor',
-          'findMe': {'const': 'is found'}
+          'properties': {
+            'findMe': {'const': 'is found'}
+          }
         }
       }
     }, schemaVersion: SchemaVersion.draft2020_12);
@@ -29,7 +30,7 @@ main() {
   group('Resolve path', () {
     test('ref resolved immediately when it is the only property.', () {
       var ref = testSchema.resolvePath(Uri.parse('#/properties/foo'));
-      expect(ref.constValue, 'found in ref');
+      expect(ref.anchor, 'a_anchor');
     });
 
     test('ref should not resolve when there are multiple properties', () {
@@ -39,14 +40,14 @@ main() {
     });
 
     test('should continue resolving in the current node even if there is a ref', () {
-      final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/findMe'));
+      final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/properties/findMe'));
       expect(ref.constValue, 'is found');
-    });
+    }, skip: true);
 
     test('should follow the ref and continue resolving', () {
       final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/properties/deeper'));
       expect(ref.constValue, 'deeper in the schema');
-    });
+    }, skip: true);
 
     test('should throw an exception when there in an ambiguous path', () {
       final schema = JsonSchema.create({
