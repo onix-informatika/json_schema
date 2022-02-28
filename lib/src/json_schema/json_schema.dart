@@ -529,9 +529,17 @@ class JsonSchema {
   }
 
   /// Given a [Uri] path, find the ref'd [JsonSchema] from the map.
-  JsonSchema _getSchemaFromPath(Uri pathUri, [Set<Uri> refsEncountered]) {
+  JsonSchema _getSchemaFromPath(Uri pathUri,
+      [Set<Uri> refsEncountered, Map<SchemaPathPair, JsonSchema> memorizedResults]) {
     // Store encountered refs to avoid cycles.
     refsEncountered ??= {};
+    // Store results from previous lookups.
+    memorizedResults ??= {};
+
+    final currentPair = SchemaPathPair(this, pathUri);
+    if (memorizedResults.containsKey(currentPair)) {
+      return memorizedResults[currentPair];
+    }
 
     Uri basePathUri;
     if (pathUri.host.isEmpty && pathUri.path.isEmpty && (_uri != null || _inheritedUri != null)) {
@@ -560,15 +568,25 @@ class JsonSchema {
     // Follow JSON Pointer path of fragments if provided.
     if (pathUri.fragment.isNotEmpty) {
       final List<String> fragments = Uri.parse(pathUri.fragment).pathSegments;
-      return _recursiveResolvePath(pathUri, fragments.slice(0), baseSchema, refsEncountered);
+      final foundSchema =
+          _recursiveResolvePath(pathUri, fragments.slice(0), baseSchema, refsEncountered, memorizedResults);
+      memorizedResults[currentPair] = foundSchema;
+      return foundSchema;
     }
 
     // No fragments present, return the successfully resolved base schema.
     return baseSchema;
   }
 
-  JsonSchema _resolveParallelPaths(Uri pathUri, ListSlice<String> fragments, JsonSchema schemaWithRef,
-      JsonSchema resolvedSchema, Set<Uri> refsEncountered1, Set<Uri> refsEncountered2) {
+  // When there are 2 possible path to be resolve, traverse both paths.
+  JsonSchema _resolveParallelPaths(
+      Uri pathUri, // The path being resolved
+      ListSlice<String> fragments, // A slice of fragments being traversed.
+      JsonSchema schemaWithRef, // A JsonSchema containing a ref.
+      Set<Uri> refsEncountered1, // Refs encountered from schemaWithRef
+      JsonSchema resolvedSchema, // JsonSchema of the resolved ref from the previous schema.
+      Set<Uri> refsEncountered2, // Refs encountered from resolvedSchema
+      Map<SchemaPathPair, JsonSchema> memorizedResults) {
     if (schemaWithRef.ref == null) {
       throw ArgumentError("Expected schemaWithRef to contain a ref");
     }
@@ -581,8 +599,10 @@ class JsonSchema {
         pathUri,
         fragments,
         schemaWithRef,
-        Set.of(refsEncountered1),
-        skipInitialRefCheck: true,
+        refsEncountered1,
+        memorizedResults,
+        skipInitialRefCheck:
+            true, // The result of the ref is the `resolvedSchema` no need to check it again (and have an infinite loop).
       );
     } catch (e) {
       firstError = e;
@@ -592,13 +612,19 @@ class JsonSchema {
         pathUri,
         fragments,
         resolvedSchema,
-        Set.of(refsEncountered2),
+        refsEncountered2,
+        memorizedResults,
       );
     } catch (e) {
       secondError = e;
     }
+    // Both paths errored out.
     if (firstResult == null && secondResult == null) {
       throw firstError; // Is there a nice way to combine errors?
+      // Both paths ended up an the same JSON Schema object.
+    } else if (firstResult == secondResult) {
+      return firstResult;
+      // Both paths returned different JsonSchema objects.
     } else if (firstResult != null && secondResult != null) {
       throw Exception("Ambiguous paths detected");
     } else if (firstResult != null) {
@@ -606,39 +632,41 @@ class JsonSchema {
     } else if (secondResult != null) {
       return secondResult;
     }
+    // This line should never be reached.
     return null;
   }
 
-  JsonSchema _recursiveResolvePath(
-      Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema, Set<Uri> refsEncountered,
+  JsonSchema _recursiveResolvePath(Uri pathUri, ListSlice<String> fragments, JsonSchema baseSchema,
+      Set<Uri> refsEncountered, Map<SchemaPathPair, JsonSchema> memorizedResults,
       {bool skipInitialRefCheck = false}) {
+    // Set of properties that are ignored when set beside a `$ref`.
+    final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
     if (fragments.isNotEmpty) {
-      var savedRefsEncountered = Set.of(refsEncountered);
       // Start at the baseSchema.
       JsonSchema currentSchema = baseSchema;
 
-      // If currentSchema is a ref, we might want to resolve it recursively right now.
+      // If currentSchema is a ref, try resolving before looping over the fragments start.
+      // There is a very similar check at  the end of the fragment loop.
       if (currentSchema.ref != null && !refsEncountered.contains(currentSchema.ref) && !skipInitialRefCheck) {
-        // Set of properties that don't impact validation.
-        final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
+        // Stash the refs encountered in case there are multiple paths to follow.
         Set<Uri> preRefsEncountered = Set.of(refsEncountered);
         if (!refsEncountered.add(currentSchema.ref)) {
           // Throw if cycle is detected for currentSchema ref.
           throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
         }
 
-        var nextSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
-        if (nextSchema == null) {
+        var resolvedSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered, memorizedResults);
+        if (resolvedSchema == null) {
           throw ArgumentError('Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
         }
 
-        // If the next fragment is in the current schema, continue with the current schema instead of resolving the ref.
+        // If currentSchema has additional values, then traverse both paths to find the result.
         if (currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
           return _resolveParallelPaths(
-              pathUri, fragments, currentSchema, nextSchema, preRefsEncountered, refsEncountered);
+              pathUri, fragments, currentSchema, preRefsEncountered, resolvedSchema, refsEncountered, memorizedResults);
         }
 
-        currentSchema = nextSchema;
+        currentSchema = resolvedSchema;
       }
 
       // Iterate through supported keywords or custom properties.
@@ -707,51 +735,35 @@ class JsonSchema {
           }
         }
 
-        // If currentSchema is a ref, we might want to resolve it recursively right now.
+        // If currentSchema contains a ref, try resolving it.
+        // There is a very similar check before the fragment loop starts.
         if (currentSchema.ref != null) {
-          // Set of properties that don't impact validation.
-          final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
           // If we are at the end of the fragments to search and there are additional properties in the schema,
-          // continue with the current schema instead of resolving the ref. There is no more searching to do.
+          // continue here so the currentSchema will be returned.
           if (i + 1 == fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
             continue;
           }
+          // Stash the refs encountered in case there are multiple paths to follow.
           Set<Uri> preRefsEncountered = Set.of(refsEncountered);
           if (!refsEncountered.add(currentSchema.ref)) {
             // Throw if cycle is detected for currentSchema ref.
             throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
           }
 
-          var nextSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered);
-          if (nextSchema == null) {
+          var resolvedSchema = currentSchema._getSchemaFromPath(currentSchema.ref, refsEncountered, memorizedResults);
+          if (resolvedSchema == null) {
             throw ArgumentError(
                 'Failed to get schema at path: "$pathUri". Can\'t resolve reference within the schema.');
           }
 
-          // If there are still fragments, and the current schema still has properties to resolve, check both schemas.
+          // If currentSchema has additional values, then traverse both paths to find the result.
           if (i + 1 < fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
-            return _resolveParallelPaths(pathUri, fragments.slice(i, fragments.length - 1), currentSchema, nextSchema,
-                preRefsEncountered, refsEncountered);
+            return _resolveParallelPaths(pathUri, fragments.slice(i, fragments.length - 1), currentSchema,
+                preRefsEncountered, resolvedSchema, refsEncountered, memorizedResults);
           }
-          currentSchema = nextSchema;
+          currentSchema = resolvedSchema;
         }
       }
-      // if (baseSchema.ref != null) {
-      //   JsonSchema foo;
-      //   try {
-      //     foo = baseSchema._getSchemaFromPath(baseSchema.ref, savedRefsEncountered);
-      //   } catch (e) {
-      //     return currentSchema;
-      //   }
-      //
-      //   if (foo != null) {
-      //     var res = _recursiveResolvePath(pathUri, fragments, foo, savedRefsEncountered);
-      //     if (res != null) {
-      //       throw Exception("sucks");
-      //     }
-      //   }
-      // }
-
       // Return the successfully resolved schema from fragment path.
       return currentSchema;
     }
@@ -2509,4 +2521,21 @@ class JsonSchema {
       throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
     }
   }
+}
+
+// Internal class used as a key in a map for tracking resolved references.
+class SchemaPathPair {
+  SchemaPathPair(this.schema, this.path);
+
+  final JsonSchema schema;
+  final Uri path;
+
+  @override
+  toString() => path.toString();
+
+  @override
+  bool operator ==(Object other) => other is SchemaPathPair && this.schema == other.schema && this.path == other.path;
+
+  @override
+  int get hashCode => Hasher.hash2(this.schema.hashCode, this.path.hashCode);
 }
