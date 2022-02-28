@@ -630,9 +630,20 @@ class JsonSchema {
             }
           }
 
-          // If currentSchema is a ref, resolve ref recursively.
-          // Cycle detection happens at evaluation time for drafts 2019 and 2020.
-          if (currentSchema.schemaVersion < SchemaVersion.draft2019_09 && currentSchema.ref != null) {
+          // If currentSchema is a ref, we might want to resolve it recursively right now.
+          if (currentSchema.ref != null) {
+            // If the next fragment is in the current schema, throw an exception. The behavior is not well defined.
+            if (i + 1 < fragments.length && currentSchema._schemaMap.containsKey(fragments[i + 1])) {
+              // continue;
+              throw Exception("Ambiguous path detected");
+            }
+            // Set of properties that don't impact validation.
+            final Set<String> consts = Set.of([r'$id', r'$schema', r'$comment']);
+            // If we are at the end of the fragments to search and there are additional properties in the schema,
+            // continue with the current schema instead of resolving the ref.
+            if (i + 1 == fragments.length && currentSchema._schemaMap.keys.toSet().difference(consts).length > 1) {
+              continue;
+            }
             if (!refsEncountered.add(currentSchema.ref)) {
               // Throw if cycle is detected for currentSchema ref.
               throw FormatException('Failed to get schema at path: "${currentSchema.ref}". Cycle detected.');
