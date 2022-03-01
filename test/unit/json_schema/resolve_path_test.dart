@@ -42,12 +42,29 @@ main() {
     test('should continue resolving in the current node even if there is a ref', () {
       final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/properties/findMe'));
       expect(ref.constValue, 'is found');
-    }, skip: true);
+    });
 
     test('should follow the ref and continue resolving', () {
       final ref = testSchema.resolvePath(Uri.parse('#/properties/baz/properties/deeper'));
       expect(ref.constValue, 'deeper in the schema');
-    }, skip: true);
+    });
+
+    test('should throw an exception when there in an ambiguous path', () async {
+      final testSchema = await JsonSchema.createAsync({
+        "\$ref": "#/\$defs/objectX",
+        "properties": {
+          "a": {"minimum": 1, "maximum": 2}
+        },
+        "\$defs": {
+          "objectX": {
+            "properties": {
+              "a": {"type": "string"}
+            }
+          }
+        }
+      });
+      expect(() => testSchema.resolvePath(Uri.parse('#/properties/a')), throwsException);
+    });
 
     test('should throw an exception when there in an ambiguous path', () {
       final schema = JsonSchema.create({
