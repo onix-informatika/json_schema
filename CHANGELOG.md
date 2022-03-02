@@ -1,13 +1,21 @@
-## 4.0.0 (Tentative)
+## 4.0.0
 
-json_schema 4.0 continues our journey to support additional new versions of the JSON Schema specification (Draft 2019-09 and Draft 2020-12)! In addition to the new draft support, we have better support for certain formats, as well as improved spec test compliance. 
+json_schema 4.0 continues our journey to support additional new versions of the JSON Schema specification (Draft 2019-09 and Draft 2020-12)! Custom vocabulary and format support is also included in this release! In addition to those major features, we have better support for certain built-in formats, as well as improved spec test compliance. 
 
 We have greatly reduced the number of dependencies in preparation for a null-safety release (which we're planning in another major release). This has also come with a new Makefile instead our old `dart_dev` based commands (see README).
 
-- Support for JSON Schema Draft 2019-09
-- Default Schema version is now 2019-09 (Breaking)
+- Additions:
+  - Support for JSON Schema Draft 2019-09 (`SchemaVersion.draft2019_09`)
+  - Support for JSON Schema Draft 2020-12 (`SchemaVersion.draft2020_12`)
+  - Custom Keywords:
+    - `CustomVocabulary`
+    - `CustomKeyword`
+    - `ValidationContext`
+  - Custom Formats:
+    - `customFormats` can be passed to and `JsonSchema` factory.
 - Deprecated:
   - `validateWithResults` in favor of `validate` which now returns the same thing (`ValidationResults`).
+  - `DefaultValidators` and related globals in favor of passing `customFormats` to the `JsonSchema` factories.
 - Removed Deprecations:
   - Removed `bin/schemadot.dart`, `lib/schema_dot.dart` and related examples
   - Removed `lib/browser.dart` and `lib/vm.dart` and associated globals `createSchemaFromUrlBrowser`, `configureJsonSchemaForBrowser`, `globalCreateJsonSchemaFromUrl` `createSchemaFromUrlVm`, `configureJsonSchemaForVm` and `resetGlobalTransportPlatform`. These were for configuring the runtime environment, which now happens automatically.
@@ -18,6 +26,11 @@ We have greatly reduced the number of dependencies in preparation for a null-saf
   - Removed `JsonSchema.refMap`
 - Breaking change to `validate`:
   - now returns `ValidationResult` instead of `bool` like `validateWithResults` (now deprecated).
+- Notable change of behavior to `resolvePath` with 2019-09 and 2020-12:
+  - When used with draft 2019-09 or draft 2020-12, `$ref`s alongside other keywords, which wasn't allowed in earlier drafts, can't always be resolved. 
+  We make a best-effort to resolve authoritatively and fall back to throwing an error if the resolution is ambiguous. In future releases, we may release 
+  support for resolving this sort of ambiguity (properties + ref, sub-property of a $ref and as sub-property conflicting, etc) based on user-preference.
+  - `$dynamicRef`s cannot yet be resolved using this method (you will only receive the ref itself.)
 
 ## 3.2.0
 
