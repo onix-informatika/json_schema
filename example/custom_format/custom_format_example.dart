@@ -38,7 +38,6 @@
 
 import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/models/validation_context.dart';
-import 'package:test/test.dart';
 
 ValidationContext screamingCapsValidator(ValidationContext context, String instanceData) {
   if (instanceData.toUpperCase() != instanceData) {
@@ -49,24 +48,17 @@ ValidationContext screamingCapsValidator(ValidationContext context, String insta
 
 main() {
   var customFormats = {'screaming-caps': screamingCapsValidator};
-  group("Custom Format Tests", () {
-    test('Should process custom formats and validate', () async {
-      final schema = await JsonSchema.createAsync(
-        {
-          r'$schema': 'https://json-schema.org/draft/2020-12/schema',
-          r'$id': 'http://localhost:4321/screaming-caps-format-test',
-          'properties': {
-            'baz': {'type': 'string', 'format': 'screaming-caps'}
-          },
-        },
-        customFormats: customFormats,
-      );
+  final schema = JsonSchema.create(
+    {
+      r'$schema': 'https://json-schema.org/draft/2020-12/schema',
+      r'$id': 'http://localhost:4321/screaming-caps-format-test',
+      'properties': {
+        'baz': {'type': 'string', 'format': 'screaming-caps'}
+      },
+    },
+    customFormats: customFormats,
+  );
 
-      // ignore: deprecated_member_use_from_same_package
-      expect(schema.customFormats.keys.contains('screaming-caps'), isTrue);
-
-      expect(schema.validate({'baz': 'DO IT NOW'}, validateFormats: true).isValid, isTrue);
-      expect(schema.validate({'baz': 'do it'}, validateFormats: true).isValid, isFalse);
-    });
-  });
+  print(schema.validate({'baz': 'DO IT NOW'}, validateFormats: true).isValid);
+  print(schema.validate({'baz': 'do it'}, validateFormats: true).isValid);
 }

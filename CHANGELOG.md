@@ -7,12 +7,15 @@ We have greatly reduced the number of dependencies in preparation for a null-saf
 - Additions:
   - Support for JSON Schema Draft 2019-09 (`SchemaVersion.draft2019_09`)
   - Support for JSON Schema Draft 2020-12 (`SchemaVersion.draft2020_12`)
+  - Default draft is still draft7 for compatibility.
   - Custom Keywords:
+    - `List<CustomVocabulary> customVocabularies` can be passed to all JsonSchema factories.
     - `CustomVocabulary`
     - `CustomKeyword`
     - `ValidationContext`
   - Custom Formats:
-    - `customFormats` can be passed to and `JsonSchema` factory.
+    - `Map<String, Function> customFormats` can be passed to and `JsonSchema` factory.
+    - `ValidationContext`
 - Deprecated:
   - `validateWithResults` in favor of `validate` which now returns the same thing (`ValidationResults`).
   - `DefaultValidators` and related globals in favor of passing `customFormats` to the `JsonSchema` factories.
