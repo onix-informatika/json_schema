@@ -37,20 +37,16 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
+import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
 
-/// Default validators for all [JsonSchema]s.
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators get defaultValidators => _defaultValidators ?? DefaultValidators();
-// ignore: deprecated_member_use_from_same_package
-set defaultValidators(DefaultValidators defaultValidators) {
-  if (defaultValidators == null) {
-    throw ArgumentError('json_schema: default validators '
-        'implementation must not be null.');
-  }
+/// Use to register a custom vocabulary with the [JsonSchema] compiler.
+///
+class CustomVocabulary {
+  CustomVocabulary(this.vocabulary, this.keywordImplementations);
 
-  _defaultValidators = defaultValidators;
+  /// Name of the vocabulary.
+  final Uri vocabulary;
+
+  /// A map of the keywords and implementation for the keywords.
+  final Map<String, CustomKeyword> keywordImplementations;
 }
-
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators _defaultValidators;

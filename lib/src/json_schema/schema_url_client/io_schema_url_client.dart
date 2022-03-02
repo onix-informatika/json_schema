@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:convert' as convert;
 
-import 'package:json_schema/src/json_schema/validation_context.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
-import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
+import 'package:json_schema/src/json_schema/models/custom_vocabulary.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
 
 final Logger _logger = Logger('IoSchemaUrlClient');
@@ -20,8 +20,7 @@ class IoSchemaUrlClient extends SchemaUrlClient {
     String schemaUrl, {
     SchemaVersion schemaVersion,
     List<CustomVocabulary> customVocabularies,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     final uri = schemaUrl.endsWith('#') ? uriWithFrag : uriWithFrag.removeFragment();

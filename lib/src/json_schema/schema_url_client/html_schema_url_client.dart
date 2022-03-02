@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
+import 'package:json_schema/src/json_schema/models/custom_vocabulary.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/schema_url_client/schema_url_client.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
-import 'package:json_schema/src/json_schema/validation_context.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
@@ -19,8 +19,7 @@ class HtmlSchemaUrlClient extends SchemaUrlClient {
     String schemaUrl, {
     SchemaVersion schemaVersion,
     List<CustomVocabulary> customVocabularies,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     var uri = uriWithFrag.removeFragment();

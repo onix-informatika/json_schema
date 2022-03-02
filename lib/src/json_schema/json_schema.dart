@@ -40,17 +40,19 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
-import 'package:json_schema/src/json_schema/validation_context.dart';
+import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
+import 'package:json_schema/src/json_schema/models/custom_vocabulary.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/format_exceptions.dart';
-import 'package:json_schema/src/json_schema/ref_provider.dart';
-import 'package:json_schema/src/json_schema/schema_type.dart';
-import 'package:json_schema/src/json_schema/type_validators.dart';
-import 'package:json_schema/src/json_schema/typedefs.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
+import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
+import 'package:json_schema/src/json_schema/models/ref_provider.dart';
+import 'package:json_schema/src/json_schema/models/schema_type.dart';
+import 'package:json_schema/src/json_schema/utils/type_validators.dart';
+import 'package:json_schema/src/json_schema/models/typedefs.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 import 'package:json_schema/src/json_schema/validator.dart';
 
 import 'package:json_schema/src/json_schema/schema_url_client/stub_schema_url_client.dart'
@@ -91,8 +93,7 @@ class JsonSchema {
     Map<Uri, bool> metaschemaVocabulary,
     List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     // JsonSchema._fromRootMap(Map schemaMap, SchemaVersion schemaVersion,
     //     {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
@@ -122,8 +123,7 @@ class JsonSchema {
     Map<Uri, bool> metaschemaVocabulary,
     List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     _initialize(
       schemaVersion: schemaVersion,
@@ -153,8 +153,7 @@ class JsonSchema {
     Uri fetchedFromUri,
     RefProvider refProvider,
     List<CustomVocabulary> customVocabularies,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
@@ -210,8 +209,7 @@ class JsonSchema {
     Uri fetchedFromUri,
     RefProvider refProvider,
     List<CustomVocabulary> customVocabularies,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     // Default to assuming the schema is already a decoded, primitive dart object.
     Object data = schema;
@@ -264,8 +262,7 @@ class JsonSchema {
     String schemaUrl, {
     SchemaVersion schemaVersion,
     List<CustomVocabulary> customVocabularies,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     return createClient()?.createFromUrl(schemaUrl,
         schemaVersion: schemaVersion, customVocabularies: customVocabularies, customFormats: customFormats);
@@ -280,8 +277,7 @@ class JsonSchema {
     RefProvider refProvider,
     Map<Uri, bool> metaschemaVocabulary,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
-    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
-        customFormats = const {},
+    Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
   }) {
     String schemaString;
     if (_root == null) {
@@ -1421,7 +1417,7 @@ class JsonSchema {
   Map<String, ValidationContext Function(ValidationContext, Object)> _customAttributeValidators = Map();
 
   // This structure holds validators for custom formats.
-  Map<String, ValidationContext Function(ValidationContext, SchemaVersion, String)> _customFormats = Map();
+  Map<String, ValidationContext Function(ValidationContext, String)> _customFormats = Map();
 
   /// Create a SchemaPropertySetter function that is used for setting custom properties while processing a schema.
   SchemaPropertySetter _setCustomProperty(String keyword, CustomKeyword processor) {
@@ -1913,7 +1909,7 @@ class JsonSchema {
 
   /// The set of functions to validate custom formats.
   @Deprecated("For internal use by the Validator only")
-  Map<String, ValidationContext Function(ValidationContext, SchemaVersion, String)> get customFormats => _customFormats;
+  Map<String, ValidationContext Function(ValidationContext, String)> get customFormats => _customFormats;
 
   Map<SchemaPathPair, JsonSchema> get _memomizedResults => _rootMemomizedPathResults ?? _root._memomizedResults;
 

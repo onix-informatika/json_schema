@@ -38,6 +38,7 @@
 
 import 'dart:convert';
 import 'package:json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/validator.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';

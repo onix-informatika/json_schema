@@ -36,9 +36,9 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+import 'package:json_schema/src/json_schema/formats/validation_regexes.dart';
 import 'package:uri/uri.dart' show UriTemplate;
 
-import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 
 class JsonSchemaUtils {

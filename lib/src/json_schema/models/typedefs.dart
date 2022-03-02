@@ -36,21 +36,15 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
+import 'dart:async';
 
-/// Default validators for all [JsonSchema]s.
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators get defaultValidators => _defaultValidators ?? DefaultValidators();
-// ignore: deprecated_member_use_from_same_package
-set defaultValidators(DefaultValidators defaultValidators) {
-  if (defaultValidators == null) {
-    throw ArgumentError('json_schema: default validators '
-        'implementation must not be null.');
-  }
+import 'package:json_schema/src/json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
 
-  _defaultValidators = defaultValidators;
-}
-
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators _defaultValidators;
+typedef CreateJsonSchemaFromUrl = Future<JsonSchema> Function(String schemaUrl, {SchemaVersion schemaVersion});
+typedef SchemaPropertySetter = Object Function(JsonSchema s, Object value);
+typedef SchemaPropertyGetter = Object Function(JsonSchema s);
+typedef SchemaAssigner = Function(JsonSchema s);
+typedef SchemaAdder = Function(JsonSchema s);
+typedef AsyncRetrievalOperation = Future<JsonSchema> Function();
+typedef SyncRetrievalOperation = JsonSchema Function();

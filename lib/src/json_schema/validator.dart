@@ -41,14 +41,14 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/format_validators.dart';
-import 'package:json_schema/src/json_schema/validation_context.dart';
+import 'package:json_schema/src/json_schema/formats/validators.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:logging/logging.dart';
 
-import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
+import 'package:json_schema/src/json_schema/models/schema_type.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 
 final Logger _logger = Logger('Validator');
 
@@ -87,22 +87,25 @@ class _InstanceRefPair {
 }
 
 class ConcreteValidationContext implements ValidationContext {
-  ConcreteValidationContext(this.instancePath, this.schemaPath, this._errFn, this._warnFn);
+  ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
 
-  final String instancePath;
-  final String schemaPath;
+  final String _instancePath;
+  final String _schemaPath;
   final void Function(String, String, String) _errFn;
   final void Function(String, String, String) _warnFn;
 
   @override
   void addError(String message) {
-    _errFn(message, instancePath, schemaPath);
+    _errFn(message, _instancePath, _schemaPath);
   }
 
   @override
   void addWarning(String message) {
-    _warnFn(message, instancePath, schemaPath);
+    _warnFn(message, _instancePath, _schemaPath);
   }
+
+  @override
+  final SchemaVersion schemaVersion;
 }
 
 /// The result of validating data against a schema
@@ -338,7 +341,7 @@ class Validator {
   }
 
   void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
-    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn);
+    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn, schema.schemaVersion);
     // ignore: deprecated_member_use_from_same_package
     schema.customAttributeValidators.forEach((keyword, validator) {
       // ignore: unused_local_variable
@@ -552,7 +555,7 @@ class Validator {
       return;
     }
 
-    validator(ConcreteValidationContext(instance.path, schema.path, _err, _warn), schema.schemaVersion, instance.data);
+    validator(ConcreteValidationContext(instance.path, schema.path, _err, _warn, schema.schemaVersion), instance.data);
   }
 
   void _objectPropertyValidation(JsonSchema schema, Instance instance) {
