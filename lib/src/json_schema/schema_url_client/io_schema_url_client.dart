@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:convert' as convert;
 
+import 'package:json_schema/src/json_schema/validation_context.dart';
 import 'package:logging/logging.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
@@ -19,6 +20,8 @@ class IoSchemaUrlClient extends SchemaUrlClient {
     String schemaUrl, {
     SchemaVersion schemaVersion,
     List<CustomVocabulary> customVocabularies,
+    Map<String, ValidationContext Function(ValidationContext context, SchemaVersion schemaVersion, String instanceData)>
+        customFormats = const {},
   }) async {
     final uriWithFrag = Uri.parse(schemaUrl);
     final uri = schemaUrl.endsWith('#') ? uriWithFrag : uriWithFrag.removeFragment();
@@ -43,8 +46,13 @@ class IoSchemaUrlClient extends SchemaUrlClient {
       throw FormatException('Url schema must be http, file, or empty: $schemaUrl');
     }
     // HTTP servers / file systems ignore fragments, so resolve a sub-map if a fragment was specified.
-    final parentSchema = await JsonSchema.createAsync(schemaMap,
-        schemaVersion: schemaVersion, fetchedFromUri: uri, customVocabularies: customVocabularies);
+    final parentSchema = await JsonSchema.createAsync(
+      schemaMap,
+      schemaVersion: schemaVersion,
+      fetchedFromUri: uri,
+      customVocabularies: customVocabularies,
+      customFormats: customFormats,
+    );
     final schema = JsonSchemaUtils.getSubMapFromFragment(parentSchema, uriWithFrag);
     return schema ?? parentSchema;
   }
