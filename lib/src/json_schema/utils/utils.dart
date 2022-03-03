@@ -36,9 +36,9 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
+import 'package:json_schema/src/json_schema/formats/validation_regexes.dart';
 import 'package:uri/uri.dart' show UriTemplate;
 
-import 'package:json_schema/src/json_schema/constants.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
 
 class JsonSchemaUtils {
@@ -66,6 +66,7 @@ class JsonSchemaUtils {
   }
 }
 
+@Deprecated('4.0, to be removed in 5.0, use customVocabularies param of JsonSchema factories instead.')
 class DefaultValidators {
   emailValidator(String email) => JsonSchemaValidationRegexes.email.firstMatch(email) != null;
 

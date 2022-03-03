@@ -37,8 +37,10 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/format_exceptions.dart';
-import 'package:json_schema/src/json_schema/type_validators.dart';
+import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
+import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/utils/type_validators.dart';
 import 'package:test/test.dart';
 
 main() {
@@ -65,10 +67,10 @@ main() {
       );
 
       // ignore: deprecated_member_use_from_same_package
-      expect(schema.properties['publishedOn'].customAttributeValidators.keys.contains('minDate'), true);
+      expect(schema.properties['publishedOn'].customAttributeValidators.keys.contains('minDate'), isTrue);
 
-      expect(schema.validate({'baz': 'foo', 'publishedOn': '2970-01-01'}).isValid, true);
-      expect(schema.validate({'baz': 'foo', 'publishedOn': '1970-01-01'}).isValid, false);
+      expect(schema.validate({'baz': 'foo', 'publishedOn': '2970-01-01'}).isValid, isTrue);
+      expect(schema.validate({'baz': 'foo', 'publishedOn': '1970-01-01'}).isValid, isFalse);
     });
 
     test('throws an exception with a bad schema', () async {

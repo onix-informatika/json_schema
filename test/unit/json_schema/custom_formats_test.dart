@@ -37,20 +37,36 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
+import 'package:test/test.dart';
 
-/// Default validators for all [JsonSchema]s.
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators get defaultValidators => _defaultValidators ?? DefaultValidators();
-// ignore: deprecated_member_use_from_same_package
-set defaultValidators(DefaultValidators defaultValidators) {
-  if (defaultValidators == null) {
-    throw ArgumentError('json_schema: default validators '
-        'implementation must not be null.');
+ValidationContext screamingCapsValidator(ValidationContext context, String instanceData) {
+  if (instanceData.toUpperCase() != instanceData) {
+    context.addError('"screaming-caps" format not accepted $instanceData');
   }
-
-  _defaultValidators = defaultValidators;
+  return context;
 }
 
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators _defaultValidators;
+main() {
+  var customFormats = {'screaming-caps': screamingCapsValidator};
+  group("Custom Format Tests", () {
+    test('Should process custom formats and validate', () async {
+      final schema = await JsonSchema.createAsync(
+        {
+          r'$schema': 'https://json-schema.org/draft/2020-12/schema',
+          r'$id': 'http://localhost:4321/screaming-caps-format-test',
+          'properties': {
+            'baz': {'type': 'string', 'format': 'screaming-caps'}
+          },
+        },
+        customFormats: customFormats,
+      );
+
+      // ignore: deprecated_member_use_from_same_package
+      expect(schema.customFormats.keys.contains('screaming-caps'), isTrue);
+
+      expect(schema.validate({'baz': 'DO IT NOW'}, validateFormats: true).isValid, isTrue);
+      expect(schema.validate({'baz': 'do it'}, validateFormats: true).isValid, isFalse);
+    });
+  });
+}

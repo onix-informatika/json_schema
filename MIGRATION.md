@@ -41,6 +41,9 @@ We have created one canonical method to get validation results.
   - `Validator.errorObjects` with `Validator.validateWithResults(...).errors` (3.2.0) and then `Validator.validate(...).errors` (4.0.0)
 - Migrate to `validateWithResults` in 3.2.0, then replace with breaking change to `validate` (returns the same payload as `validateWithResults`) in 4.x.
 
+We have deprecated support for `DefaultValidators` and it's global getter / setter. The replacement is more full-featured and ergonomically similar our API for custom vocabularies.
+- Replace `defaultValidators = <x>` with `JsonSchema.create(customFormats: {...})`
+
 # json_schema v2.x to v3 Migration Guide
 
 json_schema 3.0 is now here due to an issue that was found in 2.0 that caused remote refs to not get resolved correctly. This forced us to sort through the ref resolution logic in schema construction and change a few underlying assumptions.

@@ -36,21 +36,23 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
-
-/// Default validators for all [JsonSchema]s.
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators get defaultValidators => _defaultValidators ?? DefaultValidators();
-// ignore: deprecated_member_use_from_same_package
-set defaultValidators(DefaultValidators defaultValidators) {
-  if (defaultValidators == null) {
-    throw ArgumentError('json_schema: default validators '
-        'implementation must not be null.');
+class FormatExceptions {
+  static FormatException error(String msg, [String path]) {
+    return FormatException(msg);
   }
 
-  _defaultValidators = defaultValidators;
+  static FormatException bool(String key, dynamic instance, [String path]) =>
+      error('$key must be boolean: $instance', path);
+  static FormatException num(String key, dynamic instance, [String path]) => error('$key must be num: $instance', path);
+  static FormatException nonNegativeNum(String key, dynamic instance, [String path]) =>
+      error('multipleOf must be > 0: $instance');
+  static FormatException int(String key, dynamic instance, [String path]) => error('$key must be int: $instance', path);
+  static FormatException string(String key, dynamic instance, [String path]) =>
+      error('$key must be string: $instance', path);
+  static FormatException object(String key, dynamic instance, [String path]) =>
+      error('$key must be object: $instance', path);
+  static FormatException list(String key, dynamic instance, [String path]) =>
+      error('$key must be array: $instance', path);
+  static FormatException schema(String key, dynamic instance, [String path]) =>
+      error('$key must be valid schema object or boolean: $instance', path);
 }
-
-// ignore: deprecated_member_use_from_same_package
-DefaultValidators _defaultValidators;

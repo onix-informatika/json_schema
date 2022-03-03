@@ -41,26 +41,22 @@ import 'dart:core';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:json_schema/src/json_schema/formats/validators.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:logging/logging.dart';
 
-import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/custom_vocabularies.dart';
 import 'package:json_schema/src/json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils.dart';
-import 'package:json_schema/src/json_schema/global_platform_functions.dart' show defaultValidators;
-import 'package:rfc_6901/rfc_6901.dart';
+import 'package:json_schema/src/json_schema/models/schema_type.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 
 final Logger _logger = Logger('Validator');
 
 class Instance {
-  Instance(dynamic data, {String path = ''}) {
-    this.data = data;
-    this.path = path;
-  }
+  Instance(this.data, {this.path = ''});
 
-  dynamic data;
-  String path;
+  final dynamic data;
+  final String path;
 
   @override
   toString() => data.toString();
@@ -91,22 +87,25 @@ class _InstanceRefPair {
 }
 
 class ConcreteValidationContext implements ValidationContext {
-  ConcreteValidationContext(this.instancePath, this.schemaPath, this._errFn, this._warnFn);
+  ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
 
-  final String instancePath;
-  final String schemaPath;
+  final String _instancePath;
+  final String _schemaPath;
   final void Function(String, String, String) _errFn;
   final void Function(String, String, String) _warnFn;
 
   @override
   void addError(String message) {
-    _errFn(message, instancePath, schemaPath);
+    _errFn(message, _instancePath, _schemaPath);
   }
 
   @override
   void addWarning(String message) {
-    _warnFn(message, instancePath, schemaPath);
+    _warnFn(message, _instancePath, _schemaPath);
   }
+
+  @override
+  final SchemaVersion schemaVersion;
 }
 
 /// The result of validating data against a schema
@@ -217,7 +216,6 @@ class Validator {
     // By default, formats are validated on a best-effort basis from draft4 through draft7.
     // Starting with Draft 2019-09, formats shouldn't be validated by default.
     _validateFormats = validateFormats ?? _rootSchema.schemaVersion <= SchemaVersion.draft7;
-    // _treatWarningsAsErrors = treatWarningsAsErrors;
 
     dynamic data = instance;
     if (parseJson && instance is String) {
@@ -343,7 +341,7 @@ class Validator {
   }
 
   void _validateCustomSetAttributes(JsonSchema schema, Instance instance) {
-    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn);
+    final context = ConcreteValidationContext(instance.path, schema.path, _err, _warn, schema.schemaVersion);
     // ignore: deprecated_member_use_from_same_package
     schema.customAttributeValidators.forEach((keyword, validator) {
       // ignore: unused_local_variable
@@ -550,158 +548,14 @@ class Validator {
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
 
-    switch (schema.format) {
-      case 'date-time':
-        try {
-          DateTime.parse(instance.data);
-        } catch (e) {
-          _err('"date-time" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'time':
-        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
-        // Since we don't support draft3, just draft7 is needed here.
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        if (JsonSchemaValidationRegexes.fullTime.firstMatch(instance.data) == null) {
-          _err('"time" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'date':
-        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
-        // Since we don't support draft3, just draft7 is needed here.
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        if (JsonSchemaValidationRegexes.fullDate.firstMatch(instance.data) == null) {
-          _err('"date" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'uri':
-        final isValid = defaultValidators.uriValidator ?? (_) => false;
+    final validator = schema.customFormats[schema.format] ?? defaultFormatValidators[schema.format];
 
-        if (!isValid(instance.data)) {
-          _err('"uri" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'iri':
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        // Dart's URI class supports parsing IRIs, so we can use the same validator
-        final isValid = defaultValidators.uriValidator ?? (_) => false;
-
-        if (!isValid(instance.data)) {
-          _err('"iri" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'iri-reference':
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-
-        // Dart's URI class supports parsing IRIs, so we can use the same validator
-        final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
-
-        if (!isValid(instance.data)) {
-          _err('"iri-reference" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'uri-reference':
-        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
-        final isValid = defaultValidators.uriReferenceValidator ?? (_) => false;
-
-        if (!isValid(instance.data)) {
-          _err('"uri-reference" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'uri-template':
-        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
-        final isValid = defaultValidators.uriTemplateValidator ?? (_) => false;
-
-        if (!isValid(instance.data)) {
-          _err('"uri-template" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'email':
-        final isValid = defaultValidators.emailValidator ?? (_) => false;
-
-        if (!isValid(instance.data)) {
-          _err('"email" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'idn-email':
-        // No maintained dart packages exist to validate RFC6531,
-        // and it's too complex for a regex, so best effort is to pass for now.
-        break;
-      case 'ipv4':
-        if (JsonSchemaValidationRegexes.ipv4.firstMatch(instance.data) == null) {
-          _err('"ipv4" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'ipv6':
-        try {
-          Uri.parseIPv6Address(instance.data);
-        } on FormatException catch (_) {
-          _err('"ipv6" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'hostname':
-        final regexp = schema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0
-            ? JsonSchemaValidationRegexes.hostname
-            // Updated in Draft 2019-09
-            : JsonSchemaValidationRegexes.hostnameDraft2019;
-
-        if (regexp.firstMatch(instance.data) == null) {
-          _err('"hostname" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'idn-hostname':
-        // Introduced in Draft 7
-        if (schema.schemaVersion.compareTo(SchemaVersion.draft7) < 0) return;
-
-        final regexp = schema.schemaVersion.compareTo(SchemaVersion.draft2019_09) < 0
-            ? JsonSchemaValidationRegexes.idnHostname
-            // Updated in Draft 2019-09
-            : JsonSchemaValidationRegexes.idnHostnameDraft2019;
-
-        if (regexp.firstMatch(instance.data) == null) {
-          _err('"idn-hostname" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'json-pointer':
-        if (![SchemaVersion.draft6, SchemaVersion.draft7].contains(schema.schemaVersion)) return;
-        try {
-          JsonPointer(instance.data);
-        } on FormatException catch (_) {
-          _err('"json-pointer" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'relative-json-pointer':
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        if (JsonSchemaValidationRegexes.relativeJsonPointer.firstMatch(instance.data) == null) {
-          _err('"relative-json-pointer" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'regex':
-        // regex is an allowed format in draft3, out in draft4/6, back in draft7.
-        // Since we don't support draft3, just draft7 is needed here.
-        if (SchemaVersion.draft7 != schema.schemaVersion) return;
-        try {
-          RegExp(instance.data, unicode: true);
-        } catch (e) {
-          _err('"regex" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'duration':
-        if (SchemaVersion.draft2019_09.compareTo(schema.schemaVersion) > 0) return;
-        if (JsonSchemaValidationRegexes.duration.firstMatch(instance.data) == null) {
-          _err('"duration" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      case 'uuid':
-        if (SchemaVersion.draft2019_09.compareTo(schema.schemaVersion) > 0) return;
-        if (JsonSchemaValidationRegexes.uuid.firstMatch(instance.data) == null) {
-          _err('"uuid" format not accepted $instance', instance.path, schema.path);
-        }
-        break;
-      default:
-        // Don't attempt to validate unknown formats.
-        break;
+    if (validator == null) {
+      // Don't attempt to validate unknown formats.
+      return;
     }
+
+    validator(ConcreteValidationContext(instance.path, schema.path, _err, _warn, schema.schemaVersion), instance.data);
   }
 
   void _objectPropertyValidation(JsonSchema schema, Instance instance) {
