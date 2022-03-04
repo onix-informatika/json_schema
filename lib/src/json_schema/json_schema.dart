@@ -1465,7 +1465,7 @@ class JsonSchema {
   bool operator ==(Object other) => other is JsonSchema && this.hashCode == other.hashCode;
 
   @override
-  int get hashCode => _hashCode ?? (_hashCode = DeepCollectionEquality().hash(schemaMap));
+  int get hashCode => _hashCode ?? (_hashCode = DeepCollectionEquality().hash(schemaMap ?? schemaBool));
 
   @override
   String toString() => '${_schemaBool ?? _schemaMap}';
