@@ -40,18 +40,20 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
-import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
-import 'package:json_schema/src/json_schema/models/custom_vocabulary.dart';
-import 'package:json_schema/src/json_schema/models/schema_version.dart';
-import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:rfc_6901/rfc_6901.dart';
 
 import 'package:json_schema/src/json_schema/constants.dart';
-import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
+import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
+import 'package:json_schema/src/json_schema/models/custom_vocabulary.dart';
 import 'package:json_schema/src/json_schema/models/ref_provider.dart';
+import 'package:json_schema/src/json_schema/models/schema_path_pair.dart';
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/models/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils/type_validators.dart';
 import 'package:json_schema/src/json_schema/models/typedefs.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
+
+import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
+import 'package:json_schema/src/json_schema/utils/type_validators.dart';
 import 'package:json_schema/src/json_schema/utils/utils.dart';
 import 'package:json_schema/src/json_schema/validator.dart';
 
@@ -69,16 +71,17 @@ class RetrievalRequest {
 /// the schema itself is done on construction. Any errors in the schema
 /// result in a FormatException being thrown.
 class JsonSchema {
-  JsonSchema._fromMap(this._root, Map schemaMap, this._path, {JsonSchema parent}) {
+  JsonSchema._fromMap(this._root, Map schemaMap, this._path, {JsonSchema parent})
+      : _schemaMap = schemaMap != null ? Map<String, dynamic>.unmodifiable(schemaMap) : null,
+        _schemaBool = null {
     if (schemaMap == null) {
       throw ArgumentError.notNull('schemaMap');
     }
-    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     this._parent = parent;
     _initialize();
   }
 
-  JsonSchema._fromBool(this._root, this._schemaBool, this._path, {JsonSchema parent}) {
+  JsonSchema._fromBool(this._root, this._schemaBool, this._path, {JsonSchema parent}) : _schemaMap = null {
     this._parent = parent;
     _initialize();
   }
@@ -94,13 +97,11 @@ class JsonSchema {
     List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
     Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
-  }) {
-    // JsonSchema._fromRootMap(Map schemaMap, SchemaVersion schemaVersion,
-    //     {Uri fetchedFromUri, bool isSync = false, Map<String, JsonSchema> refMap, RefProvider refProvider}) {
+  })  : _schemaMap = schemaMap != null ? Map<String, dynamic>.unmodifiable(schemaMap) : null,
+        _schemaBool = null {
     if (schemaMap == null) {
       throw ArgumentError.notNull('schemaMap');
     }
-    this._schemaMap = Map<String, dynamic>.from(schemaMap);
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
@@ -124,7 +125,7 @@ class JsonSchema {
     List<CustomVocabulary> customVocabularies,
     Map<String, Map<String, SchemaPropertySetter>> customVocabMap,
     Map<String, ValidationContext Function(ValidationContext context, String instanceData)> customFormats = const {},
-  }) {
+  }) : _schemaMap = null {
     _initialize(
       schemaVersion: schemaVersion,
       fetchedFromUri: fetchedFromUri,
@@ -304,7 +305,7 @@ class JsonSchema {
       final String refString = '${_uri ?? ''}$_path';
       _addSchemaToRefMap(refString, this);
 
-      schemaString = _schemaMap.containsKey(r'$schema') ? _schemaMap[r'$schema'] : null;
+      schemaString = _schemaMap?.containsKey(r'$schema') == true ? _schemaMap[r'$schema'] : null;
       _resolveMetaSchemasForVocabulary(schemaString, _schemaVersion);
     } else {
       _isSync = _root._isSync;
@@ -370,12 +371,12 @@ class JsonSchema {
     }
 
     // Some sibling attributes depend on $id being setup first.
-    if (_schemaMap.containsKey(r'$id')) {
+    if (_schemaMap?.containsKey(r'$id') == true) {
       processAttribute(r'$id', _schemaMap[r'$id']);
     }
     // Iterate over all string keys of the root JSON Schema Map. Calculate, validate and
     // set all properties according to spec.
-    _schemaMap.forEach((k, v) {
+    (_schemaMap ?? {}).forEach((k, v) {
       if (k != r'$id') {
         processAttribute(k, v);
       }
@@ -533,7 +534,7 @@ class JsonSchema {
         _refProvider.provide(baseUri.toString()) ??
         _refProvider.provide('${baseUri}#');
 
-    if (staticSchema.containsKey(r'$vocabulary')) {
+    if (staticSchema?.containsKey(r'$vocabulary') == true) {
       _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
     }
   }
@@ -544,7 +545,7 @@ class JsonSchema {
         await refProvider.provide(baseUri.toString()) ??
         await refProvider.provide('${baseUri}#');
 
-    if (staticSchema.containsKey(r'$vocabulary')) {
+    if (staticSchema?.containsKey(r'$vocabulary') == true) {
       try {
         _setMetaschemaVocabulary(staticSchema[r'$vocabulary']);
       } catch (e) {
@@ -914,10 +915,10 @@ class JsonSchema {
   JsonSchema _parent;
 
   /// JSON of the [JsonSchema] as a [Map]. Only this value or [_schemaBool] should be set, not both.
-  Map<String, dynamic> _schemaMap = {};
+  final Map<String, dynamic> _schemaMap;
 
   /// JSON of the [JsonSchema] as a [bool]. Only this value or [_schemaMap] should be set, not both.
-  bool _schemaBool;
+  final bool _schemaBool;
 
   /// JSON Schema version string.
   SchemaVersion _schemaVersion;
@@ -1149,6 +1150,8 @@ class JsonSchema {
   // --------------------------------------------------------------------------
   // Implementation Specific Fields
   // --------------------------------------------------------------------------
+
+  int _hashCode;
 
   /// Set of local ref Uris to validate during ref resolution.
   Set<Uri> _localRefs = Set<Uri>();
@@ -1459,10 +1462,10 @@ class JsonSchema {
       _resolveDynamicAnchor(dynamicAnchor, dynamicParent);
 
   @override
-  bool operator ==(Object other) => other is JsonSchema && DeepCollectionEquality().equals(schemaMap, other.schemaMap);
+  bool operator ==(Object other) => other is JsonSchema && this.hashCode == other.hashCode;
 
   @override
-  int get hashCode => DeepCollectionEquality().hash(schemaMap);
+  int get hashCode => _hashCode ?? (_hashCode = DeepCollectionEquality().hash(schemaMap));
 
   @override
   String toString() => '${_schemaBool ?? _schemaMap}';
@@ -2552,21 +2555,4 @@ class JsonSchema {
       throw FormatExceptions.error('unevaluatedItems must be object (or boolean in draft6 and later): $value');
     }
   }
-}
-
-// Internal class used as a key in a map for tracking resolved references.
-class SchemaPathPair {
-  SchemaPathPair(this.schema, this.path);
-
-  final JsonSchema schema;
-  final Uri path;
-
-  @override
-  toString() => path.toString();
-
-  @override
-  bool operator ==(Object other) => other is SchemaPathPair && this.schema == other.schema && this.path == other.path;
-
-  @override
-  int get hashCode => Hasher.hash2(this.schema.hashCode, this.path.hashCode);
 }
