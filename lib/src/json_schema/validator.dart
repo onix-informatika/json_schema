@@ -42,6 +42,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:json_schema/src/json_schema/formats/validators.dart';
+import 'package:json_schema/src/json_schema/models/instance_ref_pair.dart';
 import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/models/validation_context.dart';
 import 'package:logging/logging.dart';
@@ -66,24 +67,6 @@ class Instance {
 
   @override
   int get hashCode => this.path.hashCode;
-}
-
-/// Used for cycle detection when resolving references.
-class _InstanceRefPair {
-  _InstanceRefPair(this.path, this.ref);
-
-  final String path;
-  final Uri ref;
-
-  @override
-  toString() => "${ref.toString()}: $path";
-
-  @override
-  bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
-
-  @override
-  // This can be replaced with Object.hash() once the minimum language version is set to 2.14
-  int get hashCode => Hasher.hash2(this.path.hashCode, this.ref.hashCode);
 }
 
 class ConcreteValidationContext implements ValidationContext {
@@ -190,7 +173,7 @@ class Validator {
   /// This Map keeps track of schemas when a reference is resolved.
   Map<JsonSchema, JsonSchema> _dynamicParents = {};
 
-  Set<_InstanceRefPair> _refsEncountered = {};
+  Set<InstanceRefPair> _refsEncountered = {};
 
   get evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
@@ -520,7 +503,7 @@ class Validator {
   void _validateAnyOf(JsonSchema schema, Instance instance) {
     // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
     // to properly account for evaluated properties and items.
-    var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance)).toList();
+    var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance));
     if (!results.any((s) => s)) {
       // TODO: deal with /anyOf
       _err('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
@@ -703,7 +686,7 @@ class Validator {
   /// A helper function to deal with infinite loops at evaluation time.
   /// If we see the same data/ref pair twice, we're in a loop.
   void _withRefScope(Uri refScope, Instance instance, Function() fn) {
-    var irp = _InstanceRefPair(instance.path, refScope);
+    var irp = InstanceRefPair(instance.path, refScope);
     if (!_refsEncountered.add(irp)) {
       // Throw if cycle is detected while evaluating refs.
       throw FormatException('Cycle detected at path: "${refScope}"');
@@ -865,7 +848,7 @@ class Validator {
     });
   }
 
-  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.toList()?.length;
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.length;
 
   //////
   // Helper functions to deal with unevaluatedProperties.
