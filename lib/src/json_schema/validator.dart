@@ -42,92 +42,17 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:json_schema/src/json_schema/formats/validators.dart';
+import 'package:json_schema/src/json_schema/models/concrete_validation_context.dart';
+import 'package:json_schema/src/json_schema/models/instance.dart';
+import 'package:json_schema/src/json_schema/models/instance_ref_pair.dart';
 import 'package:json_schema/src/json_schema/models/schema_version.dart';
-import 'package:json_schema/src/json_schema/models/validation_context.dart';
+import 'package:json_schema/src/json_schema/models/validation_results.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/models/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
 
 final Logger _logger = Logger('Validator');
-
-class Instance {
-  Instance(this.data, {this.path = ''});
-
-  final dynamic data;
-  final String path;
-
-  @override
-  toString() => data.toString();
-
-  @override
-  bool operator ==(Object other) => other is Instance && this.path == other.path;
-
-  @override
-  int get hashCode => this.path.hashCode;
-}
-
-/// Used for cycle detection when resolving references.
-class _InstanceRefPair {
-  _InstanceRefPair(this.path, this.ref);
-
-  final String path;
-  final Uri ref;
-
-  @override
-  toString() => "${ref.toString()}: $path";
-
-  @override
-  bool operator ==(Object other) => other is _InstanceRefPair && this.path == other.path && this.ref == other.ref;
-
-  @override
-  // This can be replaced with Object.hash() once the minimum language version is set to 2.14
-  int get hashCode => Hasher.hash2(this.path.hashCode, this.ref.hashCode);
-}
-
-class ConcreteValidationContext implements ValidationContext {
-  ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
-
-  final String _instancePath;
-  final String _schemaPath;
-  final void Function(String, String, String) _errFn;
-  final void Function(String, String, String) _warnFn;
-
-  @override
-  void addError(String message) {
-    _errFn(message, _instancePath, _schemaPath);
-  }
-
-  @override
-  void addWarning(String message) {
-    _warnFn(message, _instancePath, _schemaPath);
-  }
-
-  @override
-  final SchemaVersion schemaVersion;
-}
-
-/// The result of validating data against a schema
-class ValidationResults {
-  ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
-      : errors = List.of(errors ?? []),
-        warnings = List.of(errors ?? []);
-
-  /// Correctness issues discovered by validation.
-  final List<ValidationError> errors;
-
-  /// Possible issues discovered by validation.
-  final List<ValidationError> warnings;
-
-  @override
-  String toString() {
-    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}${warnings.isEmpty ? ', Warnings: ${warnings}' : ''}';
-  }
-
-  /// Whether the [Instance] was valid against its [JsonSchema]
-  bool get isValid => errors.isEmpty;
-}
 
 class ValidationError {
   ValidationError._(this.instancePath, this.schemaPath, this.message);
@@ -190,9 +115,9 @@ class Validator {
   /// This Map keeps track of schemas when a reference is resolved.
   Map<JsonSchema, JsonSchema> _dynamicParents = {};
 
-  Set<_InstanceRefPair> _refsEncountered = {};
+  Set<InstanceRefPair> _refsEncountered = {};
 
-  get evaluatedProperties =>
+  get _evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
 
   @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
@@ -475,8 +400,8 @@ class Validator {
   }
 
   _validateUnevaluatedItems(JsonSchema schema, Instance instance) {
-    final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
+      final actual = instance.data.length;
       if (schema.unevaluatedItems.schemaBool != null) {
         if (schema.unevaluatedItems.schemaBool == false && actual > this._evaluatedItemCount) {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
@@ -505,8 +430,12 @@ class Validator {
     );
     var isValid = v.validate(instance).isValid;
     if (isValid) {
-      _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
-      v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
+      if (this._isInEvaluatedItemContext) {
+        _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
+      }
+      if (this._isInEvaluatedPropertiesContext) {
+        v._evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
+      }
     }
     return isValid;
   }
@@ -518,10 +447,18 @@ class Validator {
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
-    // to properly account for evaluated properties and items.
-    var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance)).toList();
-    if (!results.any((s) => s)) {
+    bool anyOfValid = false;
+    if (!_isInEvaluatedItemsOrPropertiesContext) {
+      anyOfValid = schema.anyOf.any((s) => _validateAndCaptureEvaluations(s, instance));
+    } else {
+      // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
+      // to properly account for evaluated properties and items.
+      anyOfValid = schema.anyOf.fold(false, (previousValue, s) {
+        final result = _validateAndCaptureEvaluations(s, instance);
+        return previousValue || result;
+      });
+    }
+    if (!anyOfValid) {
       // TODO: deal with /anyOf
       _err('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
     }
@@ -548,6 +485,7 @@ class Validator {
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
 
+    // ignore: deprecated_member_use_from_same_package
     final validator = schema.customFormats[schema.format] ?? defaultFormatValidators[schema.format];
 
     if (validator == null) {
@@ -661,7 +599,7 @@ class Validator {
       } else {
         instance.data.forEach((k, v) {
           var i = Instance(v, path: '${instance.path}/$k');
-          if (!this.evaluatedProperties.contains(i)) {
+          if (!this._evaluatedProperties.contains(i)) {
             _validate(schema.unevaluatedProperties, i);
           }
         });
@@ -703,7 +641,7 @@ class Validator {
   /// A helper function to deal with infinite loops at evaluation time.
   /// If we see the same data/ref pair twice, we're in a loop.
   void _withRefScope(Uri refScope, Instance instance, Function() fn) {
-    var irp = _InstanceRefPair(instance.path, refScope);
+    var irp = InstanceRefPair(instance.path, refScope);
     if (!_refsEncountered.add(irp)) {
       // Throw if cycle is detected while evaluating refs.
       throw FormatException('Cycle detected at path: "${refScope}"');
@@ -843,6 +781,8 @@ class Validator {
 
   bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
 
+  bool get _isInEvaluatedItemsOrPropertiesContext => _isInEvaluatedItemContext || _isInEvaluatedPropertiesContext;
+
   _setItemAsEvaluated(int position) {
     if (_isInEvaluatedItemContext) {
       _evaluatedItemsContext.last[position] = true;
@@ -858,14 +798,16 @@ class Validator {
   }
 
   _mergeEvaluatedItems(List<bool> evaluatedItems) {
-    evaluatedItems?.forEachIndexed((index, element) {
-      if (element) {
-        _setItemAsEvaluated(index);
-      }
-    });
+    if (_isInEvaluatedItemContext) {
+      evaluatedItems?.forEachIndexed((index, element) {
+        if (element) {
+          _setItemAsEvaluated(index);
+        }
+      });
+    }
   }
 
-  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.toList()?.length;
+  int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.length;
 
   //////
   // Helper functions to deal with unevaluatedProperties.

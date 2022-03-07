@@ -38,8 +38,6 @@
 //     THE SOFTWARE
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
-import 'package:json_schema/src/json_schema/models/schema_version.dart';
 
 main() async {
   // The meta-schema is pulled in while processing the schema.

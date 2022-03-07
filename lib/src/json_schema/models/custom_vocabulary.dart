@@ -37,7 +37,6 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
 
 /// Use to register a custom vocabulary with the [JsonSchema] compiler.
 ///

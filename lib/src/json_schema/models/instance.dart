@@ -36,41 +36,18 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('vm')
+class Instance {
+  Instance(this.data, {this.path = ''});
 
-import 'dart:convert';
-import 'dart:io';
+  final dynamic data;
+  final String path;
 
-import 'package:json_schema/json_schema.dart';
-import 'package:path/path.dart' as path;
-import 'package:test/test.dart';
+  @override
+  toString() => data.toString();
 
-void main() {
-  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
+  @override
+  bool operator ==(Object other) => other is Instance && this.path == other.path;
 
-  testSuiteFolder.listSync().forEach((testEntry) {
-    final String shortName = path.basename(testEntry.path);
-    group('Invalid schema (draft4): ${shortName}', () {
-      if (testEntry is File) {
-        final List tests = json.decode((testEntry).readAsStringSync());
-        tests.forEach((testObject) {
-          final schemaData = testObject['schema'];
-          final description = testObject['description'];
-
-          test(description, () async {
-            final catchException = expectAsync1((e) {
-              expect(e is FormatException, true);
-            });
-
-            try {
-              await JsonSchema.createAsync(schemaData, schemaVersion: SchemaVersion.draft4);
-              fail('Schema is expected to be invalid, but was not.');
-            } catch (e) {
-              catchException(e);
-            }
-          });
-        });
-      }
-    });
-  });
+  @override
+  int get hashCode => this.path.hashCode;
 }

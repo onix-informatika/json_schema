@@ -36,41 +36,25 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('vm')
+import 'package:json_schema/src/json_schema/json_schema.dart';
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 
-import 'dart:convert';
-import 'dart:io';
+/// Internal class used as a key in a map for tracking resolved references.
+class SchemaPathPair {
+  SchemaPathPair(this.schema, this.path);
 
-import 'package:json_schema/json_schema.dart';
-import 'package:path/path.dart' as path;
-import 'package:test/test.dart';
+  int _hashCode;
 
-void main() {
-  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
+  final JsonSchema schema;
+  final Uri path;
 
-  testSuiteFolder.listSync().forEach((testEntry) {
-    final String shortName = path.basename(testEntry.path);
-    group('Invalid schema (draft4): ${shortName}', () {
-      if (testEntry is File) {
-        final List tests = json.decode((testEntry).readAsStringSync());
-        tests.forEach((testObject) {
-          final schemaData = testObject['schema'];
-          final description = testObject['description'];
+  @override
+  toString() => path.toString();
 
-          test(description, () async {
-            final catchException = expectAsync1((e) {
-              expect(e is FormatException, true);
-            });
+  @override
+  bool operator ==(Object other) =>
+      other is SchemaPathPair && this.schema.hashCode == other.schema.hashCode && this.path == other.path;
 
-            try {
-              await JsonSchema.createAsync(schemaData, schemaVersion: SchemaVersion.draft4);
-              fail('Schema is expected to be invalid, but was not.');
-            } catch (e) {
-              catchException(e);
-            }
-          });
-        });
-      }
-    });
-  });
+  @override
+  int get hashCode => _hashCode ?? (_hashCode = Hasher.hash2(this.schema.hashCode, this.path.hashCode));
 }

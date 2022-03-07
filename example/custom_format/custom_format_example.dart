@@ -37,7 +37,6 @@
 //     THE SOFTWARE.
 
 import 'package:json_schema/json_schema.dart';
-import 'package:json_schema/src/json_schema/models/validation_context.dart';
 
 ValidationContext screamingCapsValidator(ValidationContext context, String instanceData) {
   if (instanceData.toUpperCase() != instanceData) {

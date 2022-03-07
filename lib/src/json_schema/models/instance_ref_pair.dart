@@ -36,41 +36,24 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('vm')
+import 'package:json_schema/src/json_schema/utils/utils.dart';
 
-import 'dart:convert';
-import 'dart:io';
+/// Used for cycle detection when resolving references.
+class InstanceRefPair {
+  InstanceRefPair(this.path, this.ref);
 
-import 'package:json_schema/json_schema.dart';
-import 'package:path/path.dart' as path;
-import 'package:test/test.dart';
+  int _hashCode;
 
-void main() {
-  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
+  final String path;
+  final Uri ref;
 
-  testSuiteFolder.listSync().forEach((testEntry) {
-    final String shortName = path.basename(testEntry.path);
-    group('Invalid schema (draft4): ${shortName}', () {
-      if (testEntry is File) {
-        final List tests = json.decode((testEntry).readAsStringSync());
-        tests.forEach((testObject) {
-          final schemaData = testObject['schema'];
-          final description = testObject['description'];
+  @override
+  toString() => "${ref.toString()}: $path";
 
-          test(description, () async {
-            final catchException = expectAsync1((e) {
-              expect(e is FormatException, true);
-            });
+  @override
+  bool operator ==(Object other) => other is InstanceRefPair && this.hashCode == other.hashCode;
 
-            try {
-              await JsonSchema.createAsync(schemaData, schemaVersion: SchemaVersion.draft4);
-              fail('Schema is expected to be invalid, but was not.');
-            } catch (e) {
-              catchException(e);
-            }
-          });
-        });
-      }
-    });
-  });
+  @override
+  // This can be replaced with Object.hash() once the minimum language version is set to 2.14
+  int get hashCode => _hashCode ?? (_hashCode = Hasher.hash2(this.path.hashCode, this.ref.hashCode));
 }

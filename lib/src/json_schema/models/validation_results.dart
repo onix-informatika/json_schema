@@ -36,41 +36,25 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('vm')
+import 'package:json_schema/src/json_schema/validator.dart';
 
-import 'dart:convert';
-import 'dart:io';
+/// The result of validating data against a schema
+class ValidationResults {
+  ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
+      : errors = List.of(errors ?? []),
+        warnings = List.of(warnings ?? []);
 
-import 'package:json_schema/json_schema.dart';
-import 'package:path/path.dart' as path;
-import 'package:test/test.dart';
+  /// Correctness issues discovered by validation.
+  final List<ValidationError> errors;
 
-void main() {
-  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
+  /// Possible issues discovered by validation.
+  final List<ValidationError> warnings;
 
-  testSuiteFolder.listSync().forEach((testEntry) {
-    final String shortName = path.basename(testEntry.path);
-    group('Invalid schema (draft4): ${shortName}', () {
-      if (testEntry is File) {
-        final List tests = json.decode((testEntry).readAsStringSync());
-        tests.forEach((testObject) {
-          final schemaData = testObject['schema'];
-          final description = testObject['description'];
+  @override
+  String toString() {
+    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}${warnings.isEmpty ? ', Warnings: ${warnings}' : ''}';
+  }
 
-          test(description, () async {
-            final catchException = expectAsync1((e) {
-              expect(e is FormatException, true);
-            });
-
-            try {
-              await JsonSchema.createAsync(schemaData, schemaVersion: SchemaVersion.draft4);
-              fail('Schema is expected to be invalid, but was not.');
-            } catch (e) {
-              catchException(e);
-            }
-          });
-        });
-      }
-    });
-  });
+  /// Whether the [Instance] was valid against its [JsonSchema]
+  bool get isValid => errors.isEmpty;
 }

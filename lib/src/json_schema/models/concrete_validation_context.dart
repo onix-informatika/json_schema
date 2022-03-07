@@ -36,41 +36,27 @@
 //     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //     THE SOFTWARE.
 
-@TestOn('vm')
+import 'package:json_schema/src/json_schema/models/schema_version.dart';
+import 'package:json_schema/src/json_schema/models/validation_context.dart';
 
-import 'dart:convert';
-import 'dart:io';
+class ConcreteValidationContext implements ValidationContext {
+  ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
 
-import 'package:json_schema/json_schema.dart';
-import 'package:path/path.dart' as path;
-import 'package:test/test.dart';
+  final String _instancePath;
+  final String _schemaPath;
+  final void Function(String, String, String) _errFn;
+  final void Function(String, String, String) _warnFn;
 
-void main() {
-  final Directory testSuiteFolder = Directory('./test/custom/invalid_schemas/draft4');
+  @override
+  void addError(String message) {
+    _errFn(message, _instancePath, _schemaPath);
+  }
 
-  testSuiteFolder.listSync().forEach((testEntry) {
-    final String shortName = path.basename(testEntry.path);
-    group('Invalid schema (draft4): ${shortName}', () {
-      if (testEntry is File) {
-        final List tests = json.decode((testEntry).readAsStringSync());
-        tests.forEach((testObject) {
-          final schemaData = testObject['schema'];
-          final description = testObject['description'];
+  @override
+  void addWarning(String message) {
+    _warnFn(message, _instancePath, _schemaPath);
+  }
 
-          test(description, () async {
-            final catchException = expectAsync1((e) {
-              expect(e is FormatException, true);
-            });
-
-            try {
-              await JsonSchema.createAsync(schemaData, schemaVersion: SchemaVersion.draft4);
-              fail('Schema is expected to be invalid, but was not.');
-            } catch (e) {
-              catchException(e);
-            }
-          });
-        });
-      }
-    });
-  });
+  @override
+  final SchemaVersion schemaVersion;
 }
