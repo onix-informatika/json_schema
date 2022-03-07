@@ -1,3 +1,10 @@
+## 4.0.1
+- Performance:
+  - cache calls to `resolvePath`
+  - `JsonSchema.schemaMap` is now truly unmodifiable (was before in practice anyway) and `hashCode` is cached by taking advantage of that.
+- 4.0 Release Mistake:
+  - `Validator.evaluatedProperties` was accidentally made public, pull it back to private.
+
 ## 4.0.0
 
 json_schema 4.0 continues our journey to support additional new versions of the JSON Schema specification (Draft 2019-09 and Draft 2020-12)! Custom vocabulary and format support is also included in this release! In addition to those major features, we have better support for certain built-in formats, as well as improved spec test compliance. 
