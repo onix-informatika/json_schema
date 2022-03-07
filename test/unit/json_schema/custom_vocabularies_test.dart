@@ -38,8 +38,6 @@
 
 import 'package:json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
-import 'package:json_schema/src/json_schema/models/custom_keyword.dart';
-import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/utils/type_validators.dart';
 import 'package:test/test.dart';
 
