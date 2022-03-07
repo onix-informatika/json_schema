@@ -42,7 +42,7 @@ import 'package:json_schema/src/json_schema/validator.dart';
 class ValidationResults {
   ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
       : errors = List.of(errors ?? []),
-        warnings = List.of(errors ?? []);
+        warnings = List.of(warnings ?? []);
 
   /// Correctness issues discovered by validation.
   final List<ValidationError> errors;

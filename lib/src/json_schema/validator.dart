@@ -400,8 +400,8 @@ class Validator {
   }
 
   _validateUnevaluatedItems(JsonSchema schema, Instance instance) {
-    final actual = instance.data.length;
     if (schema.unevaluatedItems != null && schema.additionalItemsBool is! bool) {
+      final actual = instance.data.length;
       if (schema.unevaluatedItems.schemaBool != null) {
         if (schema.unevaluatedItems.schemaBool == false && actual > this._evaluatedItemCount) {
           _err('unevaluatedItems false', instance.path, schema.path + '/unevaluatedItems');
@@ -447,12 +447,17 @@ class Validator {
   }
 
   void _validateAnyOf(JsonSchema schema, Instance instance) {
-    // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
-    // to properly account for evaluated properties and items.
-    final bool anyOfValid = schema.anyOf.fold(false, (previousValue, schema) {
-      final result = _validateAndCaptureEvaluations(schema, instance);
-      return previousValue || result;
-    });
+    bool anyOfValid = false;
+    if (!_isInEvaluatedItemsOrPropertiesContext) {
+      anyOfValid = schema.anyOf.any((s) => _validateAndCaptureEvaluations(s, instance));
+    } else {
+      // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
+      // to properly account for evaluated properties and items.
+      anyOfValid = schema.anyOf.fold(false, (previousValue, s) {
+        final result = _validateAndCaptureEvaluations(s, instance);
+        return previousValue || result;
+      });
+    }
     if (!anyOfValid) {
       // TODO: deal with /anyOf
       _err('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
@@ -775,6 +780,8 @@ class Validator {
   }
 
   bool get _isInEvaluatedItemContext => _evaluatedItemsContext.isNotEmpty;
+
+  bool get _isInEvaluatedItemsOrPropertiesContext => _isInEvaluatedItemContext || _isInEvaluatedPropertiesContext;
 
   _setItemAsEvaluated(int position) {
     if (_isInEvaluatedItemContext) {
