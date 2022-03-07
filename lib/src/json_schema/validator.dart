@@ -430,8 +430,12 @@ class Validator {
     );
     var isValid = v.validate(instance).isValid;
     if (isValid) {
-      _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
-      v.evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
+      if (this._isInEvaluatedItemContext) {
+        _mergeEvaluatedItems(v._evaluatedItemsContext.lastOrNull);
+      }
+      if (this._isInEvaluatedPropertiesContext) {
+        v._evaluatedProperties.forEach((e) => _addEvaluatedProp(e));
+      }
     }
     return isValid;
   }
@@ -476,6 +480,7 @@ class Validator {
     // Non-strings in formats should be ignored.
     if (instance.data is! String) return;
 
+    // ignore: deprecated_member_use_from_same_package
     final validator = schema.customFormats[schema.format] ?? defaultFormatValidators[schema.format];
 
     if (validator == null) {
@@ -786,11 +791,13 @@ class Validator {
   }
 
   _mergeEvaluatedItems(List<bool> evaluatedItems) {
-    evaluatedItems?.forEachIndexed((index, element) {
-      if (element) {
-        _setItemAsEvaluated(index);
-      }
-    });
+    if (_isInEvaluatedItemContext) {
+      evaluatedItems?.forEachIndexed((index, element) {
+        if (element) {
+          _setItemAsEvaluated(index);
+        }
+      });
+    }
   }
 
   int get _evaluatedItemCount => _evaluatedItemsContext.lastOrNull?.where((element) => element)?.length;
