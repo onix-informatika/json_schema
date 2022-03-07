@@ -51,6 +51,7 @@ import 'package:json_schema/src/json_schema/models/schema_version.dart';
 import 'package:json_schema/src/json_schema/models/schema_type.dart';
 import 'package:json_schema/src/json_schema/models/typedefs.dart';
 import 'package:json_schema/src/json_schema/models/validation_context.dart';
+import 'package:json_schema/src/json_schema/models/validation_results.dart';
 
 import 'package:json_schema/src/json_schema/utils/format_exceptions.dart';
 import 'package:json_schema/src/json_schema/utils/type_validators.dart';

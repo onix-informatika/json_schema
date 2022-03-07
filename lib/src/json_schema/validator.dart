@@ -42,75 +42,17 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:json_schema/src/json_schema/formats/validators.dart';
+import 'package:json_schema/src/json_schema/models/concrete_validation_context.dart';
+import 'package:json_schema/src/json_schema/models/instance.dart';
 import 'package:json_schema/src/json_schema/models/instance_ref_pair.dart';
 import 'package:json_schema/src/json_schema/models/schema_version.dart';
-import 'package:json_schema/src/json_schema/models/validation_context.dart';
+import 'package:json_schema/src/json_schema/models/validation_results.dart';
 import 'package:logging/logging.dart';
 
 import 'package:json_schema/src/json_schema/json_schema.dart';
 import 'package:json_schema/src/json_schema/models/schema_type.dart';
-import 'package:json_schema/src/json_schema/utils/utils.dart';
 
 final Logger _logger = Logger('Validator');
-
-class Instance {
-  Instance(this.data, {this.path = ''});
-
-  final dynamic data;
-  final String path;
-
-  @override
-  toString() => data.toString();
-
-  @override
-  bool operator ==(Object other) => other is Instance && this.path == other.path;
-
-  @override
-  int get hashCode => this.path.hashCode;
-}
-
-class ConcreteValidationContext implements ValidationContext {
-  ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
-
-  final String _instancePath;
-  final String _schemaPath;
-  final void Function(String, String, String) _errFn;
-  final void Function(String, String, String) _warnFn;
-
-  @override
-  void addError(String message) {
-    _errFn(message, _instancePath, _schemaPath);
-  }
-
-  @override
-  void addWarning(String message) {
-    _warnFn(message, _instancePath, _schemaPath);
-  }
-
-  @override
-  final SchemaVersion schemaVersion;
-}
-
-/// The result of validating data against a schema
-class ValidationResults {
-  ValidationResults(List<ValidationError> errors, List<ValidationError> warnings)
-      : errors = List.of(errors ?? []),
-        warnings = List.of(errors ?? []);
-
-  /// Correctness issues discovered by validation.
-  final List<ValidationError> errors;
-
-  /// Possible issues discovered by validation.
-  final List<ValidationError> warnings;
-
-  @override
-  String toString() {
-    return '${errors.isEmpty ? 'VALID' : 'INVALID'}${errors.isEmpty ? ', Errors: ${errors}' : ''}${warnings.isEmpty ? ', Warnings: ${warnings}' : ''}';
-  }
-
-  /// Whether the [Instance] was valid against its [JsonSchema]
-  bool get isValid => errors.isEmpty;
-}
 
 class ValidationError {
   ValidationError._(this.instancePath, this.schemaPath, this.message);
@@ -175,7 +117,7 @@ class Validator {
 
   Set<InstanceRefPair> _refsEncountered = {};
 
-  get evaluatedProperties =>
+  get _evaluatedProperties =>
       _evaluatedPropertiesContext.isNotEmpty ? _evaluatedPropertiesContext.last : Set<Instance>();
 
   @Deprecated('4.0, to be removed in 5.0, use validate() instead.')
@@ -503,8 +445,11 @@ class Validator {
   void _validateAnyOf(JsonSchema schema, Instance instance) {
     // `any` will short circuit on the first successful subschema. Each sub-schema needs to be evaluated
     // to properly account for evaluated properties and items.
-    var results = schema.anyOf.map((s) => _validateAndCaptureEvaluations(s, instance));
-    if (!results.any((s) => s)) {
+    final bool anyOfValid = schema.anyOf.fold(false, (previousValue, schema) {
+      final result = _validateAndCaptureEvaluations(schema, instance);
+      return previousValue || result;
+    });
+    if (!anyOfValid) {
       // TODO: deal with /anyOf
       _err('${schema.path}/anyOf: anyOf violated ($instance, ${schema.anyOf})', instance.path, schema.path + '/anyOf');
     }
@@ -644,7 +589,7 @@ class Validator {
       } else {
         instance.data.forEach((k, v) {
           var i = Instance(v, path: '${instance.path}/$k');
-          if (!this.evaluatedProperties.contains(i)) {
+          if (!this._evaluatedProperties.contains(i)) {
             _validate(schema.unevaluatedProperties, i);
           }
         });
