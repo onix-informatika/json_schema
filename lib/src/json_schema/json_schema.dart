@@ -1757,7 +1757,7 @@ class JsonSchema {
   /// Single allowable type for the [JsonSchema].
   ///
   /// Spec: https://tools.ietf.org/html/draft-wright-json-schema-validation-01#section-6.25
-  SchemaType get type => _typeList.length == 1 ? _typeList.single : null;
+  SchemaType get type => _typeList?.length == 1 ? _typeList.single : null;
 
   /// Whether the JSON Schema is write-only.
   ///
