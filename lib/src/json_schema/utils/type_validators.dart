@@ -43,7 +43,7 @@ class TypeValidators {
   }
 
   static List<SchemaType> typeList(String key, Object? value) {
-    List<SchemaType> typeList;
+    List<SchemaType?> typeList;
     if (value is String) {
       typeList = [SchemaType.fromString(value)!];
     } else if (value is List) {
@@ -52,7 +52,7 @@ class TypeValidators {
       throw FormatExceptions.error(
           '$key must be string or array: ${value.runtimeType}');
     }
-    if (!typeList.contains(null)) return typeList;
+    if (!typeList.contains(null)) return typeList as List<SchemaType>;
     throw FormatExceptions.error('$key(s) invalid $value');
   }
 
