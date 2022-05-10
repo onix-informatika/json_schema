@@ -43,11 +43,11 @@ class TypeValidators {
   }
 
   static List<SchemaType> typeList(String key, Object? value) {
-    var typeList;
+    List<SchemaType> typeList;
     if (value is String) {
-      typeList = [SchemaType.fromString(value)];
+      typeList = [SchemaType.fromString(value)!];
     } else if (value is List) {
-      typeList = value.map((v) => SchemaType.fromString(v)).toList();
+      typeList = value.map((v) => SchemaType.fromString(v)!).toList();
     } else {
       throw FormatExceptions.error(
           '$key must be string or array: ${value.runtimeType}');
