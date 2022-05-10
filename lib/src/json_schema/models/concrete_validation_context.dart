@@ -43,9 +43,9 @@ class ConcreteValidationContext implements ValidationContext {
   ConcreteValidationContext(this._instancePath, this._schemaPath, this._errFn, this._warnFn, this.schemaVersion);
 
   final String _instancePath;
-  final String _schemaPath;
-  final void Function(String, String, String) _errFn;
-  final void Function(String, String, String) _warnFn;
+  final String? _schemaPath;
+  final void Function(String, String, String?) _errFn;
+  final void Function(String, String, String?) _warnFn;
 
   @override
   void addError(String message) {
